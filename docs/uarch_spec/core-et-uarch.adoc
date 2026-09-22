@@ -3,7 +3,7 @@
 :toc: left
 :toclevels: 3
 :sectnums:
-:sectnumlevels: 3
+:sectnumlevels: 4
 :sectanchors:
 :sectlinks:
 :xrefstyle: short
@@ -32,3 +32,7 @@
 === Conventions
 
 include::chapters/ch01-et-soc-1-overview.adoc[]
+
+include::chapters/ch02-et-minion-core.adoc[]
+
+include::chapters/ch03-neighborhood.adoc[]

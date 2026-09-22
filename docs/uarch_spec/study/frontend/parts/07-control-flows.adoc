@@ -1,7 +1,7 @@
 [[sec-flows]]
 == Control Flows
 
-Each flow below is traced cycle by cycle. The cycle tables assume that the micro-cache accepts each request at once, answers in F5, and that the other hart does not compete for the request port unless stated.
+Each flow below is traced cycle by cycle. The cycle tables assume that the micro-cache hits, that the Neighborhood accepts each request in its second F1 cycle (the earliest possible), and that no other hart competes for the request port unless stated.
 
 [[sec-flow-enable]]
 === Hart Enable and Disable
@@ -18,12 +18,13 @@ On enable, the fetch PC is loaded with the reset vector and fetch starts in the 
 | N | – | The hart's enable input rises.
 | N+1 | F0 | The registered enable is set and the _hart enabled_ event occurs. The reset vector is loaded into the fetch PC at the end of the cycle. No request yet.
 | N+2 | F0 | The hart requests, is granted, and reserves buffer 1 (both buffers are free).
-| N+3 | F1 | The request is presented to the micro-cache and accepted.
-| N+4 – N+6 | F2–F4 | The token advances.
-| N+7 | F5 | The response arrives. With both buffers empty, the read pointer is set to the starting halfword in buffer 1.
-| N+8 | F6 | The block is written to buffer 1 and the fetch PC moves to the next block. The first instruction is bypassed from the response, expanded, and moves to F7.
-| N+9 | F7 | The instruction is decoded and pushed into the queue; the scheduler selects the hart. The second instruction moves to F7. The next block is requested into buffer 0.
-| N+10 | ID | The first instruction is presented to the integer pipeline.
+| N+3 | F1 | The request is presented to the Neighborhood, which captures it in its per-thread request register.
+| N+4 | F1 | The Neighborhood arbiter grants the request; the Front End request is accepted.
+| N+5 – N+7 | F2–F4 | The token advances.
+| N+8 | F5 | The response arrives. With both buffers empty, the read pointer is set to the starting halfword in buffer 1.
+| N+9 | F6 | The block is written to buffer 1 and the fetch PC moves to the next block. The first instruction is bypassed from the response, expanded, and moves to F7.
+| N+10 | F7 | The instruction is decoded and pushed into the queue; the scheduler selects the hart. The second instruction moves to F7. The next block is requested into buffer 0.
+| N+11 | ID | The first instruction is presented to the integer pipeline.
 |===
 
 Disabling a hart empties its buffers but does not clear its F7 register or its queue. The scheduler stops selecting the hart because it is no longer awake.
@@ -41,7 +42,7 @@ In the redirect cycle, for that hart only:
 * the F7 register and the queue are emptied;
 * no request is made, and the hart is not offered to the scheduler.
 
-In the following cycle the hart requests the target block as usual, so the first target instruction reaches ID nine cycles after the redirect. The first block may start mid-block; the pointer starts at the target halfword (<<sec-extract-start>>).
+In the following cycle the hart requests the target block as usual, so the first target instruction reaches ID ten cycles after the redirect. The first block may start mid-block; the pointer starts at the target halfword (<<sec-extract-start>>).
 
 [[sec-flow-miss]]
 === Micro-Cache Miss and Refill

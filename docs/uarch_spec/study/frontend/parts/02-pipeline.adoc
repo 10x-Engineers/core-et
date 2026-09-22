@@ -22,21 +22,21 @@ image::fig-fe-pipeline.png[Front End pipeline,width=100%,align=center]
 
 === Latency and Throughput
 
-These figures follow from the stage structure when the micro-cache accepts each request at once and hits.
+These figures assume L0 hits and no competing requests. The Neighborhood captures each request in a per-thread register before its 8:1 arbiter, so a request is accepted no earlier than its second F1 cycle.
 
 [cols="3,1,4",options="header"]
 |===
 | Path | Cycles | Notes
 
-| Request in F0 to first instruction in ID | 8 | F0 → F1 → F2 → F3 → F4 → F5 → F6 (write and bypass) → F7 → ID.
-| Hart enable to first instruction in ID | 10 | The enable is registered, then the reset PC is loaded, then the first request issues (<<sec-flow-enable>>).
-| Redirect to first target instruction in ID | 9 | No request in the redirect cycle; the target is requested in the next cycle.
-| Interval between requests of one hart | 7 (minimum) | A new request waits until the previous one has left F6.
+| Request in F0 to first instruction in ID | 9 | F0 → F1 (two cycles) → F2 → F3 → F4 → F5 → F6 (write and bypass) → F7 → ID.
+| Hart enable to first instruction in ID | 11 | The enable is registered, then the reset PC is loaded, then the first request issues (<<sec-flow-enable>>).
+| Redirect to first target instruction in ID | 10 | No request in the redirect cycle; the target is requested in the next cycle.
+| Interval between requests of one hart | 8 (minimum) | A new request waits until the previous one has left F6.
 | Instructions extracted per hart | 1 per cycle | In F6.
 | Instructions presented in ID | 1 per cycle | For the whole core, from one hart.
 |===
 
-One 32-byte block holds eight 32-bit instructions, or up to sixteen compressed ones. A hart that receives one block every seven cycles therefore gets more instructions than the single ID slot can take, once both harts share it.
+One 32-byte block holds eight 32-bit instructions, or up to sixteen compressed ones. A hart that receives one block every eight cycles therefore gets more instructions than the single ID slot can take, once both harts share it.
 
 === Stall and Flush Points
 

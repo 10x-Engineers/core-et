@@ -484,6 +484,174 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
+<li><a href="#ch-et-minion-core">2. ET-Minion Core</a>
+<ul class="sectlevel2">
+<li><a href="#sec-ch2-overview">2.1. Core Overview</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch2-partitioning">2.1.1. Block Partitioning</a></li>
+<li><a href="#sec-ch2-threads">2.1.2. Hardware Threads</a></li>
+<li><a href="#sec-ch2-inst-flow">2.1.3. Instruction Flow Through the Core</a></li>
+<li><a href="#sec-ch2-nbr-if">2.1.4. Interfaces to the Neighborhood</a></li>
+<li><a href="#sec-ch2-clk-rst">2.1.5. Clocks, Resets and Power</a></li>
+<li><a href="#sec-ch2-debug">2.1.6. Debug Support</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch2-fe">2.2. Front End</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch2-fe-overview">2.2.1. Overview</a></li>
+<li><a href="#sec-ch2-fe-if">2.2.2. Interface</a></li>
+<li><a href="#sec-ch2-fe-pipeline">2.2.3. Pipeline Stages</a></li>
+<li><a href="#sec-ch2-fe-l0">2.2.4. Interaction with the L0 Micro-Cache</a></li>
+<li><a href="#sec-ch2-fe-tb">2.2.5. Thread Buffer</a></li>
+<li><a href="#sec-ch2-fe-inval">2.2.6. Entry Invalidation, Redirect and Thread Start</a></li>
+<li><a href="#sec-ch2-fe-decode">2.2.7. Decoders</a></li>
+<li><a href="#sec-ch2-fe-fifo">2.2.8. Instruction FIFO</a></li>
+<li><a href="#sec-ch2-fe-sched">2.2.9. Thread Scheduler</a></li>
+<li><a href="#sec-ch2-fe-debug">2.2.10. Halt and Debug Program Buffer</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch2-ip">2.3. Integer Pipeline</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch2-ip-overview">2.3.1. Overview</a></li>
+<li><a href="#sec-ch2-ip-stages">2.3.2. Pipeline Stages</a></li>
+<li><a href="#sec-ch2-ip-if">2.3.3. Interfaces</a></li>
+<li><a href="#sec-ch2-ip-rf">2.3.4. Register File and Operand Read</a></li>
+<li><a href="#sec-ch2-ip-alu">2.3.5. Immediate Generation and ALU</a></li>
+<li><a href="#sec-ch2-ip-muldiv">2.3.6. Multiply/Divide Unit</a></li>
+<li><a href="#sec-ch2-ip-hazards">2.3.7. Scoreboards and Hazards</a></li>
+<li><a href="#sec-ch2-ip-threads">2.3.8. Hart Interleaving and Stalls</a></li>
+<li><a href="#sec-ch2-ip-redirect">2.3.9. Branches, Redirects and Replay</a></li>
+<li><a href="#sec-ch2-ip-dcache-if">2.3.10. Interface to the Data Cache</a></li>
+<li><a href="#sec-ch2-ip-vpu-if">2.3.11. Interface to the VPU</a></li>
+<li><a href="#sec-ch2-ip-csr">2.3.12. CSRs and Privilege Modes</a></li>
+<li><a href="#sec-ch2-ip-xcpt">2.3.13. Exceptions and Interrupts</a></li>
+<li><a href="#sec-ch2-ip-debug">2.3.14. Debug and Breakpoints</a></li>
+<li><a href="#sec-ch2-ip-pmu">2.3.15. Performance Counters</a></li>
+<li><a href="#sec-ch2-ip-verif">2.3.16. Verification Notes</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch2-dc">2.4. Data Cache</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch2-dc-overview">2.4.1. Overview</a></li>
+<li><a href="#sec-ch2-dc-org">2.4.2. Organization and Operating Modes</a></li>
+<li><a href="#sec-ch2-dc-if">2.4.3. Interfaces</a></li>
+<li><a href="#sec-ch2-dc-pipe">2.4.4. Request Pipeline</a></li>
+<li><a href="#sec-ch2-dc-xlate">2.4.5. Address Translation and PMA Checks</a></li>
+<li><a href="#sec-ch2-dc-arrays">2.4.6. Tag, Data and LRU Arrays</a></li>
+<li><a href="#sec-ch2-dc-miss">2.4.7. Miss Handling</a></li>
+<li><a href="#sec-ch2-dc-replay">2.4.8. Replay Queue</a></li>
+<li><a href="#sec-ch2-dc-wb">2.4.9. Writeback and Store Merge</a></li>
+<li><a href="#sec-ch2-dc-amo">2.4.10. Atomic Operations</a></li>
+<li><a href="#sec-ch2-dc-cmo">2.4.11. Cache-Management Operations</a></li>
+<li><a href="#sec-ch2-dc-spad">2.4.12. Scratchpad Control</a></li>
+<li><a href="#sec-ch2-dc-tensor">2.4.13. Tensor Load and Reduce</a></li>
+<li><a href="#sec-ch2-dc-nbr-if">2.4.14. Interface to the Neighborhood</a></li>
+<li><a href="#sec-ch2-dc-errors">2.4.15. Errors</a></li>
+<li><a href="#sec-ch2-dc-perf">2.4.16. Performance</a></li>
+<li><a href="#sec-ch2-dc-verif">2.4.17. Verification Notes</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch2-vpu">2.5. Vector Processing Unit</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch2-vpu-overview">2.5.1. Overview</a></li>
+<li><a href="#sec-ch2-vpu-if">2.5.2. Interfaces</a></li>
+<li><a href="#sec-ch2-vpu-ctrl">2.5.3. Control and Micro-Instruction Decode</a></li>
+<li><a href="#sec-ch2-vpu-rf">2.5.4. Register Files</a></li>
+<li><a href="#sec-ch2-vpu-lanes">2.5.5. Lanes</a></li>
+<li><a href="#sec-ch2-vpu-mask">2.5.6. Mask Unit</a></li>
+<li><a href="#sec-ch2-vpu-bypass">2.5.7. Bypass Network</a></li>
+<li><a href="#sec-ch2-vpu-shsw">2.5.8. Shift and Swizzle Unit</a></li>
+<li><a href="#sec-ch2-vpu-txfma">2.5.9. TxFMA Unit</a></li>
+<li><a href="#sec-ch2-vpu-tima">2.5.10. Integer Multiply-Accumulate Unit</a></li>
+<li><a href="#sec-ch2-vpu-trans">2.5.11. Transcendental Unit</a></li>
+<li><a href="#sec-ch2-vpu-tensor">2.5.12. Tensor Operations</a></li>
+<li><a href="#sec-ch2-vpu-core-if">2.5.13. Interfaces to the Integer Pipeline and Data Cache</a></li>
+<li><a href="#sec-ch2-vpu-perf">2.5.14. Performance</a></li>
+<li><a href="#sec-ch2-vpu-verif">2.5.15. Verification Notes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#ch-neighborhood">3. Neighborhood</a>
+<ul class="sectlevel2">
+<li><a href="#sec-ch3-overview">3.1. Neighborhood Overview</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch3-partitioning">3.1.1. Partitioning</a></li>
+<li><a href="#sec-ch3-shared">3.1.2. Shared Resources and Core Connections</a></li>
+<li><a href="#sec-ch3-voltage">3.1.3. Voltage-Domain Crossings</a></li>
+<li><a href="#sec-ch3-ext-if">3.1.4. External Interfaces</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch3-fe-ic">3.2. Front End – I-Cache Interface</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch3-fe-ic-overview">3.2.1. Overview</a></li>
+<li><a href="#sec-ch3-fe-ic-signals">3.2.2. Interface Signals</a></li>
+<li><a href="#sec-ch3-fe-ic-arb">3.2.3. Request Arbitration</a></li>
+<li><a href="#sec-ch3-fe-ic-timing">3.2.4. Request and Response Timing</a></li>
+<li><a href="#sec-ch3-fe-ic-miss">3.2.5. Miss, Sleep and Fill-Done Protocol</a></li>
+<li><a href="#sec-ch3-fe-ic-errors">3.2.6. Fault and Error Reporting</a></li>
+<li><a href="#sec-ch3-fe-ic-livelock">3.2.7. Livelock Avoidance</a></li>
+<li><a href="#sec-ch3-fe-ic-limits">3.2.8. Known Limitations</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch3-l0">3.3. L0 Micro-Cache</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch3-l0-overview">3.3.1. Overview</a></li>
+<li><a href="#sec-ch3-l0-blocks">3.3.2. Internal Blocks</a></li>
+<li><a href="#sec-ch3-l0-pipeline">3.3.3. Pipeline Stages</a></li>
+<li><a href="#sec-ch3-l0-tlb">3.3.4. Instruction TLB</a></li>
+<li><a href="#sec-ch3-l0-tags-data">3.3.5. Micro-Tag and Micro-Data Arrays</a></li>
+<li><a href="#sec-ch3-l0-pma">3.3.6. PMA Check</a></li>
+<li><a href="#sec-ch3-l0-lru">3.3.7. Replacement</a></li>
+<li><a href="#sec-ch3-l0-miss">3.3.8. Miss Handling</a></li>
+<li><a href="#sec-ch3-l0-bypass">3.3.9. L1 Bypass</a></li>
+<li><a href="#sec-ch3-l0-prefetch">3.3.10. Software Prefetch</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch3-l1">3.4. L1 Instruction Cache</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch3-l1-overview">3.4.1. Overview</a></li>
+<li><a href="#sec-ch3-l1-org">3.4.2. Organization</a></li>
+<li><a href="#sec-ch3-l1-arrays">3.4.3. Tag, LRU and Data Arrays</a></li>
+<li><a href="#sec-ch3-l1-ram">3.4.4. External Data RAM</a></li>
+<li><a href="#sec-ch3-l1-arb">3.4.5. Request Arbitration Between L0 Micro-Caches</a></li>
+<li><a href="#sec-ch3-l1-miss">3.4.6. Miss Path</a></li>
+<li><a href="#sec-ch3-l1-errors">3.4.7. Errors and ECC</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch3-ptw">3.5. Shared Page-Table Walker</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch3-ptw-clients">3.5.1. Clients and Arbitration</a></li>
+<li><a href="#sec-ch3-ptw-walk">3.5.2. Walk Sequence and Page Sizes</a></li>
+<li><a href="#sec-ch3-ptw-cache">3.5.3. PTE Cache and Invalidation</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch3-mem">3.6. Memory Request and Response Path</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch3-mem-fifos">3.6.1. Miss, Evict and Fill FIFOs</a></li>
+<li><a href="#sec-ch3-mem-arb">3.6.2. Request Arbitration</a></li>
+<li><a href="#sec-ch3-mem-resp">3.6.3. Response Routing and Backpressure</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch3-tensor">3.7. Tensor Support</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch3-tensor-coop">3.7.1. Cooperative Tensor Load</a></li>
+<li><a href="#sec-ch3-tensor-tsb">3.7.2. Tensor Store Buffer</a></li>
+<li><a href="#sec-ch3-tensor-tbox">3.7.3. TBOX Router</a></li>
+</ul>
+</li>
+<li><a href="#sec-ch3-sync">3.8. Synchronization, Messaging, Registers and PMU</a>
+<ul class="sectlevel3">
+<li><a href="#sec-ch3-flb">3.8.1. Fast Local Barrier</a></li>
+<li><a href="#sec-ch3-lmn">3.8.2. Local Message Network</a></li>
+<li><a href="#sec-ch3-ipi">3.8.3. IPI and FCC Paths</a></li>
+<li><a href="#sec-ch3-esr">3.8.4. Neighborhood Registers and APB Access</a></li>
+<li><a href="#sec-ch3-dbg">3.8.5. Debug Channel</a></li>
+<li><a href="#sec-ch3-pmu">3.8.6. Performance Monitoring Unit</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -985,10 +1153,2026 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="ch-et-minion-core"><a class="anchor" href="#ch-et-minion-core"></a><a class="link" href="#ch-et-minion-core">2. ET-Minion Core</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="sec-ch2-overview"><a class="anchor" href="#sec-ch2-overview"></a><a class="link" href="#sec-ch2-overview">2.1. Core Overview</a></h3>
+<div class="sect3">
+<h4 id="sec-ch2-partitioning"><a class="anchor" href="#sec-ch2-partitioning"></a><a class="link" href="#sec-ch2-partitioning">2.1.1. Block Partitioning</a></h4>
+<div class="paragraph">
+<p><em>Figure: ET-Minion core block diagram.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-threads"><a class="anchor" href="#sec-ch2-threads"></a><a class="link" href="#sec-ch2-threads">2.1.2. Hardware Threads</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-inst-flow"><a class="anchor" href="#sec-ch2-inst-flow"></a><a class="link" href="#sec-ch2-inst-flow">2.1.3. Instruction Flow Through the Core</a></h4>
+<div class="paragraph">
+<p>The Front End fetches instructions for both threads from the Neighborhood L0 micro-cache, expands compressed instructions, decodes them, and presents one instruction per cycle to ID, the first stage of the integer pipeline. The integer pipeline executes the instructions in order and passes memory operations to the data cache and vector operations to the VPU. In the opposite direction, the integer pipeline redirects the Front End to a new fetch address after a branch misprediction, exception or other change of control flow, and stalls a thread that must not issue.</p>
+</div>
+<div id="fig-ch2-fe-in-core" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/fig-fe-in-core.png" alt="Front End in the ET-Minion core" width="60%">
+</div>
+<div class="title">Figure 7. Front End in the ET-Minion core</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-nbr-if"><a class="anchor" href="#sec-ch2-nbr-if"></a><a class="link" href="#sec-ch2-nbr-if">2.1.4. Interfaces to the Neighborhood</a></h4>
+<div class="paragraph">
+<p><em>Table: ET-Minion core interface groups.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-clk-rst"><a class="anchor" href="#sec-ch2-clk-rst"></a><a class="link" href="#sec-ch2-clk-rst">2.1.5. Clocks, Resets and Power</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-debug"><a class="anchor" href="#sec-ch2-debug"></a><a class="link" href="#sec-ch2-debug">2.1.6. Debug Support</a></h4>
+
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch2-fe"><a class="anchor" href="#sec-ch2-fe"></a><a class="link" href="#sec-ch2-fe">2.2. Front End</a></h3>
+<div class="sect3">
+<h4 id="sec-ch2-fe-overview"><a class="anchor" href="#sec-ch2-fe-overview"></a><a class="link" href="#sec-ch2-fe-overview">2.2.1. Overview</a></h4>
+<div class="paragraph">
+<p>The Front End is the interface between the Neighborhood L0 micro-cache and the integer pipeline. It holds the program counter of each thread, fetches instructions from the L0 micro-cache, and delivers them, expanded and decoded, to the ID stage of the integer pipeline at a rate of one instruction per cycle. It serves both threads of the core, and restarts fetch at a new address when the integer pipeline redirects a thread.</p>
+</div>
+<div class="paragraph">
+<p>To hide the latency of the L0 micro-cache, which is shared by four ET-Minion cores, each thread uses a double buffer of two 256-bit entries, each holding half a cache line. A new block can therefore be requested while the thread consumes the instructions already received. Each entry has a dedicated register that holds the address of its block.</p>
+</div>
+<div class="paragraph">
+<p><a href="#tab-ch2-fe-submodules">Table 3</a> lists the submodules and <a href="#fig-ch2-fe-top">Figure 8</a> shows how they are connected.</p>
+</div>
+<table id="tab-ch2-fe-submodules" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 3. Front End submodules</caption>
+<colgroup>
+<col style="width: 27.2727%;">
+<col style="width: 18.1818%;">
+<col style="width: 54.5455%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Submodule</th>
+<th class="tableblock halign-left valign-top">Instances</th>
+<th class="tableblock halign-left valign-top">Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread buffer (<code>frontend_thread_buffer</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2, one per thread</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">64-byte instruction buffer and the thread&#8217;s program counter. Issues fetch requests to the L0 micro-cache.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">RVC expander (<code>frontend_rvc_expander</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2, one per thread buffer</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Expands compressed (RVC) instructions to 32 bits.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request arbiter (<code>arb_lru_data</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2:1 LRU arbiter. Selects the thread whose fetch request is sent to the L0 micro-cache.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Integer decoder (<code>intpipe_decode</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Decodes the instruction into integer-pipeline control signals.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VPU decoder (<code>vpu_decoder</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Decodes the instruction into VPU control signals.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction FIFO</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2, one per thread</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Two-entry queue of decoded instructions waiting for the integer pipeline.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread scheduler (<code>frontend_thread_sched</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Selects the thread whose instruction is presented to the integer pipeline.</p></td>
+</tr>
+</tbody>
+</table>
+<div id="fig-ch2-fe-top" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/fig-fe-top-blocks.png" alt="Front End block diagram" width="75%">
+</div>
+<div class="title">Figure 8. Front End block diagram</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-fe-if"><a class="anchor" href="#sec-ch2-fe-if"></a><a class="link" href="#sec-ch2-fe-if">2.2.2. Interface</a></h4>
+<div class="sect4">
+<h5 id="sec-ch2-fe-ports"><a class="anchor" href="#sec-ch2-fe-ports"></a><a class="link" href="#sec-ch2-fe-ports">2.2.2.1. I/O Signals</a></h5>
+<div class="paragraph">
+<p><a href="#tab-ch2-fe-ports">Table 4</a> lists the ports of <code>frontend_top</code>. <em>Connected to</em> gives the signal in <code>core_top</code>. A width of 2 denotes one bit per thread.</p>
+</div>
+<table id="tab-ch2-fe-ports" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 4. Front End I/O signals</caption>
+<colgroup>
+<col style="width: 26.3157%;">
+<col style="width: 5.2631%;">
+<col style="width: 15.7894%;">
+<col style="width: 21.0526%;">
+<col style="width: 31.5792%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Signal</th>
+<th class="tableblock halign-left valign-top">Dir</th>
+<th class="tableblock halign-left valign-top">Width / type</th>
+<th class="tableblock halign-left valign-top">Connected to</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">System</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>clock</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>clock</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Core clock. Each thread buffer derives a gated clock from it.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset_w</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Warm reset. Synchronous.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset_debug</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset_d</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Debug reset. Clears the program-buffer control and, while the thread is halted, refills the program buffer with <code>EBREAK</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>chicken_bit</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>chicken_bit_frontend</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Disables Front End clock gating. Driven by the <code>min_frontend_clock_gate_disable</code> chicken bit.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Thread control</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_thread_enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread enable. A rising edge starts fetch at the reset vector; a falling edge stops fetch.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_reset_vector</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">48</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset_vector</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch address after reset or thread enable.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 × <code>minion_vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual-memory status of each thread, forwarded with every fetch request.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Fetch request to the L0 micro-cache</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f1_icache_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The F1 request register holds a request.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f1_icache_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>frontend_icache_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch request: thread, VM status and address.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f1_icache_req_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_req_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The Neighborhood accepts the request in this cycle.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Fetch response from the L0 micro-cache</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_icache_resp_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_resp_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A response is present. It carries no thread identifier.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_icache_resp_miss</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_resp_miss</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The response is a miss and carries no instruction data.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_icache_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_frontend_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32-byte block and status.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f6_icache_fill_done</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_fill_done</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The L0 micro-cache has completed a line or translation fill.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Redirect and stall from the integer pipeline</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_core_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect. Flushes the thread and restarts fetch at <code>f0_core_req.pc</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_core_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 × <code>minion_fe_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect PC, speculation status and debug-mode transition.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_stall</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_stall</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread must not issue. Raised for <code>WFI</code>, a fence, exclusive mode held by the other thread, and integer or FP scoreboard stalls.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Instruction to the integer pipeline (ID)</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_inst_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_fe_core_resp_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An instruction is presented.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_inst_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_resp_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The integer pipeline accepts the instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_inst_thread_id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_fe_core_resp_thread_id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread of the instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_inst_data</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>frontend_core_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_fe_core_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction, PC and fetch status.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_intpipe_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_control</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_intpipe_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Integer decode.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_vpu_decoder_sigs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vpu_ctrl_sigs_t</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_vpu_decoder_sigs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VPU decode. Valid only for VPU instructions.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_vpu_core_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vpu_minion_id_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_frontend_vpu_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VPU and mask register usage, for hazard checks in the integer pipeline.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Debug</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>halt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_in_core.halt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A halt request is pending.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>halted</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_out.halted</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The thread is in debug mode.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_wdata</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">64</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_wdata</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Program-buffer write data.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_en</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_en</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Program-buffer word write enables.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_thread_sel</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_thread_sel</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread whose program buffer is written.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_exec</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ex_program_buffer</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Start executing the program buffer.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-structs"><a class="anchor" href="#sec-ch2-fe-structs"></a><a class="link" href="#sec-ch2-fe-structs">2.2.2.2. Data Structures</a></h5>
+<table id="tab-ch2-fe-icache-req" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 5. <code>frontend_icache_req</code>: fetch request (58 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>thread_id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Requesting thread.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual-memory status of the thread (<a href="#tab-ch2-fe-vm-status">Table 6</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>addr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">49</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch address. The L0 micro-cache returns the aligned 32-byte block that contains it.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Front End addresses are 49 bits wide: the 48-bit virtual address and one additional bit that allows a non-canonical 64-bit address to be represented.</p>
+</div>
+<table id="tab-ch2-fe-vm-status" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 6. <code>minion_vm_status</code>: virtual-memory status (8 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>prv</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Current privilege level.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mprv</code>, <code>mpp</code>, <code>sum</code>, <code>mxr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1, 2, 1, 1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Corresponding <code>mstatus</code> fields.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread is in debug mode.</p></td>
+</tr>
+</tbody>
+</table>
+<table id="tab-ch2-fe-icache-resp" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 7. <code>icache_frontend_resp</code>: fetch response (261 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>data</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">256</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32-byte instruction block.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>page_fault</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction page fault.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>access_fault</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction access fault.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>cacheable</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Block is in a cacheable region.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bus_err</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bus error on the line.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ecc_err</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ECC error on the line.</p></td>
+</tr>
+</tbody>
+</table>
+<table id="tab-ch2-fe-fe-req" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 8. <code>minion_fe_req</code>: redirect (52 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pc</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">49</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">New fetch PC.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>speculative</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread has older instructions in the integer pipeline. Driven every cycle, independently of <code>f0_core_req_valid</code>. Used for replay (<a href="#sec-ch2-fe-status">Section 2.2.5.6</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_info.halt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect enters debug mode.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_info.resume</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect leaves debug mode.</p></td>
+</tr>
+</tbody>
+</table>
+<table id="tab-ch2-fe-core-resp" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 9. <code>frontend_core_resp</code>: instruction to the integer pipeline (89 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pc</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">49</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PC of the instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>inst_bits</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction. Compressed instructions are delivered expanded.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pf0</code>, <code>af0</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page fault / access fault on the entry holding the start of the instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pf1</code>, <code>af1</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page fault / access fault on the entry holding the upper half of an instruction that crosses entries.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>replay</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction must be replayed.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>rvc</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction was compressed.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bus_error</code>, <code>ecc_error</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bus error / ECC error on the entry or entries holding the instruction.</p></td>
+</tr>
+</tbody>
+</table>
+<table id="tab-ch2-fe-thread-data" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 10. <code>frontend_thread_data</code>: instruction FIFO entry (179 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>core_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">89</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction and fetch status (<a href="#tab-ch2-fe-core-resp">Table 9</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vpu_ctrl_sigs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">45</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VPU decode (<code>vpu_ctrl_sigs_t</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>intpipe_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">45</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Integer decode (<code>minion_control</code>).</p></td>
+</tr>
+</tbody>
+</table>
+<table id="tab-ch2-fe-decode-words" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 11. Decoded control words</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Structure</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_control</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">45</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Legal instruction; software-emulated (M-code) instruction; branch, <code>JAL</code>, <code>JALR</code>; integer source reads and destination write; ALU operand selects, function and width; immediate format; memory operation, command and size; FP/VPU destination write; mask register read/write; multiply/divide; CSR command; fence; global memory access; gather/scatter; graphics; implicit use of <code>x31</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vpu_ctrl_sigs_t</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">45</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VPU function; execution unit (TxFMA, shift/swizzle, transcendental ROM); conversion and load/store type; source, third-source and destination reads and write; mask register reads; operand swaps; scalar or packed; data type; integer-register transfer; rounding; FP flag update.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-params"><a class="anchor" href="#sec-ch2-fe-params"></a><a class="link" href="#sec-ch2-fe-params">2.2.2.3. Configuration Parameters</a></h5>
+<table id="tab-ch2-fe-params" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 12. Front End configuration parameters</caption>
+<colgroup>
+<col style="width: 37.5%;">
+<col style="width: 12.5%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Define</th>
+<th class="tableblock halign-left valign-top">Value</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CORE_NR_THREADS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Threads per core.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>FE_FETCH_BUFFERS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread-buffer entries per thread.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>FE_FETCH_READ_SIZE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">256</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bits per fetch block and per entry.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>FE_FETCH_PTR_SIZE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Read-pointer width: 1 entry bit and 4 halfword bits.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PC_SIZE_EXT</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">49</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Front End PC width.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-fe-pipeline"><a class="anchor" href="#sec-ch2-fe-pipeline"></a><a class="link" href="#sec-ch2-fe-pipeline">2.2.3. Pipeline Stages</a></h4>
+<div class="paragraph">
+<p>The Front End pipeline has eight stages, F0 to F7 (<a href="#fig-ch2-fe-pipeline">Figure 9</a>). Stages F1 to F5 overlap the L0 micro-cache pipeline.</p>
+</div>
+<div id="fig-ch2-fe-pipeline" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/fig-fe-pipeline.png" alt="Front End pipeline" width="100%">
+</div>
+<div class="title">Figure 9. Front End pipeline</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">F0 Stage</dt>
+<dd>
+<p>The F0 stage receives instruction-block requests from both thread buffers and decides which one gets access to the L0 micro-cache using a 2:1 LRU arbiter. The selected request is registered and sent to the L0 micro-cache through the Neighborhood interface. This stage also handles the enabling and disabling of threads and redirect requests from the integer pipeline, for example the new address after a mispredicted branch.</p>
+</dd>
+<dt class="hdlist1">F1–F5 Stage</dt>
+<dd>
+<p>The selected request is held in F1 until the L0 micro-cache accepts it, which happens at the earliest in the second F1 cycle. The thread then waits for the response. The L0 micro-cache has a fixed five-cycle latency, whether the request is a hit or a miss: counting the cycle in which it accepts the request as the first cycle, the response is returned in the fifth cycle, in F5 (<a href="#fig-ch2-fe-td-hit">Figure 11</a>).</p>
+</dd>
+<dt class="hdlist1">F6 Stage</dt>
+<dd>
+<p>The response from the L0 micro-cache is checked. If it is a hit, the instruction block is stored in the buffer of the thread that issued the request. If it is a miss, nothing is stored, and the thread waits for the cache to be filled. Instruction reading is independent of the fetch request: whenever a buffer entry holds instructions, the thread reads its next instruction, expands it if it is compressed, and passes it on for decoding, in parallel with any request in F0 to F5.</p>
+</dd>
+<dt class="hdlist1">F7 Stage</dt>
+<dd>
+<p>This stage selects which thread&#8217;s instruction is read from its buffer. The selected instruction is decoded and stored, along with its control signals, in that thread&#8217;s FIFO. The thread scheduler decides which thread&#8217;s FIFO issues an instruction to the integer pipeline in the next cycle. If both threads are eligible, they are selected in round-robin order; otherwise, the eligible thread is selected.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>With an L0 hit and no competing requests, the first instruction of a block reaches ID nine cycles after its request is issued in F0.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-fe-l0"><a class="anchor" href="#sec-ch2-fe-l0"></a><a class="link" href="#sec-ch2-fe-l0">2.2.4. Interaction with the L0 Micro-Cache</a></h4>
+<div class="paragraph">
+<p>Each L0 micro-cache serves the eight threads of four ET-Minion cores. <a href="#fig-ch2-fe-l0-path">Figure 10</a> shows the request and response path of one core. This section describes the interface from the Front End side; the Neighborhood side is described in <a href="#sec-ch3-fe-ic">Section 3.2</a>.</p>
+</div>
+<div id="fig-ch2-fe-l0-path" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/fig-fe-l0-path.png" alt="Front End to L0 micro-cache request and response path" width="100%">
+</div>
+<div class="title">Figure 10. Front End to L0 micro-cache request and response path</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-arb"><a class="anchor" href="#sec-ch2-fe-arb"></a><a class="link" href="#sec-ch2-fe-arb">2.2.4.1. Request Arbitration and Acceptance</a></h5>
+<div class="paragraph">
+<p>A fetch request passes through the following steps:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>2:1 LRU arbiter, F0.</strong> Selects between the two threads of the core. With two clients the grant alternates when both threads request. The priority is updated on every grant.</p>
+</li>
+<li>
+<p><strong>F1 request register.</strong> Holds the granted request on <code>f1_icache_req</code> until the Neighborhood accepts it with <code>f1_icache_req_ready</code>. The register accepts a new request when it is empty or its current request is accepted in the same cycle; otherwise the 2:1 arbiter issues no grant.</p>
+</li>
+<li>
+<p><strong>8:1 LRU arbiter, Neighborhood.</strong> The request is first captured in a per-thread request register, then arbitrated against the other seven threads served by the same L0 micro-cache. The grant of this arbiter is returned as <code>f1_icache_req_ready</code>. Because of the capture register, a request is accepted at the earliest in its second F1 cycle.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-track"><a class="anchor" href="#sec-ch2-fe-track"></a><a class="link" href="#sec-ch2-fe-track">2.2.4.2. Response Timing and Ownership</a></h5>
+<div class="paragraph">
+<p>The L0 micro-cache has a five-stage pipeline and returns exactly one response per accepted request, from its last stage, for a hit and for a miss alike. The response reaches the Front End in F5, four cycles after acceptance; with the earliest acceptance this is five cycles after the request enters F1.</p>
+</div>
+<div class="paragraph">
+<p>The response carries no thread identifier. Each thread buffer identifies its responses by position in time: when its request is granted, the thread inserts a token (a valid bit and the reserved entry number) into its own F1–F6 tracker. The token remains in F1 until the request is accepted and then advances one stage per cycle. A response registered in F6 together with a valid token belongs to that thread, and the token selects the entry to be written. The response and fill-done signals are registered in <code>frontend_top</code> and broadcast to both thread buffers.</p>
+</div>
+<div id="fig-ch2-fe-td-hit" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/td-fe-hit.png" alt="Request and hit response" width="100%">
+</div>
+<div class="title">Figure 11. Request and hit response</div>
+</div>
+<div class="paragraph">
+<p>In <a href="#fig-ch2-fe-td-hit">Figure 11</a> the request is issued in cycle 1, accepted in cycle 3, and the block returns in cycle 7. It is written in cycle 8; the first instruction is in F7 in cycle 9 and in ID in cycle 10.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-miss"><a class="anchor" href="#sec-ch2-fe-miss"></a><a class="link" href="#sec-ch2-fe-miss">2.2.4.3. Miss Handling and Fill Done</a></h5>
+<div class="paragraph">
+<p>A miss response has the same timing as a hit and carries no data. On a miss the thread writes nothing, keeps its fetch PC and enters a sleep state (<code>f0_miss_pending</code>) in which it issues no requests.</p>
+</div>
+<div class="paragraph">
+<p>On completion of a line fill from the L1 instruction cache, or of a translation fill, the L0 micro-cache pulses <code>f6_icache_fill_done</code>. The signal is broadcast to all threads of the L0 micro-cache and carries no address. Every sleeping thread wakes and retries; a thread whose line is still absent misses again and sleeps until the next fill. A redirect, a thread disable or a pending halt also clears the sleep state.</p>
+</div>
+<div id="fig-ch2-fe-td-miss" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/td-fe-miss.png" alt="Miss, sleep and retry" width="100%">
+</div>
+<div class="title">Figure 12. Miss, sleep and retry</div>
+</div>
+<div class="paragraph">
+<p>In <a href="#fig-ch2-fe-td-miss">Figure 12</a> the miss response arrives in cycle 7 and the thread sleeps from cycle 9. Fill done arrives in cycle 11, is registered, and the thread retries in cycle 12.</p>
+</div>
+<div class="paragraph">
+<p>Fill done is issued one cycle after the response slot. A request that looks up the L0 micro-cache while a fill is being written still misses, and its response is the last miss that the fill can cause. Issuing fill done one cycle after that response, and registering it again in the Front End, ensures that every thread has entered the sleep state before the wake-up arrives. A wake-up that arrived first would be lost, and the thread would wait for an unrelated fill.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-kill"><a class="anchor" href="#sec-ch2-fe-kill"></a><a class="link" href="#sec-ch2-fe-kill">2.2.4.4. Request Cancellation</a></h5>
+<div class="paragraph">
+<p>A redirect invalidates the thread&#8217;s tokens in F2 to F5 and suppresses the F6 write, so the responses of in-flight requests are discarded.</p>
+</div>
+<div class="paragraph">
+<p>A request still waiting in the F1 request register cannot be withdrawn: the register is shared and the Neighborhood already holds a copy. The thread records the cancellation and does not advance the token when the request is accepted. The lookup is performed and its response discarded. The thread&#8217;s new request is issued only after the cancelled request has been accepted.</p>
+</div>
+<div id="fig-ch2-fe-td-kill" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/td-fe-kill.png" alt="Redirect while a request waits in F1" width="100%">
+</div>
+<div class="title">Figure 13. Redirect while a request waits in F1</div>
+</div>
+<div class="paragraph">
+<p>In <a href="#fig-ch2-fe-td-kill">Figure 13</a> the redirect arrives in cycle 3 while the request waits in F1. The cancellation is held until the request is accepted in cycle 5; no token enters F2. The new request is issued in cycle 6 and accepted in cycle 8.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-fe-tb"><a class="anchor" href="#sec-ch2-fe-tb"></a><a class="link" href="#sec-ch2-fe-tb">2.2.5. Thread Buffer</a></h4>
+<div class="paragraph">
+<p>Each thread has a thread buffer (<code>frontend_thread_buffer</code>). It holds the thread&#8217;s fetch PC and a 64-byte instruction buffer, generates and tracks fetch requests, writes the returned blocks, and extracts one instruction per cycle.</p>
+</div>
+<div id="fig-ch2-fe-tb" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/fig-fe-thread-buffer-flow.png" alt="Thread buffer operation" width="100%">
+</div>
+<div class="title">Figure 14. Thread buffer operation</div>
+</div>
+<div id="fig-ch2-fe-tb-detail" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/fig-fe-pipeline-detail.png" alt="Thread buffer pipeline" width="100%">
+</div>
+<div class="title">Figure 15. Thread buffer pipeline</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-entries"><a class="anchor" href="#sec-ch2-fe-entries"></a><a class="link" href="#sec-ch2-fe-entries">2.2.5.1. Buffer Entries</a></h5>
+<div class="paragraph">
+<p>The instruction buffer has two entries of 256 bits (32 bytes). An entry holds one fetch block: eight 32-bit instructions, sixteen compressed instructions, or a combination. Two entries allow the next block to be fetched while the current block is consumed.</p>
+</div>
+<div class="paragraph">
+<p>The entries are implemented as one latch-based register file with two ports:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Write port, 256 bits.</strong> Writes a complete block into one entry, with one write enable per 32-bit word.</p>
+</li>
+<li>
+<p><strong>Read port, 32 bits.</strong> Addressed by the 5-bit read pointer <code>buffer_ptr</code>: bit 4 selects the entry, bits 3:0 select a halfword within it. The read returns the 32 bits starting at that halfword.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The read port wraps around: halfword 15 of one entry is followed by halfword 0 of the other. The entries therefore form a ring of 32 halfwords, and a 32-bit instruction that starts in the last halfword of an entry is read in one access.</p>
+</div>
+<div id="fig-ch2-fe-buf-org" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/fig-fe-buffer.png" alt="Thread-buffer entries and read pointer" width="55%">
+</div>
+<div class="title">Figure 16. Thread-buffer entries and read pointer</div>
+</div>
+<table id="tab-ch2-fe-buf-state" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 13. Thread-buffer entry state</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">State</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Empty flag</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entry holds no instruction still to be sent. Set for both entries at reset.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Base address</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Address of the request that filled the entry. Defines the words written, the first halfword to extract and the upper PC bits of the entry&#8217;s instructions.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fault flags</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page fault and access fault of the block.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Error flags</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bus error and ECC error of the block.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cacheable flag</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Block is in a cacheable region. Used for replay.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-pc"><a class="anchor" href="#sec-ch2-fe-pc"></a><a class="link" href="#sec-ch2-fe-pc">2.2.5.2. Program Counter</a></h5>
+<div class="paragraph">
+<p>Each thread buffer holds a 49-bit fetch PC, the address of the next block to request. It is updated as listed in <a href="#tab-ch2-fe-pc">Table 14</a>.</p>
+</div>
+<table id="tab-ch2-fe-pc" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 14. Fetch PC update</caption>
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Event</th>
+<th class="tableblock halign-left valign-top">New fetch PC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reset, or thread enabled</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_reset_vector</code>, sign-extended.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Block written into an entry</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Start of the next aligned 32-byte block.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect (highest priority)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_core_req.pc</code>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Only the first block after a reset or redirect can start within a 32-byte block; all later blocks are aligned. A miss does not change the fetch PC, so the same address is requested again after the fill.</p>
+</div>
+<div class="paragraph">
+<p>The PC of each extracted instruction is formed from the upper bits of its entry&#8217;s base address and the halfword position of the read pointer.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-req"><a class="anchor" href="#sec-ch2-fe-req"></a><a class="link" href="#sec-ch2-fe-req">2.2.5.3. Request Generation and Entry Fill</a></h5>
+<div class="paragraph">
+<p>A thread issues a request in F0 when all conditions in <a href="#tab-ch2-fe-req-cond">Table 15</a> are met.</p>
+</div>
+<table id="tab-ch2-fe-req-cond" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 15. Request conditions</caption>
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Condition</th>
+<th class="tableblock halign-left valign-top">Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread enabled, and not in the enable cycle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reset vector is loaded at the end of the enable cycle.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No redirect in the current cycle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect PC is loaded at the end of the cycle.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread not sleeping</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A missed line is requested again only after a fill.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No request of the thread in F1 to F6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">At most one request per thread is in flight, which keeps responses in order and allows ownership by timing.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An entry is empty or is released in the current cycle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The response cannot be stalled and must have a destination.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Not in reset; not executing the debug program buffer</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">—</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>On a grant, the thread reserves an entry and records the request address as its base address. If both entries are empty, entry 1 is reserved.</p>
+</div>
+<div class="paragraph">
+<p><a href="#tab-ch2-fe-fill">Table 16</a> shows the entry sequence after a thread is enabled at address A. <code>[m, n]</code> gives the block number in entry 0 and entry 1; <code>x</code> denotes an empty entry.</p>
+</div>
+<table id="tab-ch2-fe-fill" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 16. Entry fill sequence</caption>
+<colgroup>
+<col style="width: 14.2857%;">
+<col style="width: 57.1428%;">
+<col style="width: 28.5715%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Event</th>
+<th class="tableblock halign-left valign-top">Entries</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread enabled at address A.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>[x, x]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Block containing A written into entry 1; extraction starts at the halfword of A.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>[x, A&gt;&gt;5]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entry 0 empty: the next block is requested when the first request completes.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>[(A&gt;&gt;5)+1, A&gt;&gt;5]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Last instruction of entry 1 extracted; entry 1 released.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>[(A&gt;&gt;5)+1, x]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Next block requested into entry 1; extraction continues in entry 0.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>[(A&gt;&gt;5)+1, (A&gt;&gt;5)+2]</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>A block write enables only the words from the word containing the request address to word 7. The register file requires its write-data enables one clock phase before the write; the thread computes them in F5 from its token and <code>f5_icache_resp_miss</code>, holds them in a phase latch, and applies the word write enables in F6.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-extract"><a class="anchor" href="#sec-ch2-fe-extract"></a><a class="link" href="#sec-ch2-fe-extract">2.2.5.4. Instruction Extraction</a></h5>
+<div class="paragraph">
+<p>When both entries are empty, the read pointer is loaded in F5 with the halfword position of the request address within the reserved entry, so that extraction can start within a block. Afterwards the pointer advances with each extracted instruction.</p>
+</div>
+<div class="paragraph">
+<p>An instruction is available when the entry it is read from is not empty. A 32-bit instruction that starts in halfword 15 requires both entries to be non-empty; the wrap-around read returns both halves, the pointer moves to halfword 1 of the other entry, and the first entry is released.</p>
+</div>
+<div class="paragraph">
+<p>If the entry being read is empty but its block is written in the same cycle, the instruction is taken directly from the response data (bypass). The upper half of an instruction that crosses into an entry being written is bypassed in the same way. The first instruction of a block is therefore extracted in the cycle the block is written. The bypass does not check the destination entry of the response; with one request in flight per thread, the only block that can arrive is the one being waited for.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-rvc"><a class="anchor" href="#sec-ch2-fe-rvc"></a><a class="link" href="#sec-ch2-fe-rvc">2.2.5.5. RVC Expander</a></h5>
+<div class="paragraph">
+<p>The 32 bits read at the pointer are passed to the RVC expander (<code>frontend_rvc_expander</code>), a combinational RV64C decompressor:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If bits [1:0] are not <code>11</code>, the instruction is compressed. It is expanded to its 32-bit equivalent and the pointer advances by 16 bits.</p>
+</li>
+<li>
+<p>If bits [1:0] are <code>11</code>, the instruction is 32 bits wide. It passes through unchanged and the pointer advances by 32 bits.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>All instructions are therefore 32 bits wide after F6. The <code>rvc</code> bit of <code>frontend_core_resp</code> indicates a compressed instruction; the integer pipeline uses it to advance the PC by 2 instead of 4.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-status"><a class="anchor" href="#sec-ch2-fe-status"></a><a class="link" href="#sec-ch2-fe-status">2.2.5.6. Fault and Error Status</a></h5>
+<div class="paragraph">
+<p>Each instruction carries the status of the entries it was read from:</p>
+</div>
+<table id="tab-ch2-fe-status" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 17. Instruction fetch status</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 80%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pf0</code>, <code>af0</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fault flags of the entry holding the start of the instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pf1</code>, <code>af1</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fault flags of the entry holding the upper half of an instruction that crosses entries; zero otherwise.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bus_error</code>, <code>ecc_error</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Error flags of the instruction&#8217;s entry, or of both entries for an instruction that crosses entries.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>replay</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set when the entry&#8217;s block is not cacheable and <code>f0_core_req.speculative</code> indicates older instructions of the thread in flight. Captured when the instruction is written into the FIFO.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>All status fields are forced to zero while the debug program buffer is executed.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-fe-inval"><a class="anchor" href="#sec-ch2-fe-inval"></a><a class="link" href="#sec-ch2-fe-inval">2.2.6. Entry Invalidation, Redirect and Thread Start</a></h4>
+<div class="sect4">
+<h5 id="sec-ch2-fe-release"><a class="anchor" href="#sec-ch2-fe-release"></a><a class="link" href="#sec-ch2-fe-release">2.2.6.1. Entry Invalidation</a></h5>
+<div class="paragraph">
+<p>An entry is released when its last instruction leaves F6, or when the whole buffer is flushed (<a href="#tab-ch2-fe-release">Table 18</a>).</p>
+</div>
+<table id="tab-ch2-fe-release" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 18. Entry release conditions</caption>
+<colgroup>
+<col style="width: 60%;">
+<col style="width: 40%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Condition</th>
+<th class="tableblock halign-left valign-top">Entries released</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32-bit instruction at byte offset 28 of the entry is extracted</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">This entry</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compressed instruction at byte offset 30 is extracted</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">This entry</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32-bit instruction at byte offset 30 is extracted (upper half in the other entry)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">This entry</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect (<code>f0_core_req_valid</code>) or thread disable</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Both entries</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entry to debug mode</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Both entries</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>A response that reports a fault or error marks the reserved entry non-empty even if no data is written, so that the fault is delivered to the integer pipeline with the next instruction read from that entry.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-redirect"><a class="anchor" href="#sec-ch2-fe-redirect"></a><a class="link" href="#sec-ch2-fe-redirect">2.2.6.2. Redirect</a></h5>
+<div class="paragraph">
+<p>The integer pipeline redirects a thread by asserting <code>f0_core_req_valid</code> with the new PC in <code>f0_core_req.pc</code>. Redirects are issued for branch and jump mispredictions, exceptions and returns from trap, replays, inter-processor interrupts, and entry to or exit from debug mode. <a href="#tab-ch2-fe-redirect">Table 19</a> lists the effect in the redirect cycle.</p>
+</div>
+<table id="tab-ch2-fe-redirect" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 19. Effect of a redirect</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Stage</th>
+<th class="tableblock halign-left valign-top">Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch PC loaded with the redirect PC. No request in this cycle. Sleep state cleared.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request waiting in the F1 request register marked cancelled.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F2–F5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tokens invalidated.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No block written. Both entries released.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction discarded.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FIFO</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Emptied. The thread is not eligible for scheduling in this cycle.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The target block is requested in the following cycle. Its first instruction reaches ID ten cycles after the redirect (<a href="#fig-ch2-fe-td-redirect">Figure 17</a>).</p>
+</div>
+<div id="fig-ch2-fe-td-redirect" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/td-fe-redirect.png" alt="Redirect to first target instruction" width="100%">
+</div>
+<div class="title">Figure 17. Redirect to first target instruction</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-enable"><a class="anchor" href="#sec-ch2-fe-enable"></a><a class="link" href="#sec-ch2-fe-enable">2.2.6.3. Thread Enable and Reset Vector</a></h5>
+<div class="paragraph">
+<p><code>f0_thread_enabled</code> is registered on entry to the Front End, and one-cycle enable and disable events are derived from its edges.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Enable.</strong> The fetch PC is loaded with <code>f0_reset_vector</code> at the end of the enable cycle, and the first request is issued in the next cycle. The first instruction reaches ID eleven cycles after <code>f0_thread_enabled</code> rises (<a href="#fig-ch2-fe-td-enable">Figure 18</a>).</p>
+</li>
+<li>
+<p><strong>Disable.</strong> No further requests are issued, both entries are released and the sleep state is cleared. The instruction in F7 and the FIFO contents are not cleared; the thread scheduler no longer selects the thread.</p>
+</li>
+</ul>
+</div>
+<div id="fig-ch2-fe-td-enable" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/td-fe-enable.png" alt="Thread enable to first instruction" width="100%">
+</div>
+<div class="title">Figure 18. Thread enable to first instruction</div>
+</div>
+<div class="paragraph">
+<p>After reset, both entries are empty and the fetch PC holds the reset vector.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-fe-decode"><a class="anchor" href="#sec-ch2-fe-decode"></a><a class="link" href="#sec-ch2-fe-decode">2.2.7. Decoders</a></h4>
+<div class="paragraph">
+<p>One integer decoder (<code>intpipe_decode</code>) and one VPU decoder (<code>vpu_decoder</code>) are shared by both threads (<a href="#fig-ch2-fe-fifo">Figure 19</a>). In F7, the instruction of one thread passes through both decoders in parallel, and the instruction and both control words are written into that thread&#8217;s FIFO. Decoding before the FIFO removes decode logic from the ID stage.</p>
+</div>
+<div id="fig-ch2-fe-fifo" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/fig-fe-fifo-sched.png" alt="Decoders, instruction FIFOs and thread scheduler" width="100%">
+</div>
+<div class="title">Figure 19. Decoders, instruction FIFOs and thread scheduler</div>
+</div>
+<div class="paragraph">
+<p>Both decoders are combinational look-up tables over the 32-bit instruction:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Integer decoder.</strong> Produces <code>minion_control</code> (<a href="#tab-ch2-fe-decode-words">Table 11</a>). An unlisted encoding is marked not legal, and the integer pipeline raises an illegal-instruction exception.</p>
+</li>
+<li>
+<p><strong>VPU decoder.</strong> Produces <code>vpu_ctrl_sigs_t</code> and a flag that identifies VPU instructions. An unlisted encoding is a non-VPU instruction.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>A thread is a decode candidate when it has an extracted instruction, its FIFO is not full and it is awake (<a href="#sec-ch2-fe-sched">Section 2.2.9</a>). The decoded thread is selected as follows:</p>
+</div>
+<table id="tab-ch2-fe-dec-pick" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 20. Decode thread selection</caption>
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Candidates</th>
+<th class="tableblock halign-left valign-top">Thread decoded</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread 0 only</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread 0</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread 1 only</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread 1</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Both</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread not presented in ID in the current cycle</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">None</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread not presented in ID in the current cycle</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The instruction is written into the FIFO when the selected thread has an extracted instruction and its FIFO is not full; the awake condition affects only the selection.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-fe-fifo"><a class="anchor" href="#sec-ch2-fe-fifo"></a><a class="link" href="#sec-ch2-fe-fifo">2.2.8. Instruction FIFO</a></h4>
+<div class="paragraph">
+<p>Each thread has a two-entry instruction FIFO between F7 and ID. It decouples fetch from issue: while ID is stalled or serving the other thread, the thread continues to extract and decode, and the decoded instructions are held in the FIFO. An entry is a <code>frontend_thread_data</code> (<a href="#tab-ch2-fe-thread-data">Table 10</a>): the instruction, its fetch status and both control words.</p>
+</div>
+<div class="paragraph">
+<p>The FIFO is written when its thread is selected for decode and read when the integer pipeline accepts the thread&#8217;s instruction (<code>id_inst_valid</code>, <code>id_inst_ready</code> and <code>id_inst_thread_id</code>). It uses 2-bit read and write pointers; it is full when the pointers differ only in the wrap bit and empty when they are equal.</p>
+</div>
+<div class="paragraph">
+<p>The storage is organized for timing rather than as an indexed array. Entry 0 is always the head, whose content drives the ID outputs; entry 1 is a holding register. The ID multiplexer therefore selects between two fixed registers, one per thread.</p>
+</div>
+<table id="tab-ch2-fe-fifo" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 21. Instruction FIFO update</caption>
+<colgroup>
+<col style="width: 16.6666%;">
+<col style="width: 33.3333%;">
+<col style="width: 50.0001%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Occupancy</th>
+<th class="tableblock halign-left valign-top">Event</th>
+<th class="tableblock halign-left valign-top">Update</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Empty</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Write</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entry 0 ← new instruction</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">One</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Write and read</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entry 0 ← new instruction</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">One</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Write</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entry 1 ← new instruction</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">One</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Read</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">None; FIFO becomes empty</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Full</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Read</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entry 0 ← entry 1</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The VPU control word of an entry is written only for VPU instructions. For other instructions it retains the value of an earlier VPU instruction, so <code>id_vpu_decoder_sigs</code> and <code>id_vpu_core_ctrl</code> are valid only for VPU instructions.</p>
+</div>
+<div class="paragraph">
+<p>A redirect empties the thread&#8217;s FIFO.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-fe-sched"><a class="anchor" href="#sec-ch2-fe-sched"></a><a class="link" href="#sec-ch2-fe-sched">2.2.9. Thread Scheduler</a></h4>
+<div class="paragraph">
+<p>The integer pipeline accepts one instruction per cycle from either thread. The thread scheduler (<code>frontend_thread_sched</code>) selects the thread whose FIFO head is presented to ID in the next cycle.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Awake</dt>
+<dd>
+<p>The thread is enabled and <code>id_core_stall</code> is deasserted. Awake is registered, so a stall affects scheduling one cycle after it is asserted.</p>
+</dd>
+<dt class="hdlist1">Ready</dt>
+<dd>
+<p>The thread&#8217;s FIFO is not empty or is being written in the current cycle, and the thread is not being redirected. Including the write allows an instruction to pass from F7 to ID in consecutive cycles.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>A thread that is awake and ready is eligible. The scheduler selects between eligible threads in round-robin order:</p>
+</div>
+<table id="tab-ch2-fe-sched" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 22. Thread selection</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Thread 0 eligible</th>
+<th class="tableblock halign-left valign-top">Thread 1 eligible</th>
+<th class="tableblock halign-left valign-top">Selected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread 0</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread 1</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread not selected previously</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread 0</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The previous selection is updated only when at least one thread is eligible. The selection is registered and drives <code>id_inst_thread_id</code> in the next cycle.</p>
+</div>
+<div class="paragraph">
+<p>The head of the selected thread&#8217;s FIFO drives <code>id_inst_data</code>, <code>id_intpipe_ctrl</code>, <code>id_vpu_decoder_sigs</code> and <code>id_vpu_core_ctrl</code>. <code>id_inst_valid</code> is asserted when that FIFO is not empty, and the integer pipeline accepts the instruction with <code>id_inst_ready</code>. <code>id_inst_valid</code> is not qualified with <code>id_core_stall</code>; the integer pipeline applies the stall. The thread in ID is reselected every cycle, so an instruction that is not accepted can be replaced by the other thread&#8217;s instruction in the next cycle; it remains at the head of its FIFO.</p>
+</div>
+<div id="fig-ch2-fe-td-sched" class="imageblock text-center">
+<div class="content">
+<img src="images/ch02/td-fe-sched.png" alt="Round-robin issue with a stall" width="70%">
+</div>
+<div class="title">Figure 20. Round-robin issue with a stall</div>
+</div>
+<div class="paragraph">
+<p>In <a href="#fig-ch2-fe-td-sched">Figure 20</a> both threads are eligible and alternate. <code>id_core_stall</code> of thread 1 is asserted in cycles 3 and 4, and thread 1 is not awake in cycles 4 and 5. Thread 0 is selected in cycles 3 to 5 and presented in ID in cycles 4 to 6; the selection alternates again from cycle 6.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-fe-debug"><a class="anchor" href="#sec-ch2-fe-debug"></a><a class="link" href="#sec-ch2-fe-debug">2.2.10. Halt and Debug Program Buffer</a></h4>
+<div class="sect4">
+<h5 id="sec-ch2-fe-halt"><a class="anchor" href="#sec-ch2-fe-halt"></a><a class="link" href="#sec-ch2-fe-halt">2.2.10.1. Halt</a></h5>
+<div class="paragraph">
+<p>The integer pipeline takes a halt on a valid instruction in ID. While <code>halt</code> is asserted for a thread, the thread buffer generates a placeholder instruction instead of fetching:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The thread follows the normal request conditions but does not bid for the request port. The request is treated as accepted internally, and its token enters the tracker.</p>
+</li>
+<li>
+<p>The token passes through F1 to F6.</p>
+</li>
+<li>
+<p>In F6 an entry write is forced without a response. The data is the last registered response data; fault and error flags are cleared, and the instruction is treated as 32 bits wide.</p>
+</li>
+<li>
+<p>The placeholder passes through decode and the FIFO to ID, where the integer pipeline takes the halt.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The content of the placeholder is undefined. A pending halt also clears the sleep state.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-fe-pb"><a class="anchor" href="#sec-ch2-fe-pb"></a><a class="link" href="#sec-ch2-fe-pb">2.2.10.2. Debug Program Buffer</a></h5>
+<div class="paragraph">
+<p>In debug mode, entry 0 of the halted thread&#8217;s buffer is used as the program buffer: the debugger writes instructions into it and the thread executes them.</p>
+</div>
+<table id="tab-ch2-fe-debug" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 23. Debug program-buffer sequence</caption>
+<colgroup>
+<col style="width: 16.6666%;">
+<col style="width: 83.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Operation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Entry</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A redirect with <code>debug_info.halt</code> arrives; the thread stops fetching in the same cycle. In the next cycle both entries are released, the extracted instruction is discarded, and words 0 to 4 of entry 0 are written with <code>EBREAK</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Write</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The debugger writes the program buffer through <code>debug_ffb_wdata</code>, <code>debug_ffb_en</code> and <code>debug_ffb_thread_sel</code> (<a href="#tab-ch2-fe-pb-map">Table 24</a>). The words are written one cycle after the enables.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Execute</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_exec</code> resets the read pointer to halfword 0 of entry 0. In the next cycle entry 0 is marked non-empty and entry 1 empty, and instructions are extracted from word 0.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Exit</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A redirect with <code>debug_info.resume</code> ends program-buffer mode; fetch restarts at the redirect PC.</p></td>
+</tr>
+</tbody>
+</table>
+<table id="tab-ch2-fe-pb-map" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 24. Program-buffer word mapping</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 40%;">
+<col style="width: 40%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Word</th>
+<th class="tableblock halign-left valign-top">Write enable</th>
+<th class="tableblock halign-left valign-top">Data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_en[0]</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_wdata[31:0]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_en[1]</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_wdata[63:32]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_en[2]</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_wdata[31:0]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_en[3]</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_wdata[31:0]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">—</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>EBREAK</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Word 4 cannot be written by the debugger and always holds <code>EBREAK</code>, so execution returns to debug mode at the end of the program buffer. While the program buffer is executed, all fault, error and replay status is forced to zero. A debug reset while the thread is halted rewrites words 0 to 4 with <code>EBREAK</code>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch2-ip"><a class="anchor" href="#sec-ch2-ip"></a><a class="link" href="#sec-ch2-ip">2.3. Integer Pipeline</a></h3>
+<div class="sect3">
+<h4 id="sec-ch2-ip-overview"><a class="anchor" href="#sec-ch2-ip-overview"></a><a class="link" href="#sec-ch2-ip-overview">2.3.1. Overview</a></h4>
+<div class="paragraph">
+<p><em>Figure: Integer pipeline block diagram.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-stages"><a class="anchor" href="#sec-ch2-ip-stages"></a><a class="link" href="#sec-ch2-ip-stages">2.3.2. Pipeline Stages</a></h4>
+<div class="paragraph">
+<p><em>Figure: Integer pipeline stages (ID, EX, TAG, MEM, WB).</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-if"><a class="anchor" href="#sec-ch2-ip-if"></a><a class="link" href="#sec-ch2-ip-if">2.3.3. Interfaces</a></h4>
+<div class="paragraph">
+<p><em>Table: Integer pipeline interface signals.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-rf"><a class="anchor" href="#sec-ch2-ip-rf"></a><a class="link" href="#sec-ch2-ip-rf">2.3.4. Register File and Operand Read</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-alu"><a class="anchor" href="#sec-ch2-ip-alu"></a><a class="link" href="#sec-ch2-ip-alu">2.3.5. Immediate Generation and ALU</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-muldiv"><a class="anchor" href="#sec-ch2-ip-muldiv"></a><a class="link" href="#sec-ch2-ip-muldiv">2.3.6. Multiply/Divide Unit</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-hazards"><a class="anchor" href="#sec-ch2-ip-hazards"></a><a class="link" href="#sec-ch2-ip-hazards">2.3.7. Scoreboards and Hazards</a></h4>
+<div class="sect4">
+<h5 id="sec-ch2-ip-int-sb"><a class="anchor" href="#sec-ch2-ip-int-sb"></a><a class="link" href="#sec-ch2-ip-int-sb">2.3.7.1. Integer Scoreboard</a></h5>
+
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-ip-fp-sb"><a class="anchor" href="#sec-ch2-ip-fp-sb"></a><a class="link" href="#sec-ch2-ip-fp-sb">2.3.7.2. FP Scoreboard</a></h5>
+
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-ip-mask-sb"><a class="anchor" href="#sec-ch2-ip-mask-sb"></a><a class="link" href="#sec-ch2-ip-mask-sb">2.3.7.3. Mask Scoreboard</a></h5>
+
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-threads"><a class="anchor" href="#sec-ch2-ip-threads"></a><a class="link" href="#sec-ch2-ip-threads">2.3.8. Hart Interleaving and Stalls</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-redirect"><a class="anchor" href="#sec-ch2-ip-redirect"></a><a class="link" href="#sec-ch2-ip-redirect">2.3.9. Branches, Redirects and Replay</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-dcache-if"><a class="anchor" href="#sec-ch2-ip-dcache-if"></a><a class="link" href="#sec-ch2-ip-dcache-if">2.3.10. Interface to the Data Cache</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-vpu-if"><a class="anchor" href="#sec-ch2-ip-vpu-if"></a><a class="link" href="#sec-ch2-ip-vpu-if">2.3.11. Interface to the VPU</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-csr"><a class="anchor" href="#sec-ch2-ip-csr"></a><a class="link" href="#sec-ch2-ip-csr">2.3.12. CSRs and Privilege Modes</a></h4>
+<div class="paragraph">
+<p><em>Table: CSR groups.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-xcpt"><a class="anchor" href="#sec-ch2-ip-xcpt"></a><a class="link" href="#sec-ch2-ip-xcpt">2.3.13. Exceptions and Interrupts</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-debug"><a class="anchor" href="#sec-ch2-ip-debug"></a><a class="link" href="#sec-ch2-ip-debug">2.3.14. Debug and Breakpoints</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-pmu"><a class="anchor" href="#sec-ch2-ip-pmu"></a><a class="link" href="#sec-ch2-ip-pmu">2.3.15. Performance Counters</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-ip-verif"><a class="anchor" href="#sec-ch2-ip-verif"></a><a class="link" href="#sec-ch2-ip-verif">2.3.16. Verification Notes</a></h4>
+
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch2-dc"><a class="anchor" href="#sec-ch2-dc"></a><a class="link" href="#sec-ch2-dc">2.4. Data Cache</a></h3>
+<div class="sect3">
+<h4 id="sec-ch2-dc-overview"><a class="anchor" href="#sec-ch2-dc-overview"></a><a class="link" href="#sec-ch2-dc-overview">2.4.1. Overview</a></h4>
+<div class="paragraph">
+<p><em>Figure: Data cache block diagram.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-org"><a class="anchor" href="#sec-ch2-dc-org"></a><a class="link" href="#sec-ch2-dc-org">2.4.2. Organization and Operating Modes</a></h4>
+<div class="paragraph">
+<p><em>Table: Data cache operating modes.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-if"><a class="anchor" href="#sec-ch2-dc-if"></a><a class="link" href="#sec-ch2-dc-if">2.4.3. Interfaces</a></h4>
+<div class="paragraph">
+<p><em>Table: Data cache interface signals.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-pipe"><a class="anchor" href="#sec-ch2-dc-pipe"></a><a class="link" href="#sec-ch2-dc-pipe">2.4.4. Request Pipeline</a></h4>
+<div class="paragraph">
+<p><em>Figure: Data cache request pipeline.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-xlate"><a class="anchor" href="#sec-ch2-dc-xlate"></a><a class="link" href="#sec-ch2-dc-xlate">2.4.5. Address Translation and PMA Checks</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-arrays"><a class="anchor" href="#sec-ch2-dc-arrays"></a><a class="link" href="#sec-ch2-dc-arrays">2.4.6. Tag, Data and LRU Arrays</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-miss"><a class="anchor" href="#sec-ch2-dc-miss"></a><a class="link" href="#sec-ch2-dc-miss">2.4.7. Miss Handling</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-replay"><a class="anchor" href="#sec-ch2-dc-replay"></a><a class="link" href="#sec-ch2-dc-replay">2.4.8. Replay Queue</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-wb"><a class="anchor" href="#sec-ch2-dc-wb"></a><a class="link" href="#sec-ch2-dc-wb">2.4.9. Writeback and Store Merge</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-amo"><a class="anchor" href="#sec-ch2-dc-amo"></a><a class="link" href="#sec-ch2-dc-amo">2.4.10. Atomic Operations</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-cmo"><a class="anchor" href="#sec-ch2-dc-cmo"></a><a class="link" href="#sec-ch2-dc-cmo">2.4.11. Cache-Management Operations</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-spad"><a class="anchor" href="#sec-ch2-dc-spad"></a><a class="link" href="#sec-ch2-dc-spad">2.4.12. Scratchpad Control</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-tensor"><a class="anchor" href="#sec-ch2-dc-tensor"></a><a class="link" href="#sec-ch2-dc-tensor">2.4.13. Tensor Load and Reduce</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-nbr-if"><a class="anchor" href="#sec-ch2-dc-nbr-if"></a><a class="link" href="#sec-ch2-dc-nbr-if">2.4.14. Interface to the Neighborhood</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-errors"><a class="anchor" href="#sec-ch2-dc-errors"></a><a class="link" href="#sec-ch2-dc-errors">2.4.15. Errors</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-perf"><a class="anchor" href="#sec-ch2-dc-perf"></a><a class="link" href="#sec-ch2-dc-perf">2.4.16. Performance</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-dc-verif"><a class="anchor" href="#sec-ch2-dc-verif"></a><a class="link" href="#sec-ch2-dc-verif">2.4.17. Verification Notes</a></h4>
+
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch2-vpu"><a class="anchor" href="#sec-ch2-vpu"></a><a class="link" href="#sec-ch2-vpu">2.5. Vector Processing Unit</a></h3>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-overview"><a class="anchor" href="#sec-ch2-vpu-overview"></a><a class="link" href="#sec-ch2-vpu-overview">2.5.1. Overview</a></h4>
+<div class="paragraph">
+<p><em>Figure: VPU block diagram.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-if"><a class="anchor" href="#sec-ch2-vpu-if"></a><a class="link" href="#sec-ch2-vpu-if">2.5.2. Interfaces</a></h4>
+<div class="paragraph">
+<p><em>Table: VPU interface signals.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-ctrl"><a class="anchor" href="#sec-ch2-vpu-ctrl"></a><a class="link" href="#sec-ch2-vpu-ctrl">2.5.3. Control and Micro-Instruction Decode</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-rf"><a class="anchor" href="#sec-ch2-vpu-rf"></a><a class="link" href="#sec-ch2-vpu-rf">2.5.4. Register Files</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-lanes"><a class="anchor" href="#sec-ch2-vpu-lanes"></a><a class="link" href="#sec-ch2-vpu-lanes">2.5.5. Lanes</a></h4>
+<div class="paragraph">
+<p><em>Figure: VPU lane.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-mask"><a class="anchor" href="#sec-ch2-vpu-mask"></a><a class="link" href="#sec-ch2-vpu-mask">2.5.6. Mask Unit</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-bypass"><a class="anchor" href="#sec-ch2-vpu-bypass"></a><a class="link" href="#sec-ch2-vpu-bypass">2.5.7. Bypass Network</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-shsw"><a class="anchor" href="#sec-ch2-vpu-shsw"></a><a class="link" href="#sec-ch2-vpu-shsw">2.5.8. Shift and Swizzle Unit</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-txfma"><a class="anchor" href="#sec-ch2-vpu-txfma"></a><a class="link" href="#sec-ch2-vpu-txfma">2.5.9. TxFMA Unit</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-tima"><a class="anchor" href="#sec-ch2-vpu-tima"></a><a class="link" href="#sec-ch2-vpu-tima">2.5.10. Integer Multiply-Accumulate Unit</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-trans"><a class="anchor" href="#sec-ch2-vpu-trans"></a><a class="link" href="#sec-ch2-vpu-trans">2.5.11. Transcendental Unit</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-tensor"><a class="anchor" href="#sec-ch2-vpu-tensor"></a><a class="link" href="#sec-ch2-vpu-tensor">2.5.12. Tensor Operations</a></h4>
+<div class="sect4">
+<h5 id="sec-ch2-vpu-tfma"><a class="anchor" href="#sec-ch2-vpu-tfma"></a><a class="link" href="#sec-ch2-vpu-tfma">2.5.12.1. Tensor FMA</a></h5>
+
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-vpu-tquant"><a class="anchor" href="#sec-ch2-vpu-tquant"></a><a class="link" href="#sec-ch2-vpu-tquant">2.5.12.2. Tensor Quantization</a></h5>
+
+</div>
+<div class="sect4">
+<h5 id="sec-ch2-vpu-treduce"><a class="anchor" href="#sec-ch2-vpu-treduce"></a><a class="link" href="#sec-ch2-vpu-treduce">2.5.12.3. Tensor Reduce</a></h5>
+
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-core-if"><a class="anchor" href="#sec-ch2-vpu-core-if"></a><a class="link" href="#sec-ch2-vpu-core-if">2.5.13. Interfaces to the Integer Pipeline and Data Cache</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-perf"><a class="anchor" href="#sec-ch2-vpu-perf"></a><a class="link" href="#sec-ch2-vpu-perf">2.5.14. Performance</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch2-vpu-verif"><a class="anchor" href="#sec-ch2-vpu-verif"></a><a class="link" href="#sec-ch2-vpu-verif">2.5.15. Verification Notes</a></h4>
+
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="ch-neighborhood"><a class="anchor" href="#ch-neighborhood"></a><a class="link" href="#ch-neighborhood">3. Neighborhood</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="sec-ch3-overview"><a class="anchor" href="#sec-ch3-overview"></a><a class="link" href="#sec-ch3-overview">3.1. Neighborhood Overview</a></h3>
+<div class="sect3">
+<h4 id="sec-ch3-partitioning"><a class="anchor" href="#sec-ch3-partitioning"></a><a class="link" href="#sec-ch3-partitioning">3.1.1. Partitioning</a></h4>
+<div class="paragraph">
+<p><em>Figure: Neighborhood block diagram.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-shared"><a class="anchor" href="#sec-ch3-shared"></a><a class="link" href="#sec-ch3-shared">3.1.2. Shared Resources and Core Connections</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-voltage"><a class="anchor" href="#sec-ch3-voltage"></a><a class="link" href="#sec-ch3-voltage">3.1.3. Voltage-Domain Crossings</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-ext-if"><a class="anchor" href="#sec-ch3-ext-if"></a><a class="link" href="#sec-ch3-ext-if">3.1.4. External Interfaces</a></h4>
+<div class="paragraph">
+<p><em>Table: Neighborhood interface groups.</em></p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch3-fe-ic"><a class="anchor" href="#sec-ch3-fe-ic"></a><a class="link" href="#sec-ch3-fe-ic">3.2. Front End – I-Cache Interface</a></h3>
+<div class="sect3">
+<h4 id="sec-ch3-fe-ic-overview"><a class="anchor" href="#sec-ch3-fe-ic-overview"></a><a class="link" href="#sec-ch3-fe-ic-overview">3.2.1. Overview</a></h4>
+<div class="paragraph">
+<p><em>Figure: Front End to I-cache connection within a Neighborhood.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-fe-ic-signals"><a class="anchor" href="#sec-ch3-fe-ic-signals"></a><a class="link" href="#sec-ch3-fe-ic-signals">3.2.2. Interface Signals</a></h4>
+<div class="paragraph">
+<p><em>Table: Front End – I-cache interface signals.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-fe-ic-arb"><a class="anchor" href="#sec-ch3-fe-ic-arb"></a><a class="link" href="#sec-ch3-fe-ic-arb">3.2.3. Request Arbitration</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-fe-ic-timing"><a class="anchor" href="#sec-ch3-fe-ic-timing"></a><a class="link" href="#sec-ch3-fe-ic-timing">3.2.4. Request and Response Timing</a></h4>
+<div class="paragraph">
+<p><em>Figure: Timing of a request and its hit response.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-fe-ic-miss"><a class="anchor" href="#sec-ch3-fe-ic-miss"></a><a class="link" href="#sec-ch3-fe-ic-miss">3.2.5. Miss, Sleep and Fill-Done Protocol</a></h4>
+<div class="paragraph">
+<p><em>Figure: Timing of a miss, fill and retry.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-fe-ic-errors"><a class="anchor" href="#sec-ch3-fe-ic-errors"></a><a class="link" href="#sec-ch3-fe-ic-errors">3.2.6. Fault and Error Reporting</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-fe-ic-livelock"><a class="anchor" href="#sec-ch3-fe-ic-livelock"></a><a class="link" href="#sec-ch3-fe-ic-livelock">3.2.7. Livelock Avoidance</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-fe-ic-limits"><a class="anchor" href="#sec-ch3-fe-ic-limits"></a><a class="link" href="#sec-ch3-fe-ic-limits">3.2.8. Known Limitations</a></h4>
+
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch3-l0"><a class="anchor" href="#sec-ch3-l0"></a><a class="link" href="#sec-ch3-l0">3.3. L0 Micro-Cache</a></h3>
+<div class="sect3">
+<h4 id="sec-ch3-l0-overview"><a class="anchor" href="#sec-ch3-l0-overview"></a><a class="link" href="#sec-ch3-l0-overview">3.3.1. Overview</a></h4>
+<div class="paragraph">
+<p><em>Table: L0 micro-cache characteristics.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-blocks"><a class="anchor" href="#sec-ch3-l0-blocks"></a><a class="link" href="#sec-ch3-l0-blocks">3.3.2. Internal Blocks</a></h4>
+<div class="paragraph">
+<p><em>Figure: L0 micro-cache block diagram.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-pipeline"><a class="anchor" href="#sec-ch3-l0-pipeline"></a><a class="link" href="#sec-ch3-l0-pipeline">3.3.3. Pipeline Stages</a></h4>
+<div class="paragraph">
+<p><em>Figure: L0 micro-cache pipeline.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-tlb"><a class="anchor" href="#sec-ch3-l0-tlb"></a><a class="link" href="#sec-ch3-l0-tlb">3.3.4. Instruction TLB</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-tags-data"><a class="anchor" href="#sec-ch3-l0-tags-data"></a><a class="link" href="#sec-ch3-l0-tags-data">3.3.5. Micro-Tag and Micro-Data Arrays</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-pma"><a class="anchor" href="#sec-ch3-l0-pma"></a><a class="link" href="#sec-ch3-l0-pma">3.3.6. PMA Check</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-lru"><a class="anchor" href="#sec-ch3-l0-lru"></a><a class="link" href="#sec-ch3-l0-lru">3.3.7. Replacement</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-miss"><a class="anchor" href="#sec-ch3-l0-miss"></a><a class="link" href="#sec-ch3-l0-miss">3.3.8. Miss Handling</a></h4>
+<div class="sect4">
+<h5 id="sec-ch3-l0-tlb-miss"><a class="anchor" href="#sec-ch3-l0-tlb-miss"></a><a class="link" href="#sec-ch3-l0-tlb-miss">3.3.8.1. TLB Miss</a></h5>
+
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-tag-miss"><a class="anchor" href="#sec-ch3-l0-tag-miss"></a><a class="link" href="#sec-ch3-l0-tag-miss">3.3.8.2. Tag Miss</a></h5>
+
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-fill"><a class="anchor" href="#sec-ch3-l0-fill"></a><a class="link" href="#sec-ch3-l0-fill">3.3.8.3. Fill and Thread Wake-Up</a></h5>
+
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-bypass"><a class="anchor" href="#sec-ch3-l0-bypass"></a><a class="link" href="#sec-ch3-l0-bypass">3.3.9. L1 Bypass</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-prefetch"><a class="anchor" href="#sec-ch3-l0-prefetch"></a><a class="link" href="#sec-ch3-l0-prefetch">3.3.10. Software Prefetch</a></h4>
+<div class="paragraph">
+<p><em>Figure: Prefetch state machine.</em></p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch3-l1"><a class="anchor" href="#sec-ch3-l1"></a><a class="link" href="#sec-ch3-l1">3.4. L1 Instruction Cache</a></h3>
+<div class="sect3">
+<h4 id="sec-ch3-l1-overview"><a class="anchor" href="#sec-ch3-l1-overview"></a><a class="link" href="#sec-ch3-l1-overview">3.4.1. Overview</a></h4>
+<div class="paragraph">
+<p><em>Figure: L1 instruction cache block diagram.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l1-org"><a class="anchor" href="#sec-ch3-l1-org"></a><a class="link" href="#sec-ch3-l1-org">3.4.2. Organization</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l1-arrays"><a class="anchor" href="#sec-ch3-l1-arrays"></a><a class="link" href="#sec-ch3-l1-arrays">3.4.3. Tag, LRU and Data Arrays</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l1-ram"><a class="anchor" href="#sec-ch3-l1-ram"></a><a class="link" href="#sec-ch3-l1-ram">3.4.4. External Data RAM</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l1-arb"><a class="anchor" href="#sec-ch3-l1-arb"></a><a class="link" href="#sec-ch3-l1-arb">3.4.5. Request Arbitration Between L0 Micro-Caches</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l1-miss"><a class="anchor" href="#sec-ch3-l1-miss"></a><a class="link" href="#sec-ch3-l1-miss">3.4.6. Miss Path</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l1-errors"><a class="anchor" href="#sec-ch3-l1-errors"></a><a class="link" href="#sec-ch3-l1-errors">3.4.7. Errors and ECC</a></h4>
+
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch3-ptw"><a class="anchor" href="#sec-ch3-ptw"></a><a class="link" href="#sec-ch3-ptw">3.5. Shared Page-Table Walker</a></h3>
+<div class="sect3">
+<h4 id="sec-ch3-ptw-clients"><a class="anchor" href="#sec-ch3-ptw-clients"></a><a class="link" href="#sec-ch3-ptw-clients">3.5.1. Clients and Arbitration</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-ptw-walk"><a class="anchor" href="#sec-ch3-ptw-walk"></a><a class="link" href="#sec-ch3-ptw-walk">3.5.2. Walk Sequence and Page Sizes</a></h4>
+<div class="paragraph">
+<p><em>Figure: Page-table walk state machine.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-ptw-cache"><a class="anchor" href="#sec-ch3-ptw-cache"></a><a class="link" href="#sec-ch3-ptw-cache">3.5.3. PTE Cache and Invalidation</a></h4>
+
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch3-mem"><a class="anchor" href="#sec-ch3-mem"></a><a class="link" href="#sec-ch3-mem">3.6. Memory Request and Response Path</a></h3>
+<div class="sect3">
+<h4 id="sec-ch3-mem-fifos"><a class="anchor" href="#sec-ch3-mem-fifos"></a><a class="link" href="#sec-ch3-mem-fifos">3.6.1. Miss, Evict and Fill FIFOs</a></h4>
+<div class="paragraph">
+<p><em>Figure: Neighborhood memory request and response path.</em></p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-mem-arb"><a class="anchor" href="#sec-ch3-mem-arb"></a><a class="link" href="#sec-ch3-mem-arb">3.6.2. Request Arbitration</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-mem-resp"><a class="anchor" href="#sec-ch3-mem-resp"></a><a class="link" href="#sec-ch3-mem-resp">3.6.3. Response Routing and Backpressure</a></h4>
+
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch3-tensor"><a class="anchor" href="#sec-ch3-tensor"></a><a class="link" href="#sec-ch3-tensor">3.7. Tensor Support</a></h3>
+<div class="sect3">
+<h4 id="sec-ch3-tensor-coop"><a class="anchor" href="#sec-ch3-tensor-coop"></a><a class="link" href="#sec-ch3-tensor-coop">3.7.1. Cooperative Tensor Load</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-tensor-tsb"><a class="anchor" href="#sec-ch3-tensor-tsb"></a><a class="link" href="#sec-ch3-tensor-tsb">3.7.2. Tensor Store Buffer</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-tensor-tbox"><a class="anchor" href="#sec-ch3-tensor-tbox"></a><a class="link" href="#sec-ch3-tensor-tbox">3.7.3. TBOX Router</a></h4>
+
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-ch3-sync"><a class="anchor" href="#sec-ch3-sync"></a><a class="link" href="#sec-ch3-sync">3.8. Synchronization, Messaging, Registers and PMU</a></h3>
+<div class="sect3">
+<h4 id="sec-ch3-flb"><a class="anchor" href="#sec-ch3-flb"></a><a class="link" href="#sec-ch3-flb">3.8.1. Fast Local Barrier</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-lmn"><a class="anchor" href="#sec-ch3-lmn"></a><a class="link" href="#sec-ch3-lmn">3.8.2. Local Message Network</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-ipi"><a class="anchor" href="#sec-ch3-ipi"></a><a class="link" href="#sec-ch3-ipi">3.8.3. IPI and FCC Paths</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-esr"><a class="anchor" href="#sec-ch3-esr"></a><a class="link" href="#sec-ch3-esr">3.8.4. Neighborhood Registers and APB Access</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-dbg"><a class="anchor" href="#sec-ch3-dbg"></a><a class="link" href="#sec-ch3-dbg">3.8.5. Debug Channel</a></h4>
+
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-pmu"><a class="anchor" href="#sec-ch3-pmu"></a><a class="link" href="#sec-ch3-pmu">3.8.6. Performance Monitoring Unit</a></h4>
+
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-09-21 16:31:09 +0500
+Last updated 2026-09-22 08:58:46 +0500
 </div>
 </div>
 </body>

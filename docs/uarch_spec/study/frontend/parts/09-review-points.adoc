@@ -7,7 +7,7 @@ These behaviours came out of the study. They are not claimed to be bugs. Each sh
 |===
 | # | Behaviour | Why it matters
 
-| 1 | One request in flight per hart; a new request waits until the previous one has left F6. | Limits each hart to one 32-byte block every seven cycles.
+| 1 | One request in flight per hart; a new request waits until the previous one has left F6. | Limits each hart to one 32-byte block every eight cycles.
 | 2 | Responses are matched to harts by timing only. | The micro-cache must answer exactly four cycles after accepting, one response per request, without stalling. A natural DV checker.
 | 3 | A request waiting in the F1 register cannot be withdrawn by a redirect. | The lookup, and possibly a fill after a miss, still happen for a request nobody will use. The redirected hart's new request waits behind it.
 | 4 | Fill-done is shared and carries no address. | A waiting hart may retry and miss again on a fill meant for the other hart.

@@ -1,0 +1,213 @@
+// Standalone build: resolve images relative to this file. When included from core-et-uarch.adoc, the main document sets imagesdir.
+ifndef::imagesdir[:imagesdir: ../images]
+ifndef::pdf-theme[:pdf-theme: uarch]
+ifndef::pdf-themesdir[:pdf-themesdir: {docdir}/../themes]
+:sectnums:
+:sectnumlevels: 4
+:xrefstyle: short
+
+// SKELETON. Headings and figure/table placeholders only. Lines marked
+// "Figure:" or "Table:" are placeholders to be replaced by the real figure
+// or table when the section is written.
+
+[[ch-neighborhood]]
+== Neighborhood
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-overview]]
+=== Neighborhood Overview
+
+[[sec-ch3-partitioning]]
+==== Partitioning
+
+_Figure: Neighborhood block diagram._
+
+[[sec-ch3-shared]]
+==== Shared Resources and Core Connections
+
+[[sec-ch3-voltage]]
+==== Voltage-Domain Crossings
+
+[[sec-ch3-ext-if]]
+==== External Interfaces
+
+_Table: Neighborhood interface groups._
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-fe-ic]]
+=== Front End – I-Cache Interface
+
+[[sec-ch3-fe-ic-overview]]
+==== Overview
+
+_Figure: Front End to I-cache connection within a Neighborhood._
+
+[[sec-ch3-fe-ic-signals]]
+==== Interface Signals
+
+_Table: Front End – I-cache interface signals._
+
+[[sec-ch3-fe-ic-arb]]
+==== Request Arbitration
+
+[[sec-ch3-fe-ic-timing]]
+==== Request and Response Timing
+
+_Figure: Timing of a request and its hit response._
+
+[[sec-ch3-fe-ic-miss]]
+==== Miss, Sleep and Fill-Done Protocol
+
+_Figure: Timing of a miss, fill and retry._
+
+[[sec-ch3-fe-ic-errors]]
+==== Fault and Error Reporting
+
+[[sec-ch3-fe-ic-livelock]]
+==== Livelock Avoidance
+
+[[sec-ch3-fe-ic-limits]]
+==== Known Limitations
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-l0]]
+=== L0 Micro-Cache
+
+[[sec-ch3-l0-overview]]
+==== Overview
+
+_Table: L0 micro-cache characteristics._
+
+[[sec-ch3-l0-blocks]]
+==== Internal Blocks
+
+_Figure: L0 micro-cache block diagram._
+
+[[sec-ch3-l0-pipeline]]
+==== Pipeline Stages
+
+_Figure: L0 micro-cache pipeline._
+
+[[sec-ch3-l0-tlb]]
+==== Instruction TLB
+
+[[sec-ch3-l0-tags-data]]
+==== Micro-Tag and Micro-Data Arrays
+
+[[sec-ch3-l0-pma]]
+==== PMA Check
+
+[[sec-ch3-l0-lru]]
+==== Replacement
+
+[[sec-ch3-l0-miss]]
+==== Miss Handling
+
+[[sec-ch3-l0-tlb-miss]]
+===== TLB Miss
+
+[[sec-ch3-l0-tag-miss]]
+===== Tag Miss
+
+[[sec-ch3-l0-fill]]
+===== Fill and Thread Wake-Up
+
+[[sec-ch3-l0-bypass]]
+==== L1 Bypass
+
+[[sec-ch3-l0-prefetch]]
+==== Software Prefetch
+
+_Figure: Prefetch state machine._
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-l1]]
+=== L1 Instruction Cache
+
+[[sec-ch3-l1-overview]]
+==== Overview
+
+_Figure: L1 instruction cache block diagram._
+
+[[sec-ch3-l1-org]]
+==== Organization
+
+[[sec-ch3-l1-arrays]]
+==== Tag, LRU and Data Arrays
+
+[[sec-ch3-l1-ram]]
+==== External Data RAM
+
+[[sec-ch3-l1-arb]]
+==== Request Arbitration Between L0 Micro-Caches
+
+[[sec-ch3-l1-miss]]
+==== Miss Path
+
+[[sec-ch3-l1-errors]]
+==== Errors and ECC
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-ptw]]
+=== Shared Page-Table Walker
+
+[[sec-ch3-ptw-clients]]
+==== Clients and Arbitration
+
+[[sec-ch3-ptw-walk]]
+==== Walk Sequence and Page Sizes
+
+_Figure: Page-table walk state machine._
+
+[[sec-ch3-ptw-cache]]
+==== PTE Cache and Invalidation
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-mem]]
+=== Memory Request and Response Path
+
+[[sec-ch3-mem-fifos]]
+==== Miss, Evict and Fill FIFOs
+
+_Figure: Neighborhood memory request and response path._
+
+[[sec-ch3-mem-arb]]
+==== Request Arbitration
+
+[[sec-ch3-mem-resp]]
+==== Response Routing and Backpressure
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-tensor]]
+=== Tensor Support
+
+[[sec-ch3-tensor-coop]]
+==== Cooperative Tensor Load
+
+[[sec-ch3-tensor-tsb]]
+==== Tensor Store Buffer
+
+[[sec-ch3-tensor-tbox]]
+==== TBOX Router
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-sync]]
+=== Synchronization, Messaging, Registers and PMU
+
+[[sec-ch3-flb]]
+==== Fast Local Barrier
+
+[[sec-ch3-lmn]]
+==== Local Message Network
+
+[[sec-ch3-ipi]]
+==== IPI and FCC Paths
+
+[[sec-ch3-esr]]
+==== Neighborhood Registers and APB Access
+
+[[sec-ch3-dbg]]
+==== Debug Channel
+
+[[sec-ch3-pmu]]
+==== Performance Monitoring Unit

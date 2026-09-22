@@ -77,6 +77,8 @@ To use this, each hart moves a small token (a valid bit and the reserved buffer 
 . When the micro-cache accepts, the token advances one stage per cycle through F2, F3, F4 and F5, without ever stalling.
 . In F6 the token lines up with the registered response. If the token is valid in the same cycle as a response, the response belongs to this hart, and the token says which buffer to write.
 
+In the Neighborhood, the request is first captured in a per-thread register in front of an 8:1 arbiter; the Front End request is accepted when that arbiter grants it, no earlier than the second F1 cycle.
+
 This makes a strict interface requirement on the micro-cache: it must return exactly one response per accepted request, exactly four cycles after acceptance, and never hold or reorder them.
 
 [[sec-tracking-kill]]

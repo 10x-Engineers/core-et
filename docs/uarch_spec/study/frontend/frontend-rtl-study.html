@@ -762,7 +762,7 @@ Hart scheduler and ID-stage output</p></td>
 <div class="sect2">
 <h3 id="_latency_and_throughput">2.2. Latency and Throughput</h3>
 <div class="paragraph">
-<p>These figures follow from the stage structure when the micro-cache accepts each request at once and hits.</p>
+<p>These figures assume L0 hits and no competing requests. The Neighborhood captures each request in a per-thread register before its 8:1 arbiter, so a request is accepted no earlier than its second F1 cycle.</p>
 </div>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
@@ -780,22 +780,22 @@ Hart scheduler and ID-stage output</p></td>
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Request in F0 to first instruction in ID</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">F0 → F1 → F2 → F3 → F4 → F5 → F6 (write and bypass) → F7 → ID.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F0 → F1 (two cycles) → F2 → F3 → F4 → F5 → F6 (write and bypass) → F7 → ID.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Hart enable to first instruction in ID</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">10</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">11</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The enable is registered, then the reset PC is loaded, then the first request issues (<a href="#sec-flow-enable">Section 7.1</a>).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Redirect to first target instruction in ID</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">No request in the redirect cycle; the target is requested in the next cycle.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Interval between requests of one hart</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">7 (minimum)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8 (minimum)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">A new request waits until the previous one has left F6.</p></td>
 </tr>
 <tr>
@@ -811,7 +811,7 @@ Hart scheduler and ID-stage output</p></td>
 </tbody>
 </table>
 <div class="paragraph">
-<p>One 32-byte block holds eight 32-bit instructions, or up to sixteen compressed ones. A hart that receives one block every seven cycles therefore gets more instructions than the single ID slot can take, once both harts share it.</p>
+<p>One 32-byte block holds eight 32-bit instructions, or up to sixteen compressed ones. A hart that receives one block every eight cycles therefore gets more instructions than the single ID slot can take, once both harts share it.</p>
 </div>
 </div>
 <div class="sect2">
@@ -991,6 +991,9 @@ Hart scheduler and ID-stage output</p></td>
 <p>In F6 the token lines up with the registered response. If the token is valid in the same cycle as a response, the response belongs to this hart, and the token says which buffer to write.</p>
 </li>
 </ol>
+</div>
+<div class="paragraph">
+<p>In the Neighborhood, the request is first captured in a per-thread register in front of an 8:1 arbiter; the Front End request is accepted when that arbiter grants it, no earlier than the second F1 cycle.</p>
 </div>
 <div class="paragraph">
 <p>This makes a strict interface requirement on the micro-cache: it must return exactly one response per accepted request, exactly four cycles after acceptance, and never hold or reorder them.</p>
@@ -1385,7 +1388,7 @@ Hart scheduler and ID-stage output</p></td>
 <h2 id="sec-flows">7. Control Flows</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Each flow below is traced cycle by cycle. The cycle tables assume that the micro-cache accepts each request at once, answers in F5, and that the other hart does not compete for the request port unless stated.</p>
+<p>Each flow below is traced cycle by cycle. The cycle tables assume that the micro-cache hits, that the Neighborhood accepts each request in its second F1 cycle (the earliest possible), and that no other hart competes for the request port unless stated.</p>
 </div>
 <div class="sect2">
 <h3 id="sec-flow-enable">7.1. Hart Enable and Disable</h3>
@@ -1428,30 +1431,35 @@ Hart scheduler and ID-stage output</p></td>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">N+3</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F1</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The request is presented to the micro-cache and accepted.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The request is presented to the Neighborhood, which captures it in its per-thread request register.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">N+4 – N+6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The Neighborhood arbiter grants the request; the Front End request is accepted.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+5 – N+7</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F2–F4</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The token advances.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">N+7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+8</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F5</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The response arrives. With both buffers empty, the read pointer is set to the starting halfword in buffer 1.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">N+8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+9</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F6</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The block is written to buffer 1 and the fetch PC moves to the next block. The first instruction is bypassed from the response, expanded, and moves to F7.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">N+9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+10</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F7</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The instruction is decoded and pushed into the queue; the scheduler selects the hart. The second instruction moves to F7. The next block is requested into buffer 0.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">N+10</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+11</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">ID</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The first instruction is presented to the integer pipeline.</p></td>
 </tr>
@@ -1489,7 +1497,7 @@ Hart scheduler and ID-stage output</p></td>
 </ul>
 </div>
 <div class="paragraph">
-<p>In the following cycle the hart requests the target block as usual, so the first target instruction reaches ID nine cycles after the redirect. The first block may start mid-block; the pointer starts at the target halfword (<a href="#sec-extract-start">Section 5.1</a>).</p>
+<p>In the following cycle the hart requests the target block as usual, so the first target instruction reaches ID ten cycles after the redirect. The first block may start mid-block; the pointer starts at the target halfword (<a href="#sec-extract-start">Section 5.1</a>).</p>
 </div>
 </div>
 <div class="sect2">
@@ -1706,7 +1714,7 @@ Hart scheduler and ID-stage output</p></td>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">One request in flight per hart; a new request waits until the previous one has left F6.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Limits each hart to one 32-byte block every seven cycles.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Limits each hart to one 32-byte block every eight cycles.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>

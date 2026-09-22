@@ -12,8 +12,8 @@ Once complete, this reference supersedes the legacy documents in [`docs/u_arch/`
 | File | Purpose |
 |---|---|
 | `core-et-uarch.adoc` | Main AsciiDoc document (Asciidoctor, book doctype). Holds the front matter and includes the chapter files. |
-| `chapters/` | One AsciiDoc file per written chapter. Chapter 1 (ET-SoC-1 Overview) is a heading skeleton with planned figures and tables. |
-| `images/<chapter>/` | Figures per chapter. Editable draw.io sources are in `images/<chapter>/src/`. |
+| `chapters/` | One AsciiDoc file per chapter: 1 ET-SoC-1 Overview (written), 2 ET-Minion Core (section 2.2 Front End written; other sections are skeletons) and 3 Neighborhood (skeleton). |
+| `images/<chapter>/` | Figures per chapter. Every figure drawn for this document has an editable draw.io source in `images/<chapter>/src/` (`fig-*.drawio` block diagrams, `td-*.drawio` timing diagrams); the PNG in `images/<chapter>/` is exported from it with `drawio -x -f png -s 2 -b 10`. The `td-*.json5` files are the original WaveDrom descriptions of the timing diagrams. |
 | `themes/uarch-theme.yml`, `docinfo.html` | PDF theme and HTML style (centered figure captions). |
 | `tools/build_docx.py` | Builds `core-et-uarch.docx`: title page, table of contents, list of tables, list of figures. |
 | `study/frontend/` | Front End study notes: architecture and complete flow. Input for Chapter 3; not part of the reference document. Build with `asciidoctor-pdf study/frontend/frontend-rtl-study.adoc`. |
