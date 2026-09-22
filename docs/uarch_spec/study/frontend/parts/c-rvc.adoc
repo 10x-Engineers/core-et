@@ -1,0 +1,43 @@
+[appendix]
+[[sec-rvc-table]]
+== Compressed-Instruction Expansion
+
+`frontend_rvc_expander` selects the expansion by a 5-bit index formed from the quadrant (bits [1:0]) and funct3 (bits [15:13]) of the halfword. The file is generated code (its structure matches a Chisel-generated expander); the table below states what it computes.
+
+
+`rd'`, `rs1'`, `rs2'` denote the 3-bit compressed registers x8–x15. Opcode 7'h1F / 7'h3F in an expansion is a reserved opcode; the integer decoder does not recognize it, so the instruction is reported illegal.
+
+[cols="1,1,2,4",options="header"]
+|===
+| Index | Quadrant / funct3 | Compressed instruction | Expanded to
+
+| 0 | 00 / 000 | `C.ADDI4SPN` | `ADDI rd', x2, nzuimm`. If the immediate (bits 12:5) is 0, opcode 7'h1F (illegal).
+| 1 | 00 / 001 | `C.FLD` | `FLD` (opcode 7'h07, funct3 3)
+| 2 | 00 / 010 | `C.LW` | `LW rd', off(rs1')`
+| 3 | 00 / 011 | `C.LD` | `LD rd', off(rs1')`
+| 4 | 00 / 100 | reserved | all zeros
+| 5 | 00 / 101 | `C.FSD` | `FSD` (opcode 7'h27, funct3 3)
+| 6 | 00 / 110 | `C.SW` | `SW rs2', off(rs1')`
+| 7 | 00 / 111 | `C.SD` | `SD rs2', off(rs1')`
+| 8 | 01 / 000 | `C.ADDI`, `C.NOP` | `ADDI rd, rd, imm`
+| 9 | 01 / 001 | `C.ADDIW` | `ADDIW rd, rd, imm`. If rd = 0, opcode 7'h1F.
+| 10 | 01 / 010 | `C.LI` | `ADDI rd, x0, imm`
+| 11 | 01 / 011 | `C.ADDI16SP` (rd = 0 or 2), `C.LUI` (other rd) | `ADDI x2, x2, imm×16` or `LUI rd, imm`. If the immediate is 0: opcode 7'h1F (ADDI16SP) or 7'h3F (LUI).
+| 12 | 01 / 100 | `C.SRLI`, `C.SRAI`, `C.ANDI`, `C.SUB`, `C.XOR`, `C.OR`, `C.AND`, `C.SUBW`, `C.ADDW` | Selected by bits [11:10]: 0 `SRLI`, 1 `SRAI` (bit 30 set), 2 `ANDI`, 3 register-register op. For the register ops, funct3 comes from `{bit12, bits[6:5]}` and opcode is `OP-32` (7'h3B) when bit 12 is set, `OP` (7'h33) otherwise; bit 30 is set when bits [6:5] = 00 (`SUB`/`SUBW`).
+| 13 | 01 / 101 | `C.J` | `JAL x0, off`
+| 14 | 01 / 110 | `C.BEQZ` | `BEQ rs1', x0, off`
+| 15 | 01 / 111 | `C.BNEZ` | `BNE rs1', x0, off`
+| 16 | 10 / 000 | `C.SLLI` | `SLLI rd, rd, shamt`
+| 17 | 10 / 001 | `C.FLDSP` | `FLD rd, off(x2)`
+| 18 | 10 / 010 | `C.LWSP` | `LW rd, off(x2)`. If rd = 0, opcode 7'h1F.
+| 19 | 10 / 011 | `C.LDSP` | `LD rd, off(x2)`. If rd = 0, opcode 7'h1F.
+| 20 | 10 / 100 | `C.JR`, `C.MV`, `C.EBREAK`, `C.JALR`, `C.ADD` | Bit 12 = 0: rs2 ≠ 0 → `ADD rd, x0, rs2` (`C.MV`); rs2 = 0 → `JALR x0, 0(rs1)` (`C.JR`), opcode 7'h1F if rs1 = 0. Bit 12 = 1: rs2 ≠ 0 → `ADD rd, rd, rs2`; rs1 ≠ 0 → `JALR x1, 0(rs1)`; rs1 = 0 → `EBREAK`.
+| 21 | 10 / 101 | `C.FSDSP` | `FSD rs2, off(x2)`
+| 22 | 10 / 110 | `C.SWSP` | `SW rs2, off(x2)`
+| 23 | 10 / 111 | `C.SDSP` | `SD rs2, off(x2)`
+| 24–31 | 11 / any | 32-bit instruction | unchanged
+|===
+
+The double-precision forms (`C.FLD`, `C.FSD`, `C.FLDSP`, `C.FSDSP`) are expanded, although the ET-Minion implements only the F extension. `FLD`/`FSD` do not appear in `intpipe_decode`'s case list, so they decode as illegal.
+
+In the thread buffer the expander runs on every F6 instruction. For a 32-bit instruction the output equals the input (index 24–31), so `f7_inst_bits` is always the 32-bit form.

@@ -1,0 +1,63 @@
+= ET-Minion Front End: Architecture and Operation
+:doctype: book
+:toc: left
+:toclevels: 3
+:sectnums:
+:sectnumlevels: 3
+:xrefstyle: short
+:chapter-signifier!:
+:chapter-label!:
+:figure-caption: Figure
+:table-caption: Table
+:icons: font
+:imagesdir: images
+:pdf-theme: uarch
+:pdf-themesdir: {docdir}/../../themes
+
+[preface]
+== About These Notes
+
+These study notes explain how the ET-Minion Front End works: its structure, the reason behind each mechanism, and the complete flow of an instruction from fetch address to the integer pipeline. They are written from the RTL and are the working basis for the Instruction Fetch chapter of the micro-architecture reference.
+
+Scope:: All modules that the Front End contains or instantiates:
++
+[cols="2,3",options="header"]
+|===
+| Module | Role
+
+| `frontend_top` | Shared request port, response registers, decoders, per-hart instruction queues, ID-stage output
+| `frontend_thread_buffer` | Per-hart fetch PC, request tracking, instruction buffers, instruction extraction, debug program buffer
+| `frontend_thread_sched` | Choice of hart presented to the integer pipeline
+| `frontend_rvc_expander` | Compressed-instruction expansion
+| `intpipe_decode`, `vpu_decoder` | Integer and VPU instruction decode
+| `arb_lru_data` / `arb_lru` | Request arbitration between harts
+| `rf_latch_1r_1w_diff_widths`, `et_clk_gate` | Instruction buffer storage, clock gating
+|===
+
+Stage names:: The RTL names the Front End stages F0 to F7 and the first integer-pipeline stage ID. A signal prefix (`f0_`, `f6_`, `id_`) names the stage in which the signal is valid. Signal names are given in the text where they help locate the logic.
+
+Hart:: The ET-Minion core runs two hardware threads. The RTL calls them _threads_; these notes use _hart_.
+
+include::parts/01-role.adoc[]
+
+include::parts/02-pipeline.adoc[]
+
+include::parts/03-fetch-request.adoc[]
+
+include::parts/04-instruction-buffer.adoc[]
+
+include::parts/05-extraction.adoc[]
+
+include::parts/06-decode-issue.adoc[]
+
+include::parts/07-control-flows.adoc[]
+
+include::parts/08-clock-gating.adoc[]
+
+include::parts/09-review-points.adoc[]
+
+include::parts/a-interfaces.adoc[]
+
+include::parts/b-structures.adoc[]
+
+include::parts/c-rvc.adoc[]

@@ -1,0 +1,2868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.20">
+<title>ET-Minion Front End: Architecture and Operation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+<style>
+/*! Asciidoctor default stylesheet | MIT License | https://asciidoctor.org */
+/* Uncomment the following line when using as a custom stylesheet */
+/* @import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700"; */
+html{font-family:sans-serif;-webkit-text-size-adjust:100%}
+a{background:none}
+a:focus{outline:thin dotted}
+a:active,a:hover{outline:0}
+h1{font-size:2em;margin:.67em 0}
+b,strong{font-weight:bold}
+abbr{font-size:.9em}
+abbr[title]{cursor:help;border-bottom:1px dotted #dddddf;text-decoration:none}
+dfn{font-style:italic}
+hr{height:0}
+mark{background:#ff0;color:#000}
+code,kbd,pre,samp{font-family:monospace;font-size:1em}
+pre{white-space:pre-wrap}
+q{quotes:"\201C" "\201D" "\2018" "\2019"}
+small{font-size:80%}
+sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}
+sup{top:-.5em}
+sub{bottom:-.25em}
+img{border:0}
+svg:not(:root){overflow:hidden}
+figure{margin:0}
+audio,video{display:inline-block}
+audio:not([controls]){display:none;height:0}
+fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}
+legend{border:0;padding:0}
+button,input,select,textarea{font-family:inherit;font-size:100%;margin:0}
+button,input{line-height:normal}
+button,select{text-transform:none}
+button,html input[type=button],input[type=reset],input[type=submit]{-webkit-appearance:button;cursor:pointer}
+button[disabled],html input[disabled]{cursor:default}
+input[type=checkbox],input[type=radio]{padding:0}
+button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}
+textarea{overflow:auto;vertical-align:top}
+table{border-collapse:collapse;border-spacing:0}
+*,::before,::after{box-sizing:border-box}
+html,body{font-size:100%}
+body{background:#fff;color:rgba(0,0,0,.8);padding:0;margin:0;font-family:"Noto Serif","DejaVu Serif",serif;line-height:1;position:relative;cursor:auto;-moz-tab-size:4;-o-tab-size:4;tab-size:4;word-wrap:anywhere;-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased}
+a:hover{cursor:pointer}
+img,object,embed{max-width:100%;height:auto}
+object,embed{height:100%}
+img{-ms-interpolation-mode:bicubic}
+.left{float:left!important}
+.right{float:right!important}
+.text-left{text-align:left!important}
+.text-right{text-align:right!important}
+.text-center{text-align:center!important}
+.text-justify{text-align:justify!important}
+.hide{display:none}
+img,object,svg{display:inline-block;vertical-align:middle}
+textarea{height:auto;min-height:50px}
+select{width:100%}
+.subheader,.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{line-height:1.45;color:#7a2518;font-weight:400;margin-top:0;margin-bottom:.25em}
+div,dl,dt,dd,ul,ol,li,h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6,pre,form,p,blockquote,th,td{margin:0;padding:0}
+a{color:#2156a5;text-decoration:underline;line-height:inherit}
+a:hover,a:focus{color:#1d4b8f}
+a img{border:0}
+p{line-height:1.6;margin-bottom:1.25em;text-rendering:optimizeLegibility}
+p aside{font-size:.875em;line-height:1.35;font-style:italic}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{font-family:"Open Sans","DejaVu Sans",sans-serif;font-weight:300;font-style:normal;color:#ba3925;text-rendering:optimizeLegibility;margin-top:1em;margin-bottom:.5em;line-height:1.0125em}
+h1 small,h2 small,h3 small,#toctitle small,.sidebarblock>.content>.title small,h4 small,h5 small,h6 small{font-size:60%;color:#e99b8f;line-height:0}
+h1{font-size:2.125em}
+h2{font-size:1.6875em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.375em}
+h4,h5{font-size:1.125em}
+h6{font-size:1em}
+hr{border:solid #dddddf;border-width:1px 0 0;clear:both;margin:1.25em 0 1.1875em}
+em,i{font-style:italic;line-height:inherit}
+strong,b{font-weight:bold;line-height:inherit}
+small{font-size:60%;line-height:inherit}
+code{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;font-weight:400;color:rgba(0,0,0,.9)}
+ul,ol,dl{line-height:1.6;margin-bottom:1.25em;list-style-position:outside;font-family:inherit}
+ul,ol{margin-left:1.5em}
+ul li ul,ul li ol{margin-left:1.25em;margin-bottom:0}
+ul.circle{list-style-type:circle}
+ul.disc{list-style-type:disc}
+ul.square{list-style-type:square}
+ul.circle ul:not([class]),ul.disc ul:not([class]),ul.square ul:not([class]){list-style:inherit}
+ol li ul,ol li ol{margin-left:1.25em;margin-bottom:0}
+dl dt{margin-bottom:.3125em;font-weight:bold}
+dl dd{margin-bottom:1.25em}
+blockquote{margin:0 0 1.25em;padding:.5625em 1.25em 0 1.1875em;border-left:1px solid #ddd}
+blockquote,blockquote p{line-height:1.6;color:rgba(0,0,0,.85)}
+@media screen and (min-width:768px){h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2}
+h1{font-size:2.75em}
+h2{font-size:2.3125em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.6875em}
+h4{font-size:1.4375em}}
+table{background:#fff;margin-bottom:1.25em;border:1px solid #dedede;word-wrap:normal}
+table thead,table tfoot{background:#f7f8f7}
+table thead tr th,table thead tr td,table tfoot tr th,table tfoot tr td{padding:.5em .625em .625em;font-size:inherit;color:rgba(0,0,0,.8);text-align:left}
+table tr th,table tr td{padding:.5625em .625em;font-size:inherit;color:rgba(0,0,0,.8)}
+table tr.even,table tr.alt{background:#f8f8f7}
+table thead tr th,table tfoot tr th,table tbody tr td,table tr td,table tfoot tr td{line-height:1.6}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2;word-spacing:-.05em}
+h1 strong,h2 strong,h3 strong,#toctitle strong,.sidebarblock>.content>.title strong,h4 strong,h5 strong,h6 strong{font-weight:400}
+.center{margin-left:auto;margin-right:auto}
+.stretch{width:100%}
+.clearfix::before,.clearfix::after,.float-group::before,.float-group::after{content:" ";display:table}
+.clearfix::after,.float-group::after{clear:both}
+:not(pre).nobreak{word-wrap:normal}
+:not(pre).nowrap{white-space:nowrap}
+:not(pre).pre-wrap{white-space:pre-wrap}
+:not(pre):not([class^=L])>code{font-size:.9375em;font-style:normal!important;letter-spacing:0;padding:.1em .5ex;word-spacing:-.15em;background:#f7f7f8;border-radius:4px;line-height:1.45;text-rendering:optimizeSpeed}
+pre{color:rgba(0,0,0,.9);font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;line-height:1.45;text-rendering:optimizeSpeed}
+pre code,pre pre{color:inherit;font-size:inherit;line-height:inherit}
+pre>code{display:block}
+pre.nowrap,pre.nowrap pre{white-space:pre;word-wrap:normal}
+em em{font-style:normal}
+strong strong{font-weight:400}
+.keyseq{color:rgba(51,51,51,.8)}
+kbd{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;display:inline-block;color:rgba(0,0,0,.8);font-size:.65em;line-height:1.45;background:#f7f7f7;border:1px solid #ccc;border-radius:3px;box-shadow:0 1px 0 rgba(0,0,0,.2),inset 0 0 0 .1em #fff;margin:0 .15em;padding:.2em .5em;vertical-align:middle;position:relative;top:-.1em;white-space:nowrap}
+.keyseq kbd:first-child{margin-left:0}
+.keyseq kbd:last-child{margin-right:0}
+.menuseq,.menuref{color:#000}
+.menuseq b:not(.caret),.menuref{font-weight:inherit}
+.menuseq{word-spacing:-.02em}
+.menuseq b.caret{font-size:1.25em;line-height:.8}
+.menuseq i.caret{font-weight:bold;text-align:center;width:.45em}
+b.button::before,b.button::after{position:relative;top:-1px;font-weight:400}
+b.button::before{content:"[";padding:0 3px 0 2px}
+b.button::after{content:"]";padding:0 2px 0 3px}
+p a>code:hover{color:rgba(0,0,0,.9)}
+#header,#content,#footnotes,#footer{width:100%;margin:0 auto;max-width:62.5em;*zoom:1;position:relative;padding-left:.9375em;padding-right:.9375em}
+#header::before,#header::after,#content::before,#content::after,#footnotes::before,#footnotes::after,#footer::before,#footer::after{content:" ";display:table}
+#header::after,#content::after,#footnotes::after,#footer::after{clear:both}
+#content{margin-top:1.25em}
+#content::before{content:none}
+#header>h1:first-child{color:rgba(0,0,0,.85);margin-top:2.25rem;margin-bottom:0}
+#header>h1:first-child+#toc{margin-top:8px;border-top:1px solid #dddddf}
+#header>h1:only-child,body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
+#header .details{border-bottom:1px solid #dddddf;line-height:1.45;padding-top:.25em;padding-bottom:.25em;padding-left:.25em;color:rgba(0,0,0,.6);display:flex;flex-flow:row wrap}
+#header .details span:first-child{margin-left:-.125em}
+#header .details span.email a{color:rgba(0,0,0,.85)}
+#header .details br{display:none}
+#header .details br+span::before{content:"\00a0\2013\00a0"}
+#header .details br+span.author::before{content:"\00a0\22c5\00a0";color:rgba(0,0,0,.85)}
+#header .details br+span#revremark::before{content:"\00a0|\00a0"}
+#header #revnumber{text-transform:capitalize}
+#header #revnumber::after{content:"\00a0"}
+#content>h1:first-child:not([class]){color:rgba(0,0,0,.85);border-bottom:1px solid #dddddf;padding-bottom:8px;margin-top:0;padding-top:1rem;margin-bottom:1.25rem}
+#toc{border-bottom:1px solid #e7e7e9;padding-bottom:.5em}
+#toc>ul{margin-left:.125em}
+#toc ul.sectlevel0>li>a{font-style:italic}
+#toc ul.sectlevel0 ul.sectlevel1{margin:.5em 0}
+#toc ul{font-family:"Open Sans","DejaVu Sans",sans-serif;list-style-type:none}
+#toc li{line-height:1.3334;margin-top:.3334em}
+#toc a{text-decoration:none}
+#toc a:active{text-decoration:underline}
+#toctitle{color:#7a2518;font-size:1.2em}
+@media screen and (min-width:768px){#toctitle{font-size:1.375em}
+body.toc2{padding-left:15em;padding-right:0}
+#toc.toc2{margin-top:0!important;background:#f8f8f7;position:fixed;width:15em;left:0;top:0;border-right:1px solid #e7e7e9;border-top-width:0!important;border-bottom-width:0!important;z-index:1000;padding:1.25em 1em;height:100%;overflow:auto}
+#toc.toc2 #toctitle{margin-top:0;margin-bottom:.8rem;font-size:1.2em}
+#toc.toc2>ul{font-size:.9em;margin-bottom:0}
+#toc.toc2 ul ul{margin-left:0;padding-left:1em}
+#toc.toc2 ul.sectlevel0 ul.sectlevel1{padding-left:0;margin-top:.5em;margin-bottom:.5em}
+body.toc2.toc-right{padding-left:0;padding-right:15em}
+body.toc2.toc-right #toc.toc2{border-right-width:0;border-left:1px solid #e7e7e9;left:auto;right:0}}
+@media screen and (min-width:1280px){body.toc2{padding-left:20em;padding-right:0}
+#toc.toc2{width:20em}
+#toc.toc2 #toctitle{font-size:1.375em}
+#toc.toc2>ul{font-size:.95em}
+#toc.toc2 ul ul{padding-left:1.25em}
+body.toc2.toc-right{padding-left:0;padding-right:20em}}
+#content #toc{border:1px solid #e0e0dc;margin-bottom:1.25em;padding:1.25em;background:#f8f8f7;border-radius:4px}
+#content #toc>:first-child{margin-top:0}
+#content #toc>:last-child{margin-bottom:0}
+#footer{max-width:none;background:rgba(0,0,0,.8);padding:1.25em}
+#footer-text{color:hsla(0,0%,100%,.8);line-height:1.44}
+#content{margin-bottom:.625em}
+.sect1{padding-bottom:.625em}
+@media screen and (min-width:768px){#content{margin-bottom:1.25em}
+.sect1{padding-bottom:1.25em}}
+.sect1:last-child{padding-bottom:0}
+.sect1+.sect1{border-top:1px solid #e7e7e9}
+#content h1>a.anchor,h2>a.anchor,h3>a.anchor,#toctitle>a.anchor,.sidebarblock>.content>.title>a.anchor,h4>a.anchor,h5>a.anchor,h6>a.anchor{position:absolute;z-index:1001;width:1.5ex;margin-left:-1.5ex;display:block;text-decoration:none!important;visibility:hidden;text-align:center;font-weight:400}
+#content h1>a.anchor::before,h2>a.anchor::before,h3>a.anchor::before,#toctitle>a.anchor::before,.sidebarblock>.content>.title>a.anchor::before,h4>a.anchor::before,h5>a.anchor::before,h6>a.anchor::before{content:"\00A7";font-size:.85em;display:block;padding-top:.1em}
+#content h1:hover>a.anchor,#content h1>a.anchor:hover,h2:hover>a.anchor,h2>a.anchor:hover,h3:hover>a.anchor,#toctitle:hover>a.anchor,.sidebarblock>.content>.title:hover>a.anchor,h3>a.anchor:hover,#toctitle>a.anchor:hover,.sidebarblock>.content>.title>a.anchor:hover,h4:hover>a.anchor,h4>a.anchor:hover,h5:hover>a.anchor,h5>a.anchor:hover,h6:hover>a.anchor,h6>a.anchor:hover{visibility:visible}
+#content h1>a.link,h2>a.link,h3>a.link,#toctitle>a.link,.sidebarblock>.content>.title>a.link,h4>a.link,h5>a.link,h6>a.link{color:#ba3925;text-decoration:none}
+#content h1>a.link:hover,h2>a.link:hover,h3>a.link:hover,#toctitle>a.link:hover,.sidebarblock>.content>.title>a.link:hover,h4>a.link:hover,h5>a.link:hover,h6>a.link:hover{color:#a53221}
+details,.audioblock,.imageblock,.literalblock,.listingblock,.stemblock,.videoblock{margin-bottom:1.25em}
+details{margin-left:1.25rem}
+details>summary{cursor:pointer;display:block;position:relative;line-height:1.6;margin-bottom:.625rem;outline:none;-webkit-tap-highlight-color:transparent}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"";border:solid transparent;border-left:solid;border-width:.3em 0 .3em .5em;position:absolute;top:.5em;left:-1.25rem;transform:translateX(15%)}
+details[open]>summary::before{border:solid transparent;border-top:solid;border-width:.5em .3em 0;transform:translateY(15%)}
+details>summary::after{content:"";width:1.25rem;height:1em;position:absolute;top:.3em;left:-1.25rem}
+.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{text-rendering:optimizeLegibility;text-align:left;font-family:"Noto Serif","DejaVu Serif",serif;font-size:1rem;font-style:italic}
+table.tableblock.fit-content>caption.title{white-space:nowrap;width:0}
+.paragraph.lead>p,#preamble>.sectionbody>[class=paragraph]:first-of-type p{font-size:1.21875em;line-height:1.6;color:rgba(0,0,0,.85)}
+.admonitionblock>table{border-collapse:separate;border:0;background:none;width:100%}
+.admonitionblock>table td.icon{text-align:center;width:80px}
+.admonitionblock>table td.icon img{max-width:none}
+.admonitionblock>table td.icon .title{font-weight:bold;font-family:"Open Sans","DejaVu Sans",sans-serif;text-transform:uppercase}
+.admonitionblock>table td.content{padding-left:1.125em;padding-right:1.25em;border-left:1px solid #dddddf;color:rgba(0,0,0,.6);word-wrap:anywhere}
+.admonitionblock>table td.content>:last-child>:last-child{margin-bottom:0}
+.exampleblock>.content{border:1px solid #e6e6e6;margin-bottom:1.25em;padding:1.25em;background:#fff;border-radius:4px}
+.sidebarblock{border:1px solid #dbdbd6;margin-bottom:1.25em;padding:1.25em;background:#f3f3f2;border-radius:4px}
+.sidebarblock>.content>.title{color:#7a2518;margin-top:0;text-align:center}
+.exampleblock>.content>:first-child,.sidebarblock>.content>:first-child{margin-top:0}
+.exampleblock>.content>:last-child,.exampleblock>.content>:last-child>:last-child,.exampleblock>.content .olist>ol>li:last-child>:last-child,.exampleblock>.content .ulist>ul>li:last-child>:last-child,.exampleblock>.content .qlist>ol>li:last-child>:last-child,.sidebarblock>.content>:last-child,.sidebarblock>.content>:last-child>:last-child,.sidebarblock>.content .olist>ol>li:last-child>:last-child,.sidebarblock>.content .ulist>ul>li:last-child>:last-child,.sidebarblock>.content .qlist>ol>li:last-child>:last-child{margin-bottom:0}
+.literalblock pre,.listingblock>.content>pre{border-radius:4px;overflow-x:auto;padding:1em;font-size:.8125em}
+@media screen and (min-width:768px){.literalblock pre,.listingblock>.content>pre{font-size:.90625em}}
+@media screen and (min-width:1280px){.literalblock pre,.listingblock>.content>pre{font-size:1em}}
+.literalblock pre,.listingblock>.content>pre:not(.highlight),.listingblock>.content>pre[class=highlight],.listingblock>.content>pre[class^="highlight "]{background:#f7f7f8}
+.literalblock.output pre{color:#f7f7f8;background:rgba(0,0,0,.9)}
+.listingblock>.content{position:relative}
+.listingblock code[data-lang]::before{display:none;content:attr(data-lang);position:absolute;font-size:.75em;top:.425rem;right:.5rem;line-height:1;text-transform:uppercase;color:inherit;opacity:.5}
+.listingblock:hover code[data-lang]::before{display:block}
+.listingblock.terminal pre .command::before{content:attr(data-prompt);padding-right:.5em;color:inherit;opacity:.5}
+.listingblock.terminal pre .command:not([data-prompt])::before{content:"$"}
+.listingblock pre.highlightjs{padding:0}
+.listingblock pre.highlightjs>code{padding:1em;border-radius:4px}
+.listingblock pre.prettyprint{border-width:0}
+.prettyprint{background:#f7f7f8}
+pre.prettyprint .linenums{line-height:1.45;margin-left:2em}
+pre.prettyprint li{background:none;list-style-type:inherit;padding-left:0}
+pre.prettyprint li code[data-lang]::before{opacity:1}
+pre.prettyprint li:not(:first-child) code[data-lang]::before{display:none}
+table.linenotable{border-collapse:separate;border:0;margin-bottom:0;background:none}
+table.linenotable td[class]{color:inherit;vertical-align:top;padding:0;line-height:inherit;white-space:normal}
+table.linenotable td.code{padding-left:.75em}
+table.linenotable td.linenos,pre.pygments .linenos{border-right:1px solid;opacity:.35;padding-right:.5em;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+pre.pygments span.linenos{display:inline-block;margin-right:.75em}
+.quoteblock{margin:0 1em 1.25em 1.5em;display:table}
+.quoteblock:not(.excerpt)>.title{margin-left:-1.5em;margin-bottom:.75em}
+.quoteblock blockquote,.quoteblock p{color:rgba(0,0,0,.85);font-size:1.15rem;line-height:1.75;word-spacing:.1em;letter-spacing:0;font-style:italic;text-align:justify}
+.quoteblock blockquote{margin:0;padding:0;border:0}
+.quoteblock blockquote::before{content:"\201c";float:left;font-size:2.75em;font-weight:bold;line-height:.6em;margin-left:-.6em;color:#7a2518;text-shadow:0 1px 2px rgba(0,0,0,.1)}
+.quoteblock blockquote>.paragraph:last-child p{margin-bottom:0}
+.quoteblock .attribution{margin-top:.75em;margin-right:.5ex;text-align:right}
+.verseblock{margin:0 1em 1.25em}
+.verseblock pre{font-family:"Open Sans","DejaVu Sans",sans-serif;font-size:1.15rem;color:rgba(0,0,0,.85);font-weight:300;text-rendering:optimizeLegibility}
+.verseblock pre strong{font-weight:400}
+.verseblock .attribution{margin-top:1.25rem;margin-left:.5ex}
+.quoteblock .attribution,.verseblock .attribution{font-size:.9375em;line-height:1.45;font-style:italic}
+.quoteblock .attribution br,.verseblock .attribution br{display:none}
+.quoteblock .attribution cite,.verseblock .attribution cite{display:block;letter-spacing:-.025em;color:rgba(0,0,0,.6)}
+.quoteblock.abstract blockquote::before,.quoteblock.excerpt blockquote::before,.quoteblock .quoteblock blockquote::before{display:none}
+.quoteblock.abstract blockquote,.quoteblock.abstract p,.quoteblock.excerpt blockquote,.quoteblock.excerpt p,.quoteblock .quoteblock blockquote,.quoteblock .quoteblock p{line-height:1.6;word-spacing:0}
+.quoteblock.abstract{margin:0 1em 1.25em;display:block}
+.quoteblock.abstract>.title{margin:0 0 .375em;font-size:1.15em;text-align:center}
+.quoteblock.excerpt>blockquote,.quoteblock .quoteblock{padding:0 0 .25em 1em;border-left:.25em solid #dddddf}
+.quoteblock.excerpt,.quoteblock .quoteblock{margin-left:0}
+.quoteblock.excerpt blockquote,.quoteblock.excerpt p,.quoteblock .quoteblock blockquote,.quoteblock .quoteblock p{color:inherit;font-size:1.0625rem}
+.quoteblock.excerpt .attribution,.quoteblock .quoteblock .attribution{color:inherit;font-size:.85rem;text-align:left;margin-right:0}
+p.tableblock:last-child{margin-bottom:0}
+td.tableblock>.content{margin-bottom:1.25em;word-wrap:anywhere}
+td.tableblock>.content>:last-child{margin-bottom:-1.25em}
+table.tableblock,th.tableblock,td.tableblock{border:0 solid #dedede}
+table.grid-all>*>tr>*{border-width:1px}
+table.grid-cols>*>tr>*{border-width:0 1px}
+table.grid-rows>*>tr>*{border-width:1px 0}
+table.frame-all{border-width:1px}
+table.frame-ends{border-width:1px 0}
+table.frame-sides{border-width:0 1px}
+table.frame-none>colgroup+*>:first-child>*,table.frame-sides>colgroup+*>:first-child>*{border-top-width:0}
+table.frame-none>:last-child>:last-child>*,table.frame-sides>:last-child>:last-child>*{border-bottom-width:0}
+table.frame-none>*>tr>:first-child,table.frame-ends>*>tr>:first-child{border-left-width:0}
+table.frame-none>*>tr>:last-child,table.frame-ends>*>tr>:last-child{border-right-width:0}
+table.stripes-all>*>tr,table.stripes-odd>*>tr:nth-of-type(odd),table.stripes-even>*>tr:nth-of-type(even),table.stripes-hover>*>tr:hover{background:#f8f8f7}
+th.halign-left,td.halign-left{text-align:left}
+th.halign-right,td.halign-right{text-align:right}
+th.halign-center,td.halign-center{text-align:center}
+th.valign-top,td.valign-top{vertical-align:top}
+th.valign-bottom,td.valign-bottom{vertical-align:bottom}
+th.valign-middle,td.valign-middle{vertical-align:middle}
+table thead th,table tfoot th{font-weight:bold}
+tbody tr th{background:#f7f8f7}
+tbody tr th,tbody tr th p,tfoot tr th,tfoot tr th p{color:rgba(0,0,0,.8);font-weight:bold}
+p.tableblock>code:only-child{background:none;padding:0}
+p.tableblock{font-size:1em}
+ol{margin-left:1.75em}
+ul li ol{margin-left:1.5em}
+dl dd{margin-left:1.125em}
+dl dd:last-child,dl dd:last-child>:last-child{margin-bottom:0}
+li p,ul dd,ol dd,.olist .olist,.ulist .ulist,.ulist .olist,.olist .ulist{margin-bottom:.625em}
+ul.checklist,ul.none,ol.none,ul.no-bullet,ol.no-bullet,ol.unnumbered,ul.unstyled,ol.unstyled{list-style-type:none}
+ul.no-bullet,ol.no-bullet,ol.unnumbered{margin-left:.625em}
+ul.unstyled,ol.unstyled{margin-left:0}
+li>p:empty:only-child::before{content:"";display:inline-block}
+ul.checklist>li>p:first-child{margin-left:-1em}
+ul.checklist>li>p:first-child>.fa-square-o:first-child,ul.checklist>li>p:first-child>.fa-check-square-o:first-child{width:1.25em;font-size:.8em;position:relative;bottom:.125em}
+ul.checklist>li>p:first-child>input[type=checkbox]:first-child{margin-right:.25em}
+ul.inline{display:flex;flex-flow:row wrap;list-style:none;margin:0 0 .625em -1.25em}
+ul.inline>li{margin-left:1.25em}
+.unstyled dl dt{font-weight:400;font-style:normal}
+ol.arabic{list-style-type:decimal}
+ol.decimal{list-style-type:decimal-leading-zero}
+ol.loweralpha{list-style-type:lower-alpha}
+ol.upperalpha{list-style-type:upper-alpha}
+ol.lowerroman{list-style-type:lower-roman}
+ol.upperroman{list-style-type:upper-roman}
+ol.lowergreek{list-style-type:lower-greek}
+.hdlist>table,.colist>table{border:0;background:none}
+.hdlist>table>tbody>tr,.colist>table>tbody>tr{background:none}
+td.hdlist1,td.hdlist2{vertical-align:top;padding:0 .625em}
+td.hdlist1{font-weight:bold;padding-bottom:1.25em}
+td.hdlist2{word-wrap:anywhere}
+.literalblock+.colist,.listingblock+.colist{margin-top:-.5em}
+.colist td:not([class]):first-child{padding:.4em .75em 0;line-height:1;vertical-align:top}
+.colist td:not([class]):first-child img{max-width:none}
+.colist td:not([class]):last-child{padding:.25em 0}
+.thumb,.th{line-height:0;display:inline-block;border:4px solid #fff;box-shadow:0 0 0 1px #ddd}
+.imageblock.left{margin:.25em .625em 1.25em 0}
+.imageblock.right{margin:.25em 0 1.25em .625em}
+.imageblock>.title{margin-bottom:0}
+.imageblock.thumb,.imageblock.th{border-width:6px}
+.imageblock.thumb>.title,.imageblock.th>.title{padding:0 .125em}
+.image.left,.image.right{margin-top:.25em;margin-bottom:.25em;display:inline-block;line-height:0}
+.image.left{margin-right:.625em}
+.image.right{margin-left:.625em}
+a.image{text-decoration:none;display:inline-block}
+a.image object{pointer-events:none}
+sup.footnote,sup.footnoteref{font-size:.875em;position:static;vertical-align:super}
+sup.footnote a,sup.footnoteref a{text-decoration:none}
+sup.footnote a:active,sup.footnoteref a:active{text-decoration:underline}
+#footnotes{padding-top:.75em;padding-bottom:.75em;margin-bottom:.625em}
+#footnotes hr{width:20%;min-width:6.25em;margin:-.25em 0 .75em;border-width:1px 0 0}
+#footnotes .footnote{padding:0 .375em 0 .225em;line-height:1.3334;font-size:.875em;margin-left:1.2em;margin-bottom:.2em}
+#footnotes .footnote a:first-of-type{font-weight:bold;text-decoration:none;margin-left:-1.05em}
+#footnotes .footnote:last-of-type{margin-bottom:0}
+#content #footnotes{margin-top:-.625em;margin-bottom:0;padding:.75em 0}
+div.unbreakable{page-break-inside:avoid}
+.big{font-size:larger}
+.small{font-size:smaller}
+.underline{text-decoration:underline}
+.overline{text-decoration:overline}
+.line-through{text-decoration:line-through}
+.aqua{color:#00bfbf}
+.aqua-background{background:#00fafa}
+.black{color:#000}
+.black-background{background:#000}
+.blue{color:#0000bf}
+.blue-background{background:#0000fa}
+.fuchsia{color:#bf00bf}
+.fuchsia-background{background:#fa00fa}
+.gray{color:#606060}
+.gray-background{background:#7d7d7d}
+.green{color:#006000}
+.green-background{background:#007d00}
+.lime{color:#00bf00}
+.lime-background{background:#00fa00}
+.maroon{color:#600000}
+.maroon-background{background:#7d0000}
+.navy{color:#000060}
+.navy-background{background:#00007d}
+.olive{color:#606000}
+.olive-background{background:#7d7d00}
+.purple{color:#600060}
+.purple-background{background:#7d007d}
+.red{color:#bf0000}
+.red-background{background:#fa0000}
+.silver{color:#909090}
+.silver-background{background:#bcbcbc}
+.teal{color:#006060}
+.teal-background{background:#007d7d}
+.white{color:#bfbfbf}
+.white-background{background:#fafafa}
+.yellow{color:#bfbf00}
+.yellow-background{background:#fafa00}
+span.icon>.fa{cursor:default}
+a span.icon>.fa{cursor:inherit}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note::before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip::before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning::before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution::before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important::before{content:"\f06a";color:#bf0000}
+.conum[data-value]{display:inline-block;color:#fff!important;background:rgba(0,0,0,.8);border-radius:50%;text-align:center;font-size:.75em;width:1.67em;height:1.67em;line-height:1.67em;font-family:"Open Sans","DejaVu Sans",sans-serif;font-style:normal;font-weight:bold}
+.conum[data-value] *{color:#fff!important}
+.conum[data-value]+b{display:none}
+.conum[data-value]::after{content:attr(data-value)}
+pre .conum[data-value]{position:relative;top:-.125em}
+b.conum *{color:inherit!important}
+.conum:not([data-value]):empty{display:none}
+dt,th.tableblock,td.content,div.footnote{text-rendering:optimizeLegibility}
+h1,h2,p,td.content,span.alt,summary{letter-spacing:-.01em}
+p strong,td.content strong,div.footnote strong{letter-spacing:-.005em}
+p,blockquote,dt,td.content,td.hdlist1,span.alt,summary{font-size:1.0625rem}
+p{margin-bottom:1.25rem}
+.sidebarblock p,.sidebarblock dt,.sidebarblock td.content,p.tableblock{font-size:1em}
+.exampleblock>.content{background:#fffef7;border-color:#e0e0dc;box-shadow:0 1px 4px #e0e0dc}
+.print-only{display:none!important}
+@page{margin:1.25cm .75cm}
+@media print{*{box-shadow:none!important;text-shadow:none!important}
+html{font-size:80%}
+a{color:inherit!important;text-decoration:underline!important}
+a.bare,a[href^="#"],a[href^="mailto:"]{text-decoration:none!important}
+a[href^="http:"]:not(.bare)::after,a[href^="https:"]:not(.bare)::after{content:"(" attr(href) ")";display:inline-block;font-size:.875em;padding-left:.25em}
+abbr[title]{border-bottom:1px dotted}
+abbr[title]::after{content:" (" attr(title) ")"}
+pre,blockquote,tr,img,object,svg{page-break-inside:avoid}
+thead{display:table-header-group}
+svg{max-width:100%}
+p,blockquote,dt,td.content{font-size:1em;orphans:3;widows:3}
+h2,h3,#toctitle,.sidebarblock>.content>.title{page-break-after:avoid}
+#header,#content,#footnotes,#footer{max-width:none}
+#toc,.sidebarblock,.exampleblock>.content{background:none!important}
+#toc{border-bottom:1px solid #dddddf!important;padding-bottom:0!important}
+body.book #header{text-align:center}
+body.book #header>h1:first-child{border:0!important;margin:2.5em 0 1em}
+body.book #header .details{border:0!important;display:block;padding:0!important}
+body.book #header .details span:first-child{margin-left:0!important}
+body.book #header .details br{display:block}
+body.book #header .details br+span::before{content:none!important}
+body.book #toc{border:0!important;text-align:left!important;padding:0!important;margin:0!important}
+body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-break-before:always}
+.listingblock code[data-lang]::before{display:block}
+#footer{padding:0 .9375em}
+.hide-on-print{display:none!important}
+.print-only{display:block!important}
+.hide-for-print{display:none!important}
+.show-for-print{display:inherit!important}}
+@media amzn-kf8,print{#header>h1:first-child{margin-top:1.25rem}
+.sect1{padding:0!important}
+.sect1+.sect1{border:0}
+#footer{background:none}
+#footer-text{color:rgba(0,0,0,.6);font-size:.9em}}
+@media amzn-kf8{#header,#content,#footnotes,#footer{padding:0}}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body class="book toc2 toc-left">
+<div id="header">
+<h1>ET-Minion Front End: Architecture and Operation</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_about_these_notes">About These Notes</a></li>
+<li><a href="#sec-role">1. Role of the Front End</a>
+<ul class="sectlevel2">
+<li><a href="#_per_hart_and_shared_resources">1.1. Per-Hart and Shared Resources</a></li>
+<li><a href="#_design_choices_in_brief">1.2. Design Choices in Brief</a></li>
+</ul>
+</li>
+<li><a href="#sec-pipeline">2. Pipeline Overview</a>
+<ul class="sectlevel2">
+<li><a href="#_stages">2.1. Stages</a></li>
+<li><a href="#_latency_and_throughput">2.2. Latency and Throughput</a></li>
+<li><a href="#_stall_and_flush_points">2.3. Stall and Flush Points</a></li>
+</ul>
+</li>
+<li><a href="#sec-fetch">3. Fetch Request Path</a>
+<ul class="sectlevel2">
+<li><a href="#sec-fetch-pc">3.1. Fetch PC</a></li>
+<li><a href="#sec-fetch-when">3.2. When a Hart Requests</a></li>
+<li><a href="#sec-fetch-buffer-select">3.3. Reserving a Buffer</a></li>
+<li><a href="#sec-fetch-arb">3.4. Shared Request Port</a></li>
+<li><a href="#sec-tracking">3.5. Recognising the Response</a></li>
+<li><a href="#sec-tracking-kill">3.6. Cancelling an In-Flight Request</a></li>
+</ul>
+</li>
+<li><a href="#sec-buf">4. Instruction Buffers</a>
+<ul class="sectlevel2">
+<li><a href="#sec-buf-org">4.1. Organisation</a></li>
+<li><a href="#sec-buf-state">4.2. Buffer State</a></li>
+<li><a href="#sec-buf-write">4.3. Writing a Block</a></li>
+</ul>
+</li>
+<li><a href="#sec-extract">5. Instruction Extraction</a>
+<ul class="sectlevel2">
+<li><a href="#sec-extract-start">5.1. Starting Position</a></li>
+<li><a href="#sec-extract-step">5.2. Stepping Through the Buffers</a></li>
+<li><a href="#sec-extract-bypass">5.3. Bypass of an Arriving Block</a></li>
+<li><a href="#sec-extract-rvc">5.4. Compressed-Instruction Expansion</a></li>
+<li><a href="#sec-f7">5.5. F7 Instruction Register</a></li>
+<li><a href="#sec-f7-status">5.6. Fault, Error and Replay Status</a></li>
+</ul>
+</li>
+<li><a href="#sec-issue">6. Decode, Queueing and Issue</a>
+<ul class="sectlevel2">
+<li><a href="#sec-issue-pick">6.1. Choosing the Hart to Decode</a></li>
+<li><a href="#sec-issue-decode">6.2. Decoders</a></li>
+<li><a href="#sec-issue-queue">6.3. Per-Hart Instruction Queue</a></li>
+<li><a href="#sec-issue-sched">6.4. Hart Scheduling</a></li>
+<li><a href="#sec-issue-id">6.5. ID-Stage Output</a></li>
+</ul>
+</li>
+<li><a href="#sec-flows">7. Control Flows</a>
+<ul class="sectlevel2">
+<li><a href="#sec-flow-enable">7.1. Hart Enable and Disable</a></li>
+<li><a href="#sec-flow-redirect">7.2. Redirect</a></li>
+<li><a href="#sec-flow-miss">7.3. Micro-Cache Miss and Refill</a></li>
+<li><a href="#sec-flow-split">7.4. Instruction Crossing Two Buffers</a></li>
+<li><a href="#sec-flow-halt">7.5. Halt</a></li>
+<li><a href="#sec-flow-debug">7.6. Debug Mode and Program Buffer</a></li>
+</ul>
+</li>
+<li><a href="#sec-clock">8. Clock Gating</a></li>
+<li><a href="#sec-review">9. Points for Review</a></li>
+<li><a href="#sec-if">Appendix A: Front End Interface</a></li>
+<li><a href="#sec-structs">Appendix B: Data Structures</a>
+<ul class="sectlevel2">
+<li><a href="#sec-struct-icache-req">B.1. <code>frontend_icache_req</code> (FE → I-cache request, 58 bits)</a></li>
+<li><a href="#sec-struct-vm">B.2. <code>minion_vm_status</code> (8 bits)</a></li>
+<li><a href="#sec-struct-icache-resp">B.3. <code>icache_frontend_resp</code> (I-cache → FE response, 261 bits)</a></li>
+<li><a href="#sec-struct-op">B.4. <code>frontend_operation</code> (thread buffer → top, 88 bits)</a></li>
+<li><a href="#sec-struct-core-resp">B.5. <code>frontend_core_resp</code> (FE → integer pipeline, 89 bits)</a></li>
+<li><a href="#_frontend_thread_data_one_queue_entry_179_bits">B.6. <code>frontend_thread_data</code> (one queue entry, 179 bits)</a></li>
+<li><a href="#sec-struct-fe-req">B.7. <code>minion_fe_req</code> (integer pipeline → FE redirect, 52 bits)</a></li>
+<li><a href="#sec-struct-minion-control">B.8. <code>minion_control</code> (integer decode, 45 bits)</a></li>
+<li><a href="#sec-struct-vpu-sigs">B.9. <code>vpu_ctrl_sigs_t</code> (VPU decode, 45 bits)</a></li>
+<li><a href="#sec-struct-vpu-core">B.10. <code>vpu_minion_id_ctrl</code> (subset driven by the FE)</a></li>
+</ul>
+</li>
+<li><a href="#sec-rvc-table">Appendix C: Compressed-Instruction Expansion</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="_about_these_notes">About These Notes</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>These study notes explain how the ET-Minion Front End works: its structure, the reason behind each mechanism, and the complete flow of an instruction from fetch address to the integer pipeline. They are written from the RTL and are the working basis for the Instruction Fetch chapter of the micro-architecture reference.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Scope</dt>
+<dd>
+<p>All modules that the Front End contains or instantiates:</p>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Module</th>
+<th class="tableblock halign-left valign-top">Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>frontend_top</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Shared request port, response registers, decoders, per-hart instruction queues, ID-stage output</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>frontend_thread_buffer</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per-hart fetch PC, request tracking, instruction buffers, instruction extraction, debug program buffer</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>frontend_thread_sched</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Choice of hart presented to the integer pipeline</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>frontend_rvc_expander</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compressed-instruction expansion</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>intpipe_decode</code>, <code>vpu_decoder</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Integer and VPU instruction decode</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>arb_lru_data</code> / <code>arb_lru</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request arbitration between harts</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>rf_latch_1r_1w_diff_widths</code>, <code>et_clk_gate</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction buffer storage, clock gating</p></td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt class="hdlist1">Stage names</dt>
+<dd>
+<p>The RTL names the Front End stages F0 to F7 and the first integer-pipeline stage ID. A signal prefix (<code>f0_</code>, <code>f6_</code>, <code>id_</code>) names the stage in which the signal is valid. Signal names are given in the text where they help locate the logic.</p>
+</dd>
+<dt class="hdlist1">Hart</dt>
+<dd>
+<p>The ET-Minion core runs two hardware threads. The RTL calls them <em>threads</em>; these notes use <em>hart</em>.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-role">1. Role of the Front End</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The Front End supplies instructions to the integer pipeline for both harts of an ET-Minion core. It sits between two neighbours:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Neighborhood L0 micro-cache</strong> (reached through the Neighborhood instruction-cache logic). The Front End sends it one fetch request at a time, each for a 32-byte aligned block, and receives the block, a miss indication, or fault and error status.</p>
+</li>
+<li>
+<p><strong>Integer pipeline.</strong> The Front End presents one decoded instruction per cycle in the ID stage. In the other direction, the integer pipeline sends per-hart redirects (a new fetch PC) and per-hart stalls.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Per hart, the Front End:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>holds a fetch PC and requests the next 32-byte block when it has room for it;</p>
+</li>
+<li>
+<p>stores returned blocks in a pair of 32-byte instruction buffers;</p>
+</li>
+<li>
+<p>extracts instructions from the buffers in program order, one per cycle, and expands compressed instructions to 32 bits;</p>
+</li>
+<li>
+<p>decodes each instruction for the integer pipeline and for the VPU;</p>
+</li>
+<li>
+<p>queues decoded instructions in a two-entry queue until the integer pipeline takes them.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Across both harts, it arbitrates the single request port to the micro-cache, shares one set of decoders, and chooses which hart&#8217;s instruction is presented in ID.</p>
+</div>
+<div class="paragraph">
+<p>The Front End also restarts fetch on redirects, delivers a placeholder instruction when a halt is pending, and executes the debug program buffer in debug mode.</p>
+</div>
+<div id="fig-fe-top" class="imageblock text-center">
+<div class="content">
+<img src="images/fig-fe-top.png" alt="Front End top level" width="100%">
+</div>
+<div class="title">Figure 1. Front End top level</div>
+</div>
+<div class="sect2">
+<h3 id="_per_hart_and_shared_resources">1.1. Per-Hart and Shared Resources</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 66.6667%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">One per hart</th>
+<th class="tableblock halign-left valign-top">Shared by both harts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch PC, miss state, request tracker (<code>frontend_thread_buffer</code>)<br>
+Two 32-byte instruction buffers and their status<br>
+Instruction extraction, compressed-instruction expander, F7 register<br>
+Two-entry decoded-instruction queue</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request arbiter and F1 request register<br>
+Registered micro-cache response and fill-done indication<br>
+Integer and VPU decoders<br>
+Hart scheduler and ID-stage output</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_design_choices_in_brief">1.2. Design Choices in Brief</h3>
+<div class="paragraph">
+<p>These choices shape everything that follows; each is explained in its own section.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">One outstanding request per hart</dt>
+<dd>
+<p>A hart issues a new request only after its previous request has completed. This removes any need to reorder responses.</p>
+</dd>
+<dt class="hdlist1">Ownership by timing</dt>
+<dd>
+<p>Responses carry no hart identifier. Each hart knows which response is its own by tracking its request through a fixed number of stages (<a href="#sec-tracking">Section 3.5</a>).</p>
+</dd>
+<dt class="hdlist1">Double buffering</dt>
+<dd>
+<p>Two 32-byte buffers per hart let the next block be fetched while the current block is being consumed.</p>
+</dd>
+<dt class="hdlist1">Halfword-addressed buffers</dt>
+<dd>
+<p>Instructions are read at any 16-bit boundary, so 16-bit and 32-bit instructions mix freely, including a 32-bit instruction that crosses from one buffer into the other.</p>
+</dd>
+<dt class="hdlist1">Bypass</dt>
+<dd>
+<p>The first instruction of an arriving block can be extracted in the same cycle the block is written.</p>
+</dd>
+<dt class="hdlist1">Decode in the Front End</dt>
+<dd>
+<p>Both decoders run in F7, before the instruction queue, so the integer pipeline receives decoded control fields in ID.</p>
+</dd>
+<dt class="hdlist1">Alternating issue</dt>
+<dd>
+<p>When both harts have an instruction ready, they are presented to ID in alternate cycles.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-pipeline">2. Pipeline Overview</h2>
+<div class="sectionbody">
+<div id="fig-fe-pipeline" class="imageblock text-center">
+<div class="content">
+<img src="images/fig-fe-pipeline.png" alt="Front End pipeline" width="100%">
+</div>
+<div class="title">Figure 2. Front End pipeline</div>
+</div>
+<div class="sect2">
+<h3 id="_stages">2.1. Stages</h3>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 14.2857%;">
+<col style="width: 85.7143%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Stage</th>
+<th class="tableblock halign-left valign-top">Work done</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Each hart holds its fetch PC. A hart that has a free buffer and no request in flight bids for the shared request port. The arbiter grants one hart, and the granted hart records which of its buffers will receive the block. Redirects from the integer pipeline arrive in this stage.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The granted request sits in the shared F1 request register and is presented to the micro-cache until accepted.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F2–F4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The micro-cache processes the request. The Front End does nothing with it except move the owning hart&#8217;s tracking token forward.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The micro-cache returns the response: a 32-byte block, or a miss, plus fault and error status.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The response is registered and broadcast to both harts. The owning hart writes the block into the reserved buffer, or records the miss. In the same stage the hart reads the next instruction from its buffers, bypassing the arriving block when needed, and expands it if it is compressed.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Each hart holds one expanded instruction. One hart per cycle is chosen for decode; its instruction passes through both decoders and enters its queue. The scheduler chooses the hart for ID.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The oldest queued instruction of the chosen hart is presented to the integer pipeline.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_latency_and_throughput">2.2. Latency and Throughput</h3>
+<div class="paragraph">
+<p>These figures follow from the stage structure when the micro-cache accepts each request at once and hits.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 37.5%;">
+<col style="width: 12.5%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Path</th>
+<th class="tableblock halign-left valign-top">Cycles</th>
+<th class="tableblock halign-left valign-top">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request in F0 to first instruction in ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F0 → F1 → F2 → F3 → F4 → F5 → F6 (write and bypass) → F7 → ID.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hart enable to first instruction in ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The enable is registered, then the reset PC is loaded, then the first request issues (<a href="#sec-flow-enable">Section 7.1</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect to first target instruction in ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No request in the redirect cycle; the target is requested in the next cycle.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Interval between requests of one hart</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7 (minimum)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A new request waits until the previous one has left F6.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instructions extracted per hart</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 per cycle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">In F6.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instructions presented in ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 per cycle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">For the whole core, from one hart.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>One 32-byte block holds eight 32-bit instructions, or up to sixteen compressed ones. A hart that receives one block every seven cycles therefore gets more instructions than the single ID slot can take, once both harts share it.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_stall_and_flush_points">2.3. Stall and Flush Points</h3>
+<div class="paragraph">
+<p>Backpressure enters the Front End in two places:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Micro-cache not ready.</strong> The F1 request register holds its request, and no new request is granted.</p>
+</li>
+<li>
+<p><strong>Queue full.</strong> A hart whose queue is full does not pop its F7 register; F7 then holds, and F6 stops extracting.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Stages F2 to F6 never stall. The micro-cache must return the response in F5 regardless of what the Front End is doing, and the Front End is always able to take it because each hart only requests when a buffer is reserved for the block.</p>
+</div>
+<div class="paragraph">
+<p>A redirect for a hart flushes that hart&#8217;s state in all stages in the same cycle (<a href="#sec-flow-redirect">Section 7.2</a>).</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-fetch">3. Fetch Request Path</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This section follows a request from the fetch PC of a hart to the point where its response is recognised in F6.</p>
+</div>
+<div id="fig-fe-tb" class="imageblock text-center">
+<div class="content">
+<img src="images/fig-fe-thread-buffer.png" alt="Thread buffer" width="100%">
+</div>
+<div class="title">Figure 3. Thread buffer (one per hart)</div>
+</div>
+<div class="sect2">
+<h3 id="sec-fetch-pc">3.1. Fetch PC</h3>
+<div class="paragraph">
+<p>Each hart keeps a 49-bit fetch PC, <code>f0_pc</code>. The PC is 49 bits rather than 48 so that a non-canonical 64-bit address can still be represented: the extra top bit records whether the upper address bits were a proper sign extension.</p>
+</div>
+<div class="paragraph">
+<p>The fetch PC always points at the next block to request. It changes only on these events:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 66.6667%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Event</th>
+<th class="tableblock halign-left valign-top">New fetch PC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reset, or the hart being enabled</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reset vector (48 bits, sign-extended).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A block is written into a buffer</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Start of the following 32-byte block. The address is taken from the block just written, with its offset cleared and its block number incremented.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect from the integer pipeline</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect PC. This has the highest priority.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The first block after a reset or redirect can therefore start in the middle of a 32-byte block; every following block is aligned. The request always carries the full address, including the offset, and the micro-cache returns the whole aligned block that contains it.</p>
+</div>
+<div class="paragraph">
+<p>A miss does not change the fetch PC, so the same address is requested again after the fill (<a href="#sec-flow-miss">Section 7.3</a>).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-fetch-when">3.2. When a Hart Requests</h3>
+<div class="paragraph">
+<p>A hart issues a request in F0 only when all of the following hold. Each condition has a clear purpose:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 66.6667%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Condition</th>
+<th class="tableblock halign-left valign-top">Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hart enabled, and not in the cycle it is being enabled</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The reset vector is loaded at the end of the enable cycle, so the first request follows one cycle later.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No redirect this cycle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The redirect PC is loaded at the end of this cycle.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No unresolved miss</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">After a miss, the hart waits for a fill before asking again (<a href="#sec-flow-miss">Section 7.3</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No request of this hart anywhere in F1–F6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Only one request per hart is in flight. This keeps responses in order and makes ownership by timing possible.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A buffer is free, or is being freed this cycle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The returning block must have a place to go. The Front End cannot stall a response.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Not in reset, not executing the debug program buffer</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">While the program buffer is in use, the buffers hold debugger instructions, not fetched code.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The request payload carries the hart number, the hart&#8217;s virtual-memory status (privilege, <code>mstatus</code> fields that affect translation, debug mode), and the fetch address. The Front End only forwards the virtual-memory status; the micro-cache uses it for translation and permission checks.</p>
+</div>
+<div class="paragraph">
+<p>When a halt is pending, the hart goes through the same request decision but does not actually bid for the port; the resulting placeholder request is handled internally (<a href="#sec-flow-halt">Section 7.5</a>).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-fetch-buffer-select">3.3. Reserving a Buffer</h3>
+<div class="paragraph">
+<p>When the request is granted, the hart reserves the buffer that will receive the block and records the request address as that buffer&#8217;s base address. A buffer qualifies if it is empty, or if its last instruction is leaving this cycle and it is not being written in the same cycle. If both qualify, buffer 1 is chosen, so after a reset or redirect the first block always lands in buffer 1.</p>
+</div>
+<div class="paragraph">
+<p>The recorded base address serves three later purposes: it gives the word range to write (words before the request offset are not written), the starting halfword for extraction, and the upper PC bits of every instruction taken from the buffer.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-fetch-arb">3.4. Shared Request Port</h3>
+<div class="paragraph">
+<p>Both harts share one request port to the micro-cache. It consists of a two-client arbiter in F0 and a single request register in F1.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Arbiter</dt>
+<dd>
+<p>A least-recently-granted arbiter (<code>arb_lru_data</code>). With one bidder, that bidder wins. With two, the hart that was not granted last time wins, so contending harts alternate. After reset, hart 0 wins the first tie. The arbiter&#8217;s priority state changes only when a grant is actually issued.</p>
+</dd>
+<dt class="hdlist1">F1 request register</dt>
+<dd>
+<p>The winning request is registered and held on the port until the micro-cache accepts it. The register can take a new request when it is empty or when its current request is being accepted in this cycle. When it cannot, the arbiter issues no grant, the bidding hart keeps bidding, and nothing is lost.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>The grant is returned to the winning hart in the same cycle as its bid. From that moment the hart treats the request as its own in-flight request.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-tracking">3.5. Recognising the Response</h3>
+<div class="paragraph">
+<p>The micro-cache response has no hart identifier. The Front End recognises the owner by timing: a response appears in F5 exactly four cycles after the request was accepted from F1.</p>
+</div>
+<div class="paragraph">
+<p>To use this, each hart moves a small token (a valid bit and the reserved buffer number) through its own copy of stages F1 to F6:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The token enters F1 when the hart&#8217;s request is granted, and stays in F1 while the shared request register waits for acceptance.</p>
+</li>
+<li>
+<p>When the micro-cache accepts, the token advances one stage per cycle through F2, F3, F4 and F5, without ever stalling.</p>
+</li>
+<li>
+<p>In F6 the token lines up with the registered response. If the token is valid in the same cycle as a response, the response belongs to this hart, and the token says which buffer to write.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>This makes a strict interface requirement on the micro-cache: it must return exactly one response per accepted request, exactly four cycles after acceptance, and never hold or reorder them.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-tracking-kill">3.6. Cancelling an In-Flight Request</h3>
+<div class="paragraph">
+<p>A redirect for a hart invalidates that hart&#8217;s token in every stage, so the eventual response is ignored and nothing is written.</p>
+</div>
+<div class="paragraph">
+<p>A request still waiting in the F1 register is a special case. The register is shared, so a redirect cannot remove the request from it. Instead the hart remembers the cancellation while the request waits, and does not advance the token when the micro-cache accepts it. The request is therefore still looked up in the micro-cache, but its response is discarded. Until it is accepted, it also blocks the shared register, so the redirected hart&#8217;s new request waits behind it.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-buf">4. Instruction Buffers</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="sec-buf-org">4.1. Organisation</h3>
+<div class="paragraph">
+<p>Each hart has two 32-byte instruction buffers, numbered 0 and 1. Together they form one small latch-based memory (<code>rf_latch_1r_1w_diff_widths</code>) with two ports of different width:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Write port, 256 bits.</strong> One write stores a whole block into one buffer. Each of the eight 32-bit words has its own write enable.</p>
+</li>
+<li>
+<p><strong>Read port, 32 bits, at any halfword.</strong> The read address is a 5-bit halfword position: the top bit selects the buffer, the lower four bits the halfword (0–15) within it. The read returns the 32 bits that start at that halfword.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The read port wraps around: the memory behaves as a ring of 32 halfwords in which halfword 15 of buffer 1 is followed by halfword 0 of buffer 0. A 32-bit instruction that starts in the last halfword of either buffer is therefore read in one access, with its upper half coming from the other buffer. The RTL calls this a <em>split</em> instruction.</p>
+</div>
+<div class="paragraph">
+<p>The read pointer (<code>f6_buffer_ptr</code>) is a 5-bit halfword position of the same form. Advancing it past halfword 15 of one buffer moves it naturally into the other, so the two buffers are consumed as one continuous ring.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-buf-state">4.2. Buffer State</h3>
+<div class="paragraph">
+<p>For each buffer the hart keeps:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">State</th>
+<th class="tableblock halign-left valign-top">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Empty flag</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The buffer holds nothing still to be sent. Both buffers are empty after reset.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Base address</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Address of the request that filled the buffer (<a href="#sec-fetch-buffer-select">Section 3.3</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fault flags</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page fault and access fault reported with the block.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Error flags</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bus error and ECC error reported with the block.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cacheable flag</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The block came from a cacheable region. Used for replay (<a href="#sec-f7-status">Section 5.6</a>).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>A buffer&#8217;s empty flag changes as follows, highest priority first:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>Last instruction leaves.</strong> When the instruction that ends the buffer moves from F6 to F7, the buffer becomes empty and can be reserved again.</p>
+</li>
+<li>
+<p><strong>Block written.</strong> The buffer becomes full.</p>
+</li>
+<li>
+<p><strong>Fault or error without data.</strong> If the response for this buffer reports a fault or error but no data is written (a miss response), the buffer is still marked full. The only purpose is to deliver the fault to the integer pipeline: the next instruction extracted from the buffer carries the fault status.</p>
+</li>
+<li>
+<p><strong>Redirect or hart disable.</strong> Both buffers become empty.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Debug mode adds two overrides: on entry to debug mode both buffers are emptied, and when the program buffer is launched, buffer 0 is marked full and buffer 1 empty (<a href="#sec-flow-debug">Section 7.6</a>).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-buf-write">4.3. Writing a Block</h3>
+<div class="paragraph">
+<p>The block is written in F6, when the hart&#8217;s token and a response meet (<a href="#sec-tracking">Section 3.5</a>):</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A <strong>hit</strong> writes the block. Only the words from the one containing the request address up to word 7 are enabled. For an aligned request this is the whole block; for the first block after a redirect into the middle of a block, the unused leading words are not written.</p>
+</li>
+<li>
+<p>A <strong>miss</strong> writes nothing and sets the hart&#8217;s miss state.</p>
+</li>
+<li>
+<p>The fault, error and cacheable flags are recorded for the reserved buffer.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The same F6 cycle can also extract the first instruction of the block, before it is stored (<a href="#sec-extract-bypass">Section 5.3</a>).</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Latch write timing</dt>
+<dd>
+<p>The buffer memory is built from latches and needs its per-word write-data enables one clock phase before the write. The hart therefore computes these enables one cycle early, in F5, from its token and the raw (not yet registered) miss indication of the F5 response, and passes them through a phase latch. The actual word write enables are applied in F6. This is the only use of the unregistered F5 response inside a hart.</p>
+</dd>
+<dt class="hdlist1">Other write sources</dt>
+<dd>
+<p>The same write port is used to load the debug program buffer, and to fill buffer 0 with <code>EBREAK</code> instructions on entry to debug mode (<a href="#sec-flow-debug">Section 7.6</a>).</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-extract">5. Instruction Extraction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Extraction takes one instruction per cycle from a hart&#8217;s buffers in F6 and hands it to the hart&#8217;s F7 register.</p>
+</div>
+<div class="sect2">
+<h3 id="sec-extract-start">5.1. Starting Position</h3>
+<div class="paragraph">
+<p>When both buffers are empty, the read pointer has no valid position. As soon as the hart&#8217;s token reaches F5, one cycle before the block arrives, the pointer is set to the halfword where the request address starts inside the reserved buffer. This is how fetch begins in the middle of a block after a reset or redirect. For an aligned request it simply points at halfword 0 of the reserved buffer.</p>
+</div>
+<div class="paragraph">
+<p>Once a buffer holds data, the pointer only moves forward from instruction to instruction.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-extract-step">5.2. Stepping Through the Buffers</h3>
+<div class="paragraph">
+<p>In each cycle the memory is read at the pointer and the two lowest bits of the returned data are checked:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If they are not <code>11</code>, the instruction is <strong>compressed</strong> (16 bits) and the pointer advances by one halfword.</p>
+</li>
+<li>
+<p>Otherwise the instruction is 32 bits and the pointer advances by two halfwords.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The pointer advances only when the instruction actually moves to F7. When the advance carries it into the other buffer, the instruction is the last one of its buffer, and that buffer becomes empty in the same cycle.</p>
+</div>
+<div class="paragraph">
+<p>An instruction is available in F6 when the buffer it is read from holds data. A split 32-bit instruction (<a href="#sec-buf-org">Section 4.1</a>) needs both buffers to hold data.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-extract-bypass">5.3. Bypass of an Arriving Block</h3>
+<div class="paragraph">
+<p>If the pointer&#8217;s buffer is empty but the block for it is being written in this cycle, the instruction is taken directly from the arriving response instead of from the memory. The same applies to the upper half of a split instruction whose second buffer is being written. The instruction can therefore move to F7 in the same cycle its block arrives, which saves one cycle on every fetch after a redirect, a miss, or a drained buffer.</p>
+</div>
+<div class="paragraph">
+<p>The bypass does not check that the arriving block belongs to the buffer being read. It relies on two properties of the design: a hart has only one request in flight, and extraction waits only on an empty buffer, so an arriving block is always the one extraction is waiting for.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-extract-rvc">5.4. Compressed-Instruction Expansion</h3>
+<div class="paragraph">
+<p>The selected 32 bits pass through <code>frontend_rvc_expander</code> in the same cycle. The expander is a combinational RV64C decompressor:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A compressed instruction is rewritten as its 32-bit equivalent. Encodings that are reserved in the C extension are rewritten to an opcode the integer decoder does not recognise, so they are reported as illegal instructions.</p>
+</li>
+<li>
+<p>A 32-bit instruction passes through unchanged.</p>
+</li>
+<li>
+<p>An all-zero halfword (the defined illegal compressed instruction) produces all zeros.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>From F7 onward every instruction is a 32-bit instruction. A separate flag records that the original was compressed; the integer pipeline uses it to step the PC by 2 instead of 4, for both the next sequential PC and the return address of a jump. The full expansion table is in <a href="#sec-rvc-table">Appendix C</a>.</p>
+</div>
+<div class="paragraph">
+<p>The expander also expands the double-precision compressed loads and stores. The ET-Minion integer decoder has no double-precision <code>FLD</code>/<code>FSD</code>, so they end up reported as illegal.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-f7">5.5. F7 Instruction Register</h3>
+<div class="paragraph">
+<p>Each hart has a one-entry F7 register holding the expanded instruction, its compressed flag, its read position, whether it was split, and the upper PC bits of its buffer.</p>
+</div>
+<div class="paragraph">
+<p>F7 behaves as a simple pipeline register with a valid/ready handshake to <code>frontend_top</code>: it takes a new instruction from F6 when it is empty or being popped in the same cycle, and holds otherwise. When F7 holds, F6 does not extract. A redirect, or entry to debug mode, invalidates it.</p>
+</div>
+<div class="paragraph">
+<p>The PC of the instruction is not stored as a whole. It is rebuilt from the buffer&#8217;s upper address bits and the halfword position of the instruction within the buffer.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-f7-status">5.6. Fault, Error and Replay Status</h3>
+<div class="paragraph">
+<p>The F7 register also produces the fetch status of the instruction from the flags of the buffer(s) it came from:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Faults</dt>
+<dd>
+<p>Page fault and access fault come in two sets. Set 0 belongs to the buffer that holds the start of the instruction. Set 1 is used only for a split instruction and belongs to the buffer that holds its upper half. The integer pipeline can therefore tell whether a fault belongs to the first or the second part of the instruction.</p>
+</dd>
+<dt class="hdlist1">Errors</dt>
+<dd>
+<p>Bus error and ECC error are taken from the instruction&#8217;s buffer. For a split instruction they are combined over both buffers.</p>
+</dd>
+<dt class="hdlist1">Replay</dt>
+<dd>
+<p>Set when the instruction comes from a non-cacheable block and the integer pipeline reports that this hart has older instructions still in flight (the <code>speculative</code> bit of the redirect interface, which the integer pipeline drives in every cycle, not only with a redirect). The status is evaluated while the instruction waits in F7 and captured when it enters the queue. Replay handling itself is in the integer pipeline; the legacy Front End–integer pipeline description gives the intent: code from non-cacheable space is not used while older instructions are still in flight.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>While the debug program buffer is being executed, all fault, error and replay status is forced to zero.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-issue">6. Decode, Queueing and Issue</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This part of the Front End is in <code>frontend_top</code>. It takes instructions from the two F7 registers, decodes them, queues them per hart and presents one of them to the integer pipeline.</p>
+</div>
+<div class="sect2">
+<h3 id="sec-issue-pick">6.1. Choosing the Hart to Decode</h3>
+<div class="paragraph">
+<p>There is one pair of decoders, so one hart per cycle can move an instruction from its F7 register into its queue. A hart is a candidate when its F7 register holds an instruction, its queue has room, and the scheduler considers it awake (enabled and not stalled, <a href="#sec-issue-sched">Section 6.4</a>).</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If only one hart is a candidate, it is chosen.</p>
+</li>
+<li>
+<p>If both are, the hart that is <strong>not</strong> currently presented in ID is chosen, so decode alternates in step with issue.</p>
+</li>
+<li>
+<p>If neither is, the same default applies (the hart not in ID) and no candidate condition is checked.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The transfer itself happens when the chosen hart has a valid F7 instruction and a queue with room. The awake condition affects only the choice, not the transfer.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-issue-decode">6.2. Decoders</h3>
+<div class="paragraph">
+<p>The chosen instruction goes through two combinational decoders in parallel. Both are case tables over the 32-bit instruction; an encoding not listed falls to a default entry.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Integer decoder (<code>intpipe_decode</code>)</dt>
+<dd>
+<p>Produces the integer-pipeline control word (<code>minion_control</code>, <a href="#sec-struct-minion-control">Section B.8</a>): whether the instruction is legal, whether it is emulated in software (<em>M-code</em>), register reads and writes, ALU operand and function selects, immediate format, memory command and size, CSR command, fence, and Esperanto-specific attributes (global memory access, gather/scatter, graphics, mask registers, implicit use of <code>x31</code>). An unlisted encoding decodes as not legal, which the integer pipeline turns into an illegal-instruction exception.</p>
+<div class="paragraph">
+<p>The table covers the base integer, 64-bit, multiply/divide and single-precision FP instructions, the Esperanto atomics, local/global and packed loads and stores, packed single-precision and packed integer vector operations, mask operations, graphics operations, and a group of M-code instructions (for example FP divide and square root, 64-bit FP conversions, <code>FENCE.I</code>, <code>SFENCE.VMA</code>) that trap for software emulation. The <code>ENABLE_EXTRA_TRANS</code> define moves two packed transcendental instructions from the M-code group to hardware execution in the VPU.</p>
+</div>
+</dd>
+<dt class="hdlist1">VPU decoder (<code>vpu_decoder</code>)</dt>
+<dd>
+<p>Produces the VPU control word (<code>vpu_ctrl_sigs_t</code>, <a href="#sec-struct-vpu-sigs">Section B.9</a>): VPU function, execution unit, data type, scalar or packed, source and destination register reads and writes, mask register use, operand swaps, rounding and flag update. It also reports whether the instruction is a VPU instruction at all; any encoding it does not list is not.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Decoding in the Front End keeps the decode logic out of the ID stage; the legacy Front End–integer pipeline description states it is placed there for timing.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-issue-queue">6.3. Per-Hart Instruction Queue</h3>
+<div class="paragraph">
+<p>Each hart has a two-entry queue between F7 and ID. An entry holds the instruction and its fetch status (<code>frontend_core_resp</code>), the integer control word and the VPU control word.</p>
+</div>
+<div class="paragraph">
+<p>The queue is not built as an indexed array. Its first entry is always the head, the instruction currently offered to ID, and the second entry is only a holding place. A push into an empty queue, or into a one-entry queue whose head is leaving, writes the head directly; a push into a one-entry queue that is not being popped writes the second entry; a pop from a full queue moves the second entry into the head. The ID outputs therefore always read one fixed register per hart, which keeps the ID path short.</p>
+</div>
+<div class="paragraph">
+<p>Two details matter for the integer pipeline:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The VPU control word in an entry is updated only when the instruction is a VPU instruction. For an integer instruction the entry keeps the VPU control word of an earlier VPU instruction, so the VPU fields in ID are meaningful only for VPU instructions.</p>
+</li>
+<li>
+<p>The fault and error bits in the fetch status are forced to zero when the F7 register is not valid. The replay bit is not.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>A redirect for a hart empties that hart&#8217;s queue.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-issue-sched">6.4. Hart Scheduling</h3>
+<div class="paragraph">
+<p>The scheduler (<code>frontend_thread_sched</code>) chooses which hart is presented in ID in the next cycle.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Awake</dt>
+<dd>
+<p>A hart is awake when it is enabled and the integer pipeline is not stalling it. The stall inputs cover, for example, <code>WFI</code>, a fence, exclusive mode held by the other hart, and register scoreboard stalls. Awake is registered, so a stall affects scheduling one cycle after it is raised.</p>
+</dd>
+<dt class="hdlist1">Ready</dt>
+<dd>
+<p>A hart is ready when its queue holds an instruction or one is being pushed in this cycle, and the hart is not being redirected. Counting the push lets an instruction go from F7 to ID in consecutive cycles.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>The choice:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>If exactly one hart is awake and ready, it is chosen.</p>
+</li>
+<li>
+<p>If both are, the choice alternates from the previous choice.</p>
+</li>
+<li>
+<p>If neither is, hart 0 is chosen by default.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The choice is registered and becomes the ID hart in the next cycle.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-issue-id">6.5. ID-Stage Output</h3>
+<div class="paragraph">
+<p>In ID, the Front End presents the head of the selected hart&#8217;s queue:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>the instruction, its PC and its fetch status;</p>
+</li>
+<li>
+<p>its integer control word and VPU control word;</p>
+</li>
+<li>
+<p>a summary of the VPU control word used by the integer pipeline for VPU register hazard checks: which VPU and mask registers the instruction reads, whether it writes (or reads) its destination, whether it is a transcendental operation, and whether it takes an integer operand.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The instruction is marked valid whenever the selected hart&#8217;s queue is not empty. The integer pipeline accepts it with its ready signal, which pops the queue.</p>
+</div>
+<div class="paragraph">
+<p>Validity is not qualified with the hart&#8217;s stall: when neither hart is awake the default choice is hart 0, and hart 0 is shown as valid if its queue holds an instruction. The integer pipeline applies its own per-hart stall. Also, because the ID hart is re-chosen every cycle, an instruction that is offered but not accepted may be replaced by the other hart&#8217;s instruction in the next cycle; it stays at the head of its queue and is offered again later.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-flows">7. Control Flows</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Each flow below is traced cycle by cycle. The cycle tables assume that the micro-cache accepts each request at once, answers in F5, and that the other hart does not compete for the request port unless stated.</p>
+</div>
+<div class="sect2">
+<h3 id="sec-flow-enable">7.1. Hart Enable and Disable</h3>
+<div class="paragraph">
+<p>The hart enable comes from outside the Neighborhood, so the Front End registers it before use and derives two one-cycle events from it: <em>hart enabled</em> and <em>hart disabled</em>. The registers that detect the edges clock only when the enable is changing, to save power while it is stable.</p>
+</div>
+<div class="paragraph">
+<p>On enable, the fetch PC is loaded with the reset vector and fetch starts in the next cycle. On disable, both buffers are emptied and any pending miss is forgotten; no further requests are made because the hart is no longer enabled.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Hart enable to first instruction</caption>
+<colgroup>
+<col style="width: 12.5%;">
+<col style="width: 12.5%;">
+<col style="width: 75%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Stage</th>
+<th class="tableblock halign-left valign-top">Events</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">–</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The hart&#8217;s enable input rises.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The registered enable is set and the <em>hart enabled</em> event occurs. The reset vector is loaded into the fetch PC at the end of the cycle. No request yet.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The hart requests, is granted, and reserves buffer 1 (both buffers are free).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The request is presented to the micro-cache and accepted.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+4 – N+6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F2–F4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The token advances.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The response arrives. With both buffers empty, the read pointer is set to the starting halfword in buffer 1.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The block is written to buffer 1 and the fetch PC moves to the next block. The first instruction is bypassed from the response, expanded, and moves to F7.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The instruction is decoded and pushed into the queue; the scheduler selects the hart. The second instruction moves to F7. The next block is requested into buffer 0.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">N+10</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ID</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The first instruction is presented to the integer pipeline.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Disabling a hart empties its buffers but does not clear its F7 register or its queue. The scheduler stops selecting the hart because it is no longer awake.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-flow-redirect">7.2. Redirect</h3>
+<div class="paragraph">
+<p>The integer pipeline redirects a hart for a mispredicted branch or jump, an exception or return, a replay, an inter-processor interrupt PC, or entry to or exit from debug mode. The redirect carries the new PC.</p>
+</div>
+<div class="paragraph">
+<p>In the redirect cycle, for that hart only:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>the fetch PC is loaded with the redirect PC;</p>
+</li>
+<li>
+<p>the tokens in F2 to F5 are invalidated and no response is written in F6; a request waiting in the F1 register is marked cancelled (<a href="#sec-tracking-kill">Section 3.6</a>);</p>
+</li>
+<li>
+<p>both buffers become empty and any pending miss is cleared;</p>
+</li>
+<li>
+<p>the F7 register and the queue are emptied;</p>
+</li>
+<li>
+<p>no request is made, and the hart is not offered to the scheduler.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In the following cycle the hart requests the target block as usual, so the first target instruction reaches ID nine cycles after the redirect. The first block may start mid-block; the pointer starts at the target halfword (<a href="#sec-extract-start">Section 5.1</a>).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-flow-miss">7.3. Micro-Cache Miss and Refill</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The request goes through F1 to F5 normally, and the response reports a miss.</p>
+</li>
+<li>
+<p>In F6 the hart writes nothing, leaves the fetch PC on the missed address, and sets its <em>miss pending</em> state.</p>
+</li>
+<li>
+<p>While a miss is pending, the hart makes no new request.</p>
+</li>
+<li>
+<p>When the micro-cache completes a fill, it signals <em>fill done</em>. The Front End registers this signal and broadcasts it to both harts. A hart with a pending miss may request again in that cycle, and its miss state is cleared.</p>
+</li>
+<li>
+<p>The same address is requested again and normally hits.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The fill-done signal carries no address and is shared by both harts. A hart waiting for its own line also retries when the other hart&#8217;s line is filled; if its line is still absent it misses again and waits for the next fill. A redirect, a disable or a pending halt also clears the miss state.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-flow-split">7.4. Instruction Crossing Two Buffers</h3>
+<div class="paragraph">
+<p>When the read pointer is at the last halfword of a buffer and that halfword starts a 32-bit instruction:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The instruction is available only when both buffers hold data, or when the second buffer is being written in this cycle (its first halfword is then bypassed from the response).</p>
+</li>
+<li>
+<p>The single wrap-around read returns both halves.</p>
+</li>
+<li>
+<p>The pointer moves to halfword 1 of the other buffer, so the first buffer becomes empty.</p>
+</li>
+<li>
+<p>The instruction carries a second set of fault flags from the second buffer, and its error flags cover both buffers (<a href="#sec-f7-status">Section 5.6</a>).</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>This applies at the end of buffer 0 and at the end of buffer 1 alike.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-flow-halt">7.5. Halt</h3>
+<div class="paragraph">
+<p>When a halt is pending for a hart, the integer pipeline needs a valid instruction in ID on which to take the halt. The RTL comment on the clock gate states this directly. The Front End produces a placeholder instruction as follows:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The hart goes through its normal request decision, but it does not bid for the port. The request is treated as accepted internally, and the hart&#8217;s token enters its tracker.</p>
+</li>
+<li>
+<p>The token travels through F1 to F6 like a real request.</p>
+</li>
+<li>
+<p>In F6 the token forces a buffer write even though no response exists. The data written is whatever the registered response last held. Fault and error flags are cleared, and the instruction is treated as 32-bit (not compressed).</p>
+</li>
+<li>
+<p>The placeholder moves through F7 and the queue to ID.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>A pending halt also clears any pending miss and keeps the hart&#8217;s clock running.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-flow-debug">7.6. Debug Mode and Program Buffer</h3>
+<div class="paragraph">
+<p>In debug mode the Front End executes instructions that the debugger writes over APB into a <em>program buffer</em>. The program buffer is buffer 0 of the halted hart.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. Debug mode and program buffer</caption>
+<colgroup>
+<col style="width: 14.2857%;">
+<col style="width: 85.7143%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Events</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">D</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A redirect marked as a trap to debug mode arrives. Program-buffer mode starts in the same cycle, so the hart stops requesting.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">D+1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Both buffers are emptied, F6 and F7 are invalidated, and buffer 0 is filled with <code>EBREAK</code> in words 0 to 4.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Later</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The debugger writes the program buffer. Each write carries 64 bits of data and per-word enables for words 0 to 3: words 0–1 take the 64-bit data, words 2 and 3 each take its lower 32 bits. The data enables are applied in the write cycle and the word writes one cycle later, to meet the latch timing (<a href="#sec-buf-write">Section 4.3</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">X</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The debugger starts execution. The read pointer is reset to halfword 0 of buffer 0.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">X+1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Buffer 0 is marked full and buffer 1 empty. Instructions are extracted from word 0 onward.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">E</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A redirect marked as a resume from debug mode ends program-buffer mode, and normal fetch restarts at the resume PC.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Word 4 is never written by the debugger and always holds <code>EBREAK</code>, so execution returns to debug mode after the program buffer even if the debugger does not end it with an <code>EBREAK</code>. While the program buffer is executed, all fault, error and replay status is forced to zero.</p>
+</div>
+<div class="paragraph">
+<p>A debug reset while the hart is halted refills buffer 0 with <code>EBREAK</code> in the same way.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-clock">8. Clock Gating</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Each hart&#8217;s Front End logic has its own clock gate. Most of the hart&#8217;s registers use the gated clock. A few state bits that must see events while the hart is idle use the ungated clock: the buffer empty flags, the miss-pending state, and an <em>in-flight</em> flag that is set when a request is issued and cleared when it reaches F6, is cancelled in F1, or is flushed by a redirect. The buffer memory also takes the ungated clock and gates its own write clocks internally.</p>
+</div>
+<div class="paragraph">
+<p>The gated clock runs whenever the hart may have work to do:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 40%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Condition</th>
+<th class="tableblock halign-left valign-top">Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect, or hart being enabled</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The fetch PC and the hart state change.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request accepted, or request in flight</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The token must advance through F1–F6.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hart enabled, no miss pending, and a buffer free</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A new request may be made.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction moving from F6 to F7, or F7 being popped</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Extraction and hand-off to the queue.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reset or debug reset</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Registers must take their reset values.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hart in debug mode</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Always on in debug mode.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Halt pending</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The placeholder instruction must reach the integer pipeline.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Front End chicken bit set</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Gating disabled. The bit comes from a configuration register (<code>min_frontend_clock_gate_disable</code>).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>A hart that is enabled but waiting for a fill, with a full F7 register and a full queue, therefore stops its clock until a fill, a redirect or a pop wakes it.</p>
+</div>
+<div class="paragraph">
+<p>In <code>frontend_top</code>, the thread-enable edge detectors clock only while the enable is changing (<a href="#sec-flow-enable">Section 7.1</a>). The debug program-buffer write-enable delay registers clock only around their pulses.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-review">9. Points for Review</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>These behaviours came out of the study. They are not claimed to be bugs. Each should either be stated precisely in the Instruction Fetch chapter or confirmed with the RTL owners or DV.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 14.2857%;">
+<col style="width: 42.8571%;">
+<col style="width: 42.8572%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">#</th>
+<th class="tableblock halign-left valign-top">Behaviour</th>
+<th class="tableblock halign-left valign-top">Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">One request in flight per hart; a new request waits until the previous one has left F6.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Limits each hart to one 32-byte block every seven cycles.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Responses are matched to harts by timing only.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The micro-cache must answer exactly four cycles after accepting, one response per request, without stalling. A natural DV checker.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A request waiting in the F1 register cannot be withdrawn by a redirect.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The lookup, and possibly a fill after a miss, still happen for a request nobody will use. The redirected hart&#8217;s new request waits behind it.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill-done is shared and carries no address.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A waiting hart may retry and miss again on a fill meant for the other hart.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VPU control fields in a queue entry are updated only for VPU instructions.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The VPU fields and their summary in ID show an older instruction when ID holds an integer instruction. Consumers must qualify them.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The replay bit is not qualified with valid, unlike the fault and error bits. It also uses the <code>speculative</code> input whether or not a redirect is present.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Relevant for DV checks on invalid slots.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ID valid is not qualified with the hart&#8217;s stall. With neither hart awake, hart 0 is selected and is shown valid if its queue holds an instruction.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The integer pipeline must apply its own stall.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The ID hart is re-chosen every cycle, independent of acceptance.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An offered instruction that is not accepted can be replaced by the other hart&#8217;s instruction in the next cycle. The ID interface is not a hold-until-accepted handshake.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The transfer from F7 to the queue does not require the hart to be awake; only the choice of hart does.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A hart that is not awake can still fill its queue when it is the default choice.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The bypass takes data from the arriving block without checking which buffer it is for.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Correct only because of the one-request-per-hart rule; a change to that rule would need to revisit the bypass.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">11</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When both buffers are free, buffer 1 is reserved first.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">After reset or a redirect the first block lands in buffer 1. Useful for waveform reading and DV expectations.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">12</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Compressed double-precision loads and stores are expanded, then decoded as illegal.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The exception is illegal instruction, raised by the integer decoder, not by the expander.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">13</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The placeholder instruction for a halt contains the last registered response data, which may be unrelated to the hart.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Its content must never be relied on.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">14</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Program-buffer words 2 and 3 both take the lower 32 bits of the APB data; the enables select which is written.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Defines the debugger&#8217;s word mapping.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">15</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Disabling a hart does not clear its F7 register or its queue.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">They remain, including across a later re-enable, until a redirect or reset clears them.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The queue has a coded case for "push while full" that cannot occur, because a push requires room.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Dead code; coverage will show it unreachable.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">17</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Two RTL comments are out of date: one in <code>frontend_top</code> says instructions are expanded there (expansion is in F6 in the thread buffer), and one in the scheduler says its valid input is from F4 (it is from F7).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Documentation only.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">18</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The legacy Front End–micro-cache interface document describes a livelock fix (per-hart miss counters and a request mask). It is not in the Front End; it is in the Neighborhood instruction-cache logic (<code>neigh_shared_icache.v</code>).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Belongs to the Neighborhood Instruction Cache chapter.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-if">Appendix A: Front End Interface</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Ports of <code>frontend_top</code>, with the signal each connects to in <code>core_top</code>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 21.4285%;">
+<col style="width: 7.1428%;">
+<col style="width: 14.2857%;">
+<col style="width: 21.4285%;">
+<col style="width: 35.7145%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Port</th>
+<th class="tableblock halign-left valign-top">Dir</th>
+<th class="tableblock halign-left valign-top">Width / type</th>
+<th class="tableblock halign-left valign-top">Connected to</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">System</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>clock</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>clock</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Core clock. Feeds the always-on clock of the thread buffers.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset_w</code> (warm reset)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Synchronous reset of all FE state.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset_debug</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset_d</code> (debug reset)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Resets the program-buffer write-enable pipeline and refills the program buffer with EBREAKs while the hart is halted.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>chicken_bit</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>chicken_bit_frontend</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Keeps the thread-buffer clock gate open. In <code>minion_top</code> it comes from the configuration bit <code>min_frontend_clock_gate_disable</code>.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Thread enable and reset PC</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_thread_enabled</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>enabled</code> (registered in <code>minion_top</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hart enable, one bit per hart. Edges start and stop fetch.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_reset_vector</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">48</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset_vector</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch address used on reset and when a hart is enabled. Sign-extended to 49 bits.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Virtual-memory status</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 × <code>minion_vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per-hart VM status, copied into each I-cache request.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">I-cache request (F1)</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f1_icache_req_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_req_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">I-cache accepts the F1 request this cycle.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f1_icache_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F1 request register is valid.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f1_icache_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>frontend_icache_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F1 request payload.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">I-cache response (F5/F6)</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_icache_resp_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_resp_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Response slot valid in F5.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_icache_resp_miss</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_resp_miss</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The F5 response is an L0 miss (no data).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_icache_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_frontend_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Response payload in F5.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f6_icache_fill_done</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_fill_done</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An L0 fill has completed; harts waiting on a miss may retry.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Redirect and stall from the integer pipeline</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_core_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per-hart redirect: flush and restart fetch at <code>f0_core_req[t].pc</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_core_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 × <code>minion_fe_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Redirect payload.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_stall</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_stall</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per-hart "do not issue" from the integer pipeline: CSR stall (e.g. WFI), exclusive mode held by the other hart, fence, integer or FP scoreboard stall .</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Instruction to the integer pipeline (ID)</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_inst_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_resp_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Integer pipeline accepts the ID instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_inst_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_fe_core_resp_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An instruction is presented in ID.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_inst_thread_id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_fe_core_resp_thread_id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hart of the ID instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_inst_data</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>frontend_core_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_fe_core_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PC, bits and fetch status of the ID instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_intpipe_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_control</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_intpipe_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Integer decode of the ID instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_vpu_decoder_sigs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vpu_ctrl_sigs_t</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_vpu_decoder_sigs</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VPU decode of the ID instruction. Valid only for VPU instructions.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_vpu_core_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vpu_minion_id_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_frontend_vpu_ctrl</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Register-read/write summary of the VPU decode, for integer-pipeline hazard checks.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Debug program buffer</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_wdata</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">64</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_wdata</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APB write data for the program buffer.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_en</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_en</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per-word write enables for the program buffer.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_thread_sel</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_thread_sel</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hart whose program buffer is written.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ffb_exec</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_ex_program_buffer</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per hart: start executing the program buffer.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>halt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_in_core.halt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per hart: a halt request is pending.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>halted</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_out.halted</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per hart: the hart is in debug mode.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-structs">Appendix B: Data Structures</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Fields are listed MSB first, as declared. Widths are resolved.</p>
+</div>
+<div class="sect2">
+<h3 id="sec-struct-icache-req">B.1. <code>frontend_icache_req</code> (FE → I-cache request, 58 bits)</h3>
+<div class="paragraph">
+<p>Defined in <code>frontend_types.vh</code>. [cols="2,1,5",options="header"]</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>thread_id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hart that issued the request. Set from the thread buffer&#8217;s <code>THREAD_ID</code> parameter.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual-memory status of the hart (<a href="#sec-struct-vm">Section B.2</a>), passed through for the I-cache TLB.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>addr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">49</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch address (extended VA). Equal to <code>f0_pc</code>; may be unaligned inside the 32-byte block.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="sec-struct-vm">B.2. <code>minion_vm_status</code> (8 bits)</h3>
+<div class="paragraph">
+<p>Defined in <code>minion_types.vh</code>. Driven by the integer pipeline CSRs; the FE only forwards it.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>prv</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Current privilege level.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mprv</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mstatus.MPRV</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mpp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mstatus.MPP</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>sum</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mstatus.SUM</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mxr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mstatus.MXR</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hart is in debug mode.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="sec-struct-icache-resp">B.3. <code>icache_frontend_resp</code> (I-cache → FE response, 261 bits)</h3>
+<div class="paragraph">
+<p>Defined in <code>frontend_types.vh</code>. [cols="2,1,5",options="header"]</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>data</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">256</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The 32-byte block containing the requested address.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>page_fault</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch page fault from the I-cache TLB.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>access_fault</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch access fault from the PMA check.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>cacheable</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Block comes from a cacheable region.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bus_err</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The line had an L2 bus error.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ecc_err</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The line had an ECC error.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The response itself carries no thread ID. The FE identifies the owner by the fixed request-to-response latency (<a href="#sec-tracking">Section 3.5</a>).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-struct-op">B.4. <code>frontend_operation</code> (thread buffer → top, 88 bits)</h3>
+<div class="paragraph">
+<p>Defined in <code>frontend_types.vh</code>. Output of each thread buffer in F7 (<code>f7_inst_data</code>).</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pc</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">49</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PC of the instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>inst_bits</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction after RVC expansion.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>page_fault0</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page fault on the buffer holding the first (or only) halfword.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>access_fault0</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Access fault on that buffer.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>page_fault1</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page fault on the buffer holding the second halfword of a split instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>access_fault1</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Access fault on that buffer.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>replay</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction must be replayed: fetched from a non-cacheable block while older instructions are in flight (<a href="#sec-f7-status">Section 5.6</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bus_err</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bus error on the block(s) holding the instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ecc_err</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ECC error on the block(s) holding the instruction.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="sec-struct-core-resp">B.5. <code>frontend_core_resp</code> (FE → integer pipeline, 89 bits)</h3>
+<div class="paragraph">
+<p>Defined in <code>frontend_types.vh</code>.Built in <code>frontend_top</code> from <code>frontend_operation</code>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pc</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">49</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Copy of <code>frontend_operation.pc</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>inst_bits</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Copy of <code>frontend_operation.inst_bits</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pf0</code>, <code>pf1</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>page_fault0/1</code> qualified with the thread buffer&#8217;s valid.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>af0</code>, <code>af1</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>access_fault0/1</code> qualified with valid.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>replay</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Copy of <code>replay</code>. <strong>Not</strong> qualified with valid.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>rvc</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction was 16 bits in memory (compressed) before expansion.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bus_error</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>bus_err</code> qualified with valid.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ecc_error</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ecc_err</code> qualified with valid.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="_frontend_thread_data_one_queue_entry_179_bits">B.6. <code>frontend_thread_data</code> (one queue entry, 179 bits)</h3>
+<div class="paragraph">
+<p>Defined in <code>frontend_types.vh</code>: <code>{core_resp (89), vpu_ctrl_sigs (45), intpipe_ctrl (45)}</code>. One entry of the per-hart instruction queue in <code>frontend_top</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sec-struct-fe-req">B.7. <code>minion_fe_req</code> (integer pipeline → FE redirect, 52 bits)</h3>
+<div class="paragraph">
+<p>Defined in <code>minion_types.vh</code>. The integer pipeline drives one per hart; <code>f0_core_req_valid[t]</code> qualifies it.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>pc</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">49</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">New fetch PC. Priority in the integer pipeline: debug resume vector, then exception/<code>xRET</code> vector, then replay PC, then branch target, then IPI PC.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>speculative</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">This hart has an instruction in EX, TAG, MEM or WB. The intpipe computes it every cycle, whether or not <code>f0_core_req_valid</code> is set, and the thread buffer samples it every cycle in F7 (<a href="#sec-f7-status">Section 5.6</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_info.halt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The redirect enters debug mode (a trap to debug).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>debug_info.resume</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The redirect leaves debug mode (<code>dret</code> or resume).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="sec-struct-minion-control">B.8. <code>minion_control</code> (integer decode, 45 bits)</h3>
+<div class="paragraph">
+<p>Defined in <code>minion_types.vh</code>. Output of <code>intpipe_decode</code>. The FE only computes and stores these bits; the integer pipeline uses them. Meanings are taken from the field names and from their use in <code>intpipe_top.v</code>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Meaning (use in the integer pipeline)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>legal</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Decoded as a known instruction. <code>!legal</code> raises an illegal-instruction exception.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mcode</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">"M-code" instruction: implemented by a trap to software, so it causes an exception.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction uses the VPU/FP register file.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>br</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Conditional branch.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>jal</code> / <code>jalr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Jump and link / jump and link register.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>rxs2</code> / <code>rxs1</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reads integer source register 2 / 1 (hazard checks and register-file read enables).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>sel_alu2</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ALU operand 2 select: <code>X</code>, <code>ZERO</code>, <code>SIZE</code>, <code>RS2</code>, <code>IMM</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>sel_alu1</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ALU operand 1 select: <code>X</code>, <code>ZERO</code>, <code>RS1</code>, <code>PC</code>, <code>FS1</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>sel_imm</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Immediate format: <code>X</code>, <code>S</code>, <code>SB</code>, <code>U</code>, <code>UJ</code>, <code>I</code>, <code>Z</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>alu_dw</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ALU data width: 32 or 64 bits.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>alu_fn</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ALU function.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mem</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Memory operation.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mem_cmd</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">D-cache command (read, write, AMO type, &#8230;&#8203;).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mem_type</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Access size/type (B, H, W, D, unsigned, gather/scatter types).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>rma</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reads all mask registers (mask hazard check).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>wmd</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Writes one mask register.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>wmad</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Writes all mask registers.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>wfd</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Writes an FP/VPU destination (FP hazard check).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>div</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Uses the multiply/divide unit.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>wxd</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Writes an integer destination.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>csr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CSR command: <code>N</code>, <code>W</code>, <code>S</code>, <code>C</code>, <code>I</code> (<code>I</code> = privileged/system instruction).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fence</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fence instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mem_g</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Global memory operation, forwarded to the D-cache request.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gsc</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Gather/scatter instruction.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gfx</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Graphics instruction; trapped when the <code>trap_on_gfx</code> feature is set.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>x31</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction implicitly requires register x31.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="sec-struct-vpu-sigs">B.9. <code>vpu_ctrl_sigs_t</code> (VPU decode, 45 bits)</h3>
+<div class="paragraph">
+<p>Defined in <code>vpu_types.vh</code>. Output of <code>vpu_decoder</code>. The FE stores it and exports it as <code>id_vpu_decoder_sigs</code>; the VPU uses it. Fields in declaration order:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Meaning (from name and decoder table)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>cmd</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VPU function command (<code>VPU_FCMD_*</code> or <code>VPU_TRANS_*</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>txfma</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Executes in the TxFMA unit.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>shsw</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Uses the shift/swizzle (integer) path.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>rom</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Uses the transcendental ROM.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>scatter</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Scatter store.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>cvt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Conversion.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>trans</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Transcendental/divide sequence (column header <code>transDiv</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>gcvt</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Graphics format conversion.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fromintf</code> / <code>tointm</code> / <code>tointf</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Source from integer format / result to integer mask / result to integer format.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>maskop</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Mask operation.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ldst</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Load or store.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>m0ren</code> / <code>mallren</code> / <code>mren1</code> / <code>mren2</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reads mask 0 / all masks / mask src1 / mask src2.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>wen</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Writes a destination register.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ren1</code> / <code>ren2</code> / <code>ren3</code> / <code>rend</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reads src1 / src2 / src3 / the destination.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>swap12</code> / <code>swap23</code> / <code>swap13</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Operand swaps.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vector</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Packed (all 8 lanes) instruction, as opposed to scalar.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>dtype</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Data type (<code>F32</code>, <code>INT</code>, <code>F16</code>, graphics types).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fromint</code> / <code>toint</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Moves from / to the integer register file.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fma</code> / <code>fms</code> / <code>add</code> / <code>sub</code> / <code>mul</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Arithmetic variant selects.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>round</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Uses the rounding mode.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>wflags</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Updates FP exception flags.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="sec-struct-vpu-core">B.10. <code>vpu_minion_id_ctrl</code> (subset driven by the FE)</h3>
+<div class="paragraph">
+<p>Defined in <code>minion_types.vh</code>. <code>frontend_top</code> drives only these fields; all others are zero at the FE output: <code>m0ren</code>, <code>mallren</code>, <code>mren1</code>, <code>mren2</code>, <code>wen</code> (= <code>wen | rend</code>), <code>ren1</code>, <code>ren2</code>, <code>ren3</code>, <code>rend</code>, <code>is_trans</code> (= <code>trans</code>), <code>fromint</code>. The remaining fields (<code>trans_busy</code>, <code>id_trans_insert</code>, <code>scoreboard</code>, <code>tfma_enabled</code>, <code>tfma_wrrf_enabled</code>, <code>tquant_enabled</code>, <code>reduce_enabled</code>, <code>fflags_stall</code>) are VPU status that other logic provides.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="sec-rvc-table">Appendix C: Compressed-Instruction Expansion</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><code>frontend_rvc_expander</code> selects the expansion by a 5-bit index formed from the quadrant (bits [1:0]) and funct3 (bits [15:13]) of the halfword. The file is generated code (its structure matches a Chisel-generated expander); the table below states what it computes.</p>
+</div>
+<div class="paragraph">
+<p><code>rd'</code>, <code>rs1'</code>, <code>rs2'</code> denote the 3-bit compressed registers x8–x15. Opcode 7&#8217;h1F / 7&#8217;h3F in an expansion is a reserved opcode; the integer decoder does not recognize it, so the instruction is reported illegal.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 12.5%;">
+<col style="width: 12.5%;">
+<col style="width: 25%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Index</th>
+<th class="tableblock halign-left valign-top">Quadrant / funct3</th>
+<th class="tableblock halign-left valign-top">Compressed instruction</th>
+<th class="tableblock halign-left valign-top">Expanded to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">00 / 000</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.ADDI4SPN</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ADDI rd', x2, nzuimm</code>. If the immediate (bits 12:5) is 0, opcode 7&#8217;h1F (illegal).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">00 / 001</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.FLD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>FLD</code> (opcode 7&#8217;h07, funct3 3)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">00 / 010</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.LW</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LW rd', off(rs1')</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">00 / 011</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.LD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LD rd', off(rs1')</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">00 / 100</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">reserved</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">all zeros</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">00 / 101</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.FSD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>FSD</code> (opcode 7&#8217;h27, funct3 3)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">00 / 110</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.SW</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SW rs2', off(rs1')</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">00 / 111</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.SD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SD rs2', off(rs1')</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">01 / 000</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.ADDI</code>, <code>C.NOP</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ADDI rd, rd, imm</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">01 / 001</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.ADDIW</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ADDIW rd, rd, imm</code>. If rd = 0, opcode 7&#8217;h1F.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">01 / 010</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.LI</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ADDI rd, x0, imm</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">11</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">01 / 011</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.ADDI16SP</code> (rd = 0 or 2), <code>C.LUI</code> (other rd)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ADDI x2, x2, imm×16</code> or <code>LUI rd, imm</code>. If the immediate is 0: opcode 7&#8217;h1F (ADDI16SP) or 7&#8217;h3F (LUI).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">12</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">01 / 100</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.SRLI</code>, <code>C.SRAI</code>, <code>C.ANDI</code>, <code>C.SUB</code>, <code>C.XOR</code>, <code>C.OR</code>, <code>C.AND</code>, <code>C.SUBW</code>, <code>C.ADDW</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Selected by bits [11:10]: 0 <code>SRLI</code>, 1 <code>SRAI</code> (bit 30 set), 2 <code>ANDI</code>, 3 register-register op. For the register ops, funct3 comes from <code>{bit12, bits[6:5]}</code> and opcode is <code>OP-32</code> (7&#8217;h3B) when bit 12 is set, <code>OP</code> (7&#8217;h33) otherwise; bit 30 is set when bits [6:5] = 00 (<code>SUB</code>/<code>SUBW</code>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">13</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">01 / 101</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.J</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>JAL x0, off</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">14</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">01 / 110</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.BEQZ</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BEQ rs1', x0, off</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">15</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">01 / 111</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.BNEZ</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>BNE rs1', x0, off</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10 / 000</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.SLLI</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SLLI rd, rd, shamt</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">17</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10 / 001</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.FLDSP</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>FLD rd, off(x2)</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">18</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10 / 010</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.LWSP</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LW rd, off(x2)</code>. If rd = 0, opcode 7&#8217;h1F.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">19</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10 / 011</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.LDSP</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LD rd, off(x2)</code>. If rd = 0, opcode 7&#8217;h1F.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">20</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10 / 100</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.JR</code>, <code>C.MV</code>, <code>C.EBREAK</code>, <code>C.JALR</code>, <code>C.ADD</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bit 12 = 0: rs2 ≠ 0 → <code>ADD rd, x0, rs2</code> (<code>C.MV</code>); rs2 = 0 → <code>JALR x0, 0(rs1)</code> (<code>C.JR</code>), opcode 7&#8217;h1F if rs1 = 0. Bit 12 = 1: rs2 ≠ 0 → <code>ADD rd, rd, rs2</code>; rs1 ≠ 0 → <code>JALR x1, 0(rs1)</code>; rs1 = 0 → <code>EBREAK</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">21</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10 / 101</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.FSDSP</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>FSD rs2, off(x2)</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">22</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10 / 110</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.SWSP</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SW rs2, off(x2)</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">23</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">10 / 111</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>C.SDSP</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SD rs2, off(x2)</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">24–31</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">11 / any</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32-bit instruction</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">unchanged</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The double-precision forms (<code>C.FLD</code>, <code>C.FSD</code>, <code>C.FLDSP</code>, <code>C.FSDSP</code>) are expanded, although the ET-Minion implements only the F extension. <code>FLD</code>/<code>FSD</code> do not appear in `intpipe_decode&#8217;s case list, so they decode as illegal.</p>
+</div>
+<div class="paragraph">
+<p>In the thread buffer the expander runs on every F6 instruction. For a 32-bit instruction the output equals the input (index 24–31), so <code>f7_inst_bits</code> is always the 32-bit form.</p>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2026-09-21 20:56:17 +0500
+</div>
+</div>
+</body>
+</html>

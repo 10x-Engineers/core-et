@@ -1,0 +1,51 @@
+[[sec-role]]
+== Role of the Front End
+
+The Front End supplies instructions to the integer pipeline for both harts of an ET-Minion core. It sits between two neighbours:
+
+* *Neighborhood L0 micro-cache* (reached through the Neighborhood instruction-cache logic). The Front End sends it one fetch request at a time, each for a 32-byte aligned block, and receives the block, a miss indication, or fault and error status.
+* *Integer pipeline.* The Front End presents one decoded instruction per cycle in the ID stage. In the other direction, the integer pipeline sends per-hart redirects (a new fetch PC) and per-hart stalls.
+
+Per hart, the Front End:
+
+. holds a fetch PC and requests the next 32-byte block when it has room for it;
+. stores returned blocks in a pair of 32-byte instruction buffers;
+. extracts instructions from the buffers in program order, one per cycle, and expands compressed instructions to 32 bits;
+. decodes each instruction for the integer pipeline and for the VPU;
+. queues decoded instructions in a two-entry queue until the integer pipeline takes them.
+
+Across both harts, it arbitrates the single request port to the micro-cache, shares one set of decoders, and chooses which hart's instruction is presented in ID.
+
+The Front End also restarts fetch on redirects, delivers a placeholder instruction when a halt is pending, and executes the debug program buffer in debug mode.
+
+[[fig-fe-top]]
+.Front End top level
+image::fig-fe-top.png[Front End top level,width=100%,align=center]
+
+=== Per-Hart and Shared Resources
+
+[cols="1,2",options="header"]
+|===
+| One per hart | Shared by both harts
+
+| Fetch PC, miss state, request tracker (`frontend_thread_buffer`) +
+Two 32-byte instruction buffers and their status +
+Instruction extraction, compressed-instruction expander, F7 register +
+Two-entry decoded-instruction queue
+| Request arbiter and F1 request register +
+Registered micro-cache response and fill-done indication +
+Integer and VPU decoders +
+Hart scheduler and ID-stage output
+|===
+
+=== Design Choices in Brief
+
+These choices shape everything that follows; each is explained in its own section.
+
+One outstanding request per hart:: A hart issues a new request only after its previous request has completed. This removes any need to reorder responses.
+Ownership by timing:: Responses carry no hart identifier. Each hart knows which response is its own by tracking its request through a fixed number of stages (<<sec-tracking>>).
+Double buffering:: Two 32-byte buffers per hart let the next block be fetched while the current block is being consumed.
+Halfword-addressed buffers:: Instructions are read at any 16-bit boundary, so 16-bit and 32-bit instructions mix freely, including a 32-bit instruction that crosses from one buffer into the other.
+Bypass:: The first instruction of an arriving block can be extracted in the same cycle the block is written.
+Decode in the Front End:: Both decoders run in F7, before the instruction queue, so the integer pipeline receives decoded control fields in ID.
+Alternating issue:: When both harts have an instruction ready, they are presented to ID in alternate cycles.

@@ -1,0 +1,71 @@
+[[sec-issue]]
+== Decode, Queueing and Issue
+
+This part of the Front End is in `frontend_top`. It takes instructions from the two F7 registers, decodes them, queues them per hart and presents one of them to the integer pipeline.
+
+[[sec-issue-pick]]
+=== Choosing the Hart to Decode
+
+There is one pair of decoders, so one hart per cycle can move an instruction from its F7 register into its queue. A hart is a candidate when its F7 register holds an instruction, its queue has room, and the scheduler considers it awake (enabled and not stalled, <<sec-issue-sched>>).
+
+* If only one hart is a candidate, it is chosen.
+* If both are, the hart that is *not* currently presented in ID is chosen, so decode alternates in step with issue.
+* If neither is, the same default applies (the hart not in ID) and no candidate condition is checked.
+
+The transfer itself happens when the chosen hart has a valid F7 instruction and a queue with room. The awake condition affects only the choice, not the transfer.
+
+[[sec-issue-decode]]
+=== Decoders
+
+The chosen instruction goes through two combinational decoders in parallel. Both are case tables over the 32-bit instruction; an encoding not listed falls to a default entry.
+
+Integer decoder (`intpipe_decode`):: Produces the integer-pipeline control word (`minion_control`, <<sec-struct-minion-control>>): whether the instruction is legal, whether it is emulated in software (_M-code_), register reads and writes, ALU operand and function selects, immediate format, memory command and size, CSR command, fence, and Esperanto-specific attributes (global memory access, gather/scatter, graphics, mask registers, implicit use of `x31`). An unlisted encoding decodes as not legal, which the integer pipeline turns into an illegal-instruction exception.
++
+The table covers the base integer, 64-bit, multiply/divide and single-precision FP instructions, the Esperanto atomics, local/global and packed loads and stores, packed single-precision and packed integer vector operations, mask operations, graphics operations, and a group of M-code instructions (for example FP divide and square root, 64-bit FP conversions, `FENCE.I`, `SFENCE.VMA`) that trap for software emulation. The `ENABLE_EXTRA_TRANS` define moves two packed transcendental instructions from the M-code group to hardware execution in the VPU.
+
+VPU decoder (`vpu_decoder`):: Produces the VPU control word (`vpu_ctrl_sigs_t`, <<sec-struct-vpu-sigs>>): VPU function, execution unit, data type, scalar or packed, source and destination register reads and writes, mask register use, operand swaps, rounding and flag update. It also reports whether the instruction is a VPU instruction at all; any encoding it does not list is not.
+
+Decoding in the Front End keeps the decode logic out of the ID stage; the legacy Front End–integer pipeline description states it is placed there for timing.
+
+[[sec-issue-queue]]
+=== Per-Hart Instruction Queue
+
+Each hart has a two-entry queue between F7 and ID. An entry holds the instruction and its fetch status (`frontend_core_resp`), the integer control word and the VPU control word.
+
+The queue is not built as an indexed array. Its first entry is always the head, the instruction currently offered to ID, and the second entry is only a holding place. A push into an empty queue, or into a one-entry queue whose head is leaving, writes the head directly; a push into a one-entry queue that is not being popped writes the second entry; a pop from a full queue moves the second entry into the head. The ID outputs therefore always read one fixed register per hart, which keeps the ID path short.
+
+Two details matter for the integer pipeline:
+
+* The VPU control word in an entry is updated only when the instruction is a VPU instruction. For an integer instruction the entry keeps the VPU control word of an earlier VPU instruction, so the VPU fields in ID are meaningful only for VPU instructions.
+* The fault and error bits in the fetch status are forced to zero when the F7 register is not valid. The replay bit is not.
+
+A redirect for a hart empties that hart's queue.
+
+[[sec-issue-sched]]
+=== Hart Scheduling
+
+The scheduler (`frontend_thread_sched`) chooses which hart is presented in ID in the next cycle.
+
+Awake:: A hart is awake when it is enabled and the integer pipeline is not stalling it. The stall inputs cover, for example, `WFI`, a fence, exclusive mode held by the other hart, and register scoreboard stalls. Awake is registered, so a stall affects scheduling one cycle after it is raised.
+Ready:: A hart is ready when its queue holds an instruction or one is being pushed in this cycle, and the hart is not being redirected. Counting the push lets an instruction go from F7 to ID in consecutive cycles.
+
+The choice:
+
+* If exactly one hart is awake and ready, it is chosen.
+* If both are, the choice alternates from the previous choice.
+* If neither is, hart 0 is chosen by default.
+
+The choice is registered and becomes the ID hart in the next cycle.
+
+[[sec-issue-id]]
+=== ID-Stage Output
+
+In ID, the Front End presents the head of the selected hart's queue:
+
+* the instruction, its PC and its fetch status;
+* its integer control word and VPU control word;
+* a summary of the VPU control word used by the integer pipeline for VPU register hazard checks: which VPU and mask registers the instruction reads, whether it writes (or reads) its destination, whether it is a transcendental operation, and whether it takes an integer operand.
+
+The instruction is marked valid whenever the selected hart's queue is not empty. The integer pipeline accepts it with its ready signal, which pops the queue.
+
+Validity is not qualified with the hart's stall: when neither hart is awake the default choice is hart 0, and hart 0 is shown as valid if its queue holds an instruction. The integer pipeline applies its own per-hart stall. Also, because the ID hart is re-chosen every cycle, an instruction that is offered but not accepted may be replaced by the other hart's instruction in the next cycle; it stays at the head of its queue and is offered again later.

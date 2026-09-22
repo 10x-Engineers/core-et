@@ -1,0 +1,50 @@
+[[sec-pipeline]]
+== Pipeline Overview
+
+[[fig-fe-pipeline]]
+.Front End pipeline
+image::fig-fe-pipeline.png[Front End pipeline,width=100%,align=center]
+
+=== Stages
+
+[cols="1,6",options="header"]
+|===
+| Stage | Work done
+
+| F0 | Each hart holds its fetch PC. A hart that has a free buffer and no request in flight bids for the shared request port. The arbiter grants one hart, and the granted hart records which of its buffers will receive the block. Redirects from the integer pipeline arrive in this stage.
+| F1 | The granted request sits in the shared F1 request register and is presented to the micro-cache until accepted.
+| F2–F4 | The micro-cache processes the request. The Front End does nothing with it except move the owning hart's tracking token forward.
+| F5 | The micro-cache returns the response: a 32-byte block, or a miss, plus fault and error status.
+| F6 | The response is registered and broadcast to both harts. The owning hart writes the block into the reserved buffer, or records the miss. In the same stage the hart reads the next instruction from its buffers, bypassing the arriving block when needed, and expands it if it is compressed.
+| F7 | Each hart holds one expanded instruction. One hart per cycle is chosen for decode; its instruction passes through both decoders and enters its queue. The scheduler chooses the hart for ID.
+| ID | The oldest queued instruction of the chosen hart is presented to the integer pipeline.
+|===
+
+=== Latency and Throughput
+
+These figures follow from the stage structure when the micro-cache accepts each request at once and hits.
+
+[cols="3,1,4",options="header"]
+|===
+| Path | Cycles | Notes
+
+| Request in F0 to first instruction in ID | 8 | F0 → F1 → F2 → F3 → F4 → F5 → F6 (write and bypass) → F7 → ID.
+| Hart enable to first instruction in ID | 10 | The enable is registered, then the reset PC is loaded, then the first request issues (<<sec-flow-enable>>).
+| Redirect to first target instruction in ID | 9 | No request in the redirect cycle; the target is requested in the next cycle.
+| Interval between requests of one hart | 7 (minimum) | A new request waits until the previous one has left F6.
+| Instructions extracted per hart | 1 per cycle | In F6.
+| Instructions presented in ID | 1 per cycle | For the whole core, from one hart.
+|===
+
+One 32-byte block holds eight 32-bit instructions, or up to sixteen compressed ones. A hart that receives one block every seven cycles therefore gets more instructions than the single ID slot can take, once both harts share it.
+
+=== Stall and Flush Points
+
+Backpressure enters the Front End in two places:
+
+* *Micro-cache not ready.* The F1 request register holds its request, and no new request is granted.
+* *Queue full.* A hart whose queue is full does not pop its F7 register; F7 then holds, and F6 stops extracting.
+
+Stages F2 to F6 never stall. The micro-cache must return the response in F5 regardless of what the Front End is doing, and the Front End is always able to take it because each hart only requests when a buffer is reserved for the block.
+
+A redirect for a hart flushes that hart's state in all stages in the same cycle (<<sec-flow-redirect>>).

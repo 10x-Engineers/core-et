@@ -1,0 +1,200 @@
+= CORE-ET Micro-Architecture Reference — Document Plan
+:toc: macro
+:toclevels: 2
+
+Status:: APPROVED chapter division. Chapter 1 skeleton: `chapters/ch01-et-soc-1-overview.adoc`.
+
+Audience:: RTL designers and DV engineers who know RISC-V and SoC design but are new to this chip. General concepts are not explained. Esperanto-specific terms are defined where they first appear.
+
+Sources:: Only `docs/arch`, `docs/u_arch` and `rtl/` (never `dv/` or `test/`). Where the legacy documents and the RTL disagree, the RTL wins and the difference goes into Appendix F. Each chapter keeps a claim → source trace in `plan/chNN-source-trace.adoc`.
+
+Format:: AsciiDoc (Asciidoctor book). One file per chapter in `chapters/`, figures in `images/chNN/`, and the PDF built with `asciidoctor-pdf`. The document contains no RTL code.
+
+toc::[]
+
+== Chapter division
+
+Only blocks that exist in the RTL of this repository get a chapter. Blocks without code are mentioned only in Chapter 1, and only for context.
+
+Order:: Data Cache comes before VPU. The VPU uses the data cache for vector load/store, scratchpad access, tensor load and reduce, so describing the data cache first avoids forward references.
+
+[cols="1,3,4",options="header"]
+|===
+| Ch | Title | RTL scope
+
+3+h| ET-SoC-1 and the ET-Minion Core
+| 1 | ET-SoC-1 Overview | – (overview only)
+| 2 | ET-Minion Core Overview | `shire/minion/minion_top`, `core_top`
+| 3 | Instruction Fetch | `shire/minion/frontend/*`; FE side of the FE–L0 micro-cache interface
+| 4 | Integer Pipeline | `shire/minion/intpipe/*` (including `csr/`)
+| 5 | Data Cache | `shire/minion/dcache/*`, `shire/minion/tlb_top`
+| 6 | Vector Processing Unit | `shire/minion/vpu/*`
+
+3+h| Neighborhood
+| 7 | Neighborhood Overview | `shire/neigh/neigh_top`, `neigh_channel`
+| 8 | Neighborhood Instruction Cache (L0 micro-cache and L1 I-cache) | `shire/neigh/icache/*`, `neigh_shared_icache`, `shire_channel/icache/*`
+| 9 | Shared Page-Table Walker | `neigh_shared_ptw`, `ptw_top`
+| 10 | Memory Request and Response Path | `neigh_miss_ff`, `neigh_evict_ff*`, `neigh_fill_ff`, `neigh_fill_fifo`
+| 11 | Tensor Support | `neigh_coop_tload*`, `neigh_tensor_store_buffer*`, `neigh_tbox_router`
+| 12 | Synchronization, Messaging, Registers and PMU | `neigh_fl_barrier`, `neigh_local_message_network`, `neigh_hv_logic_*`, `esr_neigh`, `neigh_ch_apb_mux`, `neigh_ch_dbg`, `neigh_pmu`
+
+3+h| CPU Subsystem
+| 13 | CPU Subsystem | `cpu_subsystem/*`, `shire/uncached/*`, `shire/esr/esr_shire_other`
+
+3+h| Appendices
+| A | Abbreviations and Glossary | –
+| B | Discrepancies with Legacy Documents | –
+| C | References | –
+|===
+
+== Chapter headings
+
+Top-level sections only. Subsections are planned when each chapter is started.
+
+[cols="1,6",options="header"]
+|===
+| Ch | Sections
+
+| 1 ET-SoC-1 Overview
+a|
+* ET-SoC-1 at a glance
+* ET-Minion hierarchy: core, Neighborhood, Minion Shire
+* Mesh network-on-chip
+* ET-Maxion and Service Processor (brief)
+* Scope of this document
+
+| 2 ET-Minion Core Overview
+a|
+* Block partitioning: front end, integer pipeline, data cache, VPU, debug
+* Hardware threads
+* Instruction flow through the core
+* Top-level interfaces to the Neighborhood
+* Clocks, resets and power-down at core level
+* Debug support (debug APB slave, breakpoints)
+
+| 3 Instruction Fetch
+a|
+* Front-end overview
+* Thread scheduling
+* Per-thread instruction buffers
+* Compressed-instruction expansion
+* Decode and dispatch to the integer pipeline and VPU
+* FE–L0 micro-cache interface: request, response, backpressure, errors
+* Redirects and flushes
+* Debug program-buffer injection
+
+| 4 Integer Pipeline
+a|
+* Pipeline stages
+* Register file and operand read
+* ALU, immediate and multiply/divide units
+* Scoreboards (integer, FP, mask) and hazards
+* Handoff to the data cache and VPU
+* CSRs, privilege modes, exceptions and interrupts
+* Replay, stall and flush
+
+| 5 Data Cache
+a|
+* Organization, and cache vs scratchpad modes
+* Address translation: TLB and PMA checks
+* Request pipeline and replay queue
+* Miss handling, writeback and store merge
+* Atomic operations
+* Cache-management operations
+* Tensor load and reduce support
+* ET-Link interface to the Neighborhood
+
+| 6 Vector Processing Unit
+a|
+* VPU overview and control
+* Decode and micro-instruction sequencing
+* Lanes and register files
+* Mask unit and bypass network
+* Arithmetic units: TxFMA, TIMA, transcendental
+* Tensor operations
+* Interfaces to the integer pipeline and data cache
+
+| 7 Neighborhood Overview
+a|
+* Partitioning (`neigh_top`, `neigh_channel`)
+* Shared resources and core connections
+* Voltage-domain crossings
+* External interfaces and tie-offs in the CPU Subsystem
+
+| 8 Neighborhood Instruction Cache
+a|
+* L0 micro-cache
+* L1 I-cache: tags, LRU, TLB, PMA
+* External I-cache data RAM
+* Arbitration and miss path
+* Prefetch
+* Errors and ECC
+
+| 9 Shared Page-Table Walker
+a|
+* Clients and arbitration
+* Walk FSM and page sizes
+* PTE cache and invalidation
+
+| 10 Memory Request and Response Path
+a|
+* Miss, evict and fill FIFOs
+* Request arbitration
+* ET-Link usage
+* Response routing and backpressure
+
+| 11 Tensor Support
+a|
+* Cooperative tensor load
+* Tensor store buffer
+* TBOX router (tied off in the CPU Subsystem; brief)
+
+| 12 Synchronization, Messaging, Registers and PMU
+a|
+* Fast local barrier
+* Local message network
+* IPI and FCC paths
+* Neighborhood ESRs and APB access
+* Debug channel
+* PMU
+
+| 13 CPU Subsystem
+a|
+* Top level and ports
+* ET-Link-to-AXI bridge
+* PLIC
+* CLINT
+* FLB and FCC units
+* Subsystem registers and APB multiplexer
+* Reset and power-down
+|===
+
+== Standard chapter template
+
+Chapters 2–13 follow this template for each block they describe. A section is left out when it does not apply to the block.
+
+. *Overview*: what the block does and where it sits.
+. *Block diagram*: sub-blocks and the main data and control paths.
+. *Interfaces*: an I/O signal table. Each row is marked *Full* (traceable in the RTL, described in detail) or *Brief* (driven from outside the scope or tied off, described only by the logic it drives).
+. *Data structures*: struct and packet tables (field, width, meaning).
+. *Parameters*: the defines and parameters that size the block, with their values.
+. *Functional description*, per sub-block:
+** pipeline stages;
+** buffering;
+** arbitration;
+** FSMs, with state diagrams.
+. *Operation flows*, with timing diagrams (WaveDrom):
+** the normal case;
+** backpressure and stall;
+** flush and kill.
+. *Reset and configuration*: reset values, ESR/CSR controls.
+. *Errors and exceptions*: detection, reporting, ECC.
+. *Performance*: latency, throughput, PMU events.
+. *Corner cases and known RTL/legacy differences*.
+. *Verification notes*: key scenarios and checkers worth targeting.
+
+== Decisions
+
+* Chapter division approved, with Data Cache as Chapter 5 and VPU as Chapter 6.
+* The earlier plans (`TOC.md`, `plan/ch01-introduction-plan.adoc`) are removed.
+* Open: whether the CPU Subsystem stays one chapter (13).

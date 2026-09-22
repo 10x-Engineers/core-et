@@ -1,0 +1,49 @@
+[appendix]
+[[sec-if]]
+== Front End Interface
+
+Ports of `frontend_top`, with the signal each connects to in `core_top`.
+
+[cols="3,1,2,3,5",options="header"]
+|===
+| Port | Dir | Width / type | Connected to | Description
+
+5+h| System
+| `clock` | in | 1 | `clock` | Core clock. Feeds the always-on clock of the thread buffers.
+| `reset` | in | 1 | `reset_w` (warm reset) | Synchronous reset of all FE state.
+| `reset_debug` | in | 1 | `reset_d` (debug reset) | Resets the program-buffer write-enable pipeline and refills the program buffer with EBREAKs while the hart is halted.
+| `chicken_bit` | in | 1 | `chicken_bit_frontend` | Keeps the thread-buffer clock gate open. In `minion_top` it comes from the configuration bit `min_frontend_clock_gate_disable`.
+5+h| Thread enable and reset PC
+| `f0_thread_enabled` | in | 2 | `enabled` (registered in `minion_top`) | Hart enable, one bit per hart. Edges start and stop fetch.
+| `f0_reset_vector` | in | 48 | `reset_vector` | Fetch address used on reset and when a hart is enabled. Sign-extended to 49 bits.
+5+h| Virtual-memory status
+| `vm_status` | in | 2 × `minion_vm_status` | `vm_status` | Per-hart VM status, copied into each I-cache request.
+5+h| I-cache request (F1)
+| `f1_icache_req_ready` | in | 1 | `icache_req_ready` | I-cache accepts the F1 request this cycle.
+| `f1_icache_req_valid` | out | 1 | `icache_req_valid` | F1 request register is valid.
+| `f1_icache_req` | out | `frontend_icache_req` | `icache_req` | F1 request payload.
+5+h| I-cache response (F5/F6)
+| `f5_icache_resp_valid` | in | 1 | `icache_resp_valid` | Response slot valid in F5.
+| `f5_icache_resp_miss` | in | 1 | `icache_resp_miss` | The F5 response is an L0 miss (no data).
+| `f5_icache_resp` | in | `icache_frontend_resp` | `icache_resp` | Response payload in F5.
+| `f6_icache_fill_done` | in | 1 | `icache_fill_done` | An L0 fill has completed; harts waiting on a miss may retry.
+5+h| Redirect and stall from the integer pipeline
+| `f0_core_req_valid` | in | 2 | `id_core_fe_req_valid` | Per-hart redirect: flush and restart fetch at `f0_core_req[t].pc`.
+| `f0_core_req` | in | 2 × `minion_fe_req` | `id_core_fe_req` | Redirect payload.
+| `id_core_stall` | in | 2 | `id_core_fe_stall` | Per-hart "do not issue" from the integer pipeline: CSR stall (e.g. WFI), exclusive mode held by the other hart, fence, integer or FP scoreboard stall .
+5+h| Instruction to the integer pipeline (ID)
+| `id_inst_ready` | in | 1 | `id_core_fe_resp_ready` | Integer pipeline accepts the ID instruction.
+| `id_inst_valid` | out | 1 | `id_fe_core_resp_valid` | An instruction is presented in ID.
+| `id_inst_thread_id` | out | 1 | `id_fe_core_resp_thread_id` | Hart of the ID instruction.
+| `id_inst_data` | out | `frontend_core_resp` | `id_fe_core_resp` | PC, bits and fetch status of the ID instruction.
+| `id_intpipe_ctrl` | out | `minion_control` | `id_intpipe_ctrl` | Integer decode of the ID instruction.
+| `id_vpu_decoder_sigs` | out | `vpu_ctrl_sigs_t` | `id_vpu_decoder_sigs` | VPU decode of the ID instruction. Valid only for VPU instructions.
+| `id_vpu_core_ctrl` | out | `vpu_minion_id_ctrl` | `id_frontend_vpu_ctrl` | Register-read/write summary of the VPU decode, for integer-pipeline hazard checks.
+5+h| Debug program buffer
+| `debug_ffb_wdata` | in | 64 | `debug_ffb_wdata` | APB write data for the program buffer.
+| `debug_ffb_en` | in | 4 | `debug_ffb_en` | Per-word write enables for the program buffer.
+| `debug_ffb_thread_sel` | in | 1 | `debug_ffb_thread_sel` | Hart whose program buffer is written.
+| `debug_ffb_exec` | in | 2 | `debug_ex_program_buffer` | Per hart: start executing the program buffer.
+| `halt` | in | 2 | `debug_in_core.halt` | Per hart: a halt request is pending.
+| `halted` | in | 2 | `debug_out.halted` | Per hart: the hart is in debug mode.
+|===

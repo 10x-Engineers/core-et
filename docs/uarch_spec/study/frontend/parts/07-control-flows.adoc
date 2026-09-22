@@ -1,0 +1,101 @@
+[[sec-flows]]
+== Control Flows
+
+Each flow below is traced cycle by cycle. The cycle tables assume that the micro-cache accepts each request at once, answers in F5, and that the other hart does not compete for the request port unless stated.
+
+[[sec-flow-enable]]
+=== Hart Enable and Disable
+
+The hart enable comes from outside the Neighborhood, so the Front End registers it before use and derives two one-cycle events from it: _hart enabled_ and _hart disabled_. The registers that detect the edges clock only when the enable is changing, to save power while it is stable.
+
+On enable, the fetch PC is loaded with the reset vector and fetch starts in the next cycle. On disable, both buffers are emptied and any pending miss is forgotten; no further requests are made because the hart is no longer enabled.
+
+.Hart enable to first instruction
+[cols="1,1,6",options="header"]
+|===
+| Cycle | Stage | Events
+
+| N | – | The hart's enable input rises.
+| N+1 | F0 | The registered enable is set and the _hart enabled_ event occurs. The reset vector is loaded into the fetch PC at the end of the cycle. No request yet.
+| N+2 | F0 | The hart requests, is granted, and reserves buffer 1 (both buffers are free).
+| N+3 | F1 | The request is presented to the micro-cache and accepted.
+| N+4 – N+6 | F2–F4 | The token advances.
+| N+7 | F5 | The response arrives. With both buffers empty, the read pointer is set to the starting halfword in buffer 1.
+| N+8 | F6 | The block is written to buffer 1 and the fetch PC moves to the next block. The first instruction is bypassed from the response, expanded, and moves to F7.
+| N+9 | F7 | The instruction is decoded and pushed into the queue; the scheduler selects the hart. The second instruction moves to F7. The next block is requested into buffer 0.
+| N+10 | ID | The first instruction is presented to the integer pipeline.
+|===
+
+Disabling a hart empties its buffers but does not clear its F7 register or its queue. The scheduler stops selecting the hart because it is no longer awake.
+
+[[sec-flow-redirect]]
+=== Redirect
+
+The integer pipeline redirects a hart for a mispredicted branch or jump, an exception or return, a replay, an inter-processor interrupt PC, or entry to or exit from debug mode. The redirect carries the new PC.
+
+In the redirect cycle, for that hart only:
+
+* the fetch PC is loaded with the redirect PC;
+* the tokens in F2 to F5 are invalidated and no response is written in F6; a request waiting in the F1 register is marked cancelled (<<sec-tracking-kill>>);
+* both buffers become empty and any pending miss is cleared;
+* the F7 register and the queue are emptied;
+* no request is made, and the hart is not offered to the scheduler.
+
+In the following cycle the hart requests the target block as usual, so the first target instruction reaches ID nine cycles after the redirect. The first block may start mid-block; the pointer starts at the target halfword (<<sec-extract-start>>).
+
+[[sec-flow-miss]]
+=== Micro-Cache Miss and Refill
+
+. The request goes through F1 to F5 normally, and the response reports a miss.
+. In F6 the hart writes nothing, leaves the fetch PC on the missed address, and sets its _miss pending_ state.
+. While a miss is pending, the hart makes no new request.
+. When the micro-cache completes a fill, it signals _fill done_. The Front End registers this signal and broadcasts it to both harts. A hart with a pending miss may request again in that cycle, and its miss state is cleared.
+. The same address is requested again and normally hits.
+
+The fill-done signal carries no address and is shared by both harts. A hart waiting for its own line also retries when the other hart's line is filled; if its line is still absent it misses again and waits for the next fill. A redirect, a disable or a pending halt also clears the miss state.
+
+[[sec-flow-split]]
+=== Instruction Crossing Two Buffers
+
+When the read pointer is at the last halfword of a buffer and that halfword starts a 32-bit instruction:
+
+* The instruction is available only when both buffers hold data, or when the second buffer is being written in this cycle (its first halfword is then bypassed from the response).
+* The single wrap-around read returns both halves.
+* The pointer moves to halfword 1 of the other buffer, so the first buffer becomes empty.
+* The instruction carries a second set of fault flags from the second buffer, and its error flags cover both buffers (<<sec-f7-status>>).
+
+This applies at the end of buffer 0 and at the end of buffer 1 alike.
+
+[[sec-flow-halt]]
+=== Halt
+
+When a halt is pending for a hart, the integer pipeline needs a valid instruction in ID on which to take the halt. The RTL comment on the clock gate states this directly. The Front End produces a placeholder instruction as follows:
+
+. The hart goes through its normal request decision, but it does not bid for the port. The request is treated as accepted internally, and the hart's token enters its tracker.
+. The token travels through F1 to F6 like a real request.
+. In F6 the token forces a buffer write even though no response exists. The data written is whatever the registered response last held. Fault and error flags are cleared, and the instruction is treated as 32-bit (not compressed).
+. The placeholder moves through F7 and the queue to ID.
+
+A pending halt also clears any pending miss and keeps the hart's clock running.
+
+[[sec-flow-debug]]
+=== Debug Mode and Program Buffer
+
+In debug mode the Front End executes instructions that the debugger writes over APB into a _program buffer_. The program buffer is buffer 0 of the halted hart.
+
+.Debug mode and program buffer
+[cols="1,6",options="header"]
+|===
+| Cycle | Events
+
+| D | A redirect marked as a trap to debug mode arrives. Program-buffer mode starts in the same cycle, so the hart stops requesting.
+| D+1 | Both buffers are emptied, F6 and F7 are invalidated, and buffer 0 is filled with `EBREAK` in words 0 to 4.
+| Later | The debugger writes the program buffer. Each write carries 64 bits of data and per-word enables for words 0 to 3: words 0–1 take the 64-bit data, words 2 and 3 each take its lower 32 bits. The data enables are applied in the write cycle and the word writes one cycle later, to meet the latch timing (<<sec-buf-write>>).
+| X | The debugger starts execution. The read pointer is reset to halfword 0 of buffer 0.
+| X+1 | Buffer 0 is marked full and buffer 1 empty. Instructions are extracted from word 0 onward.
+| E | A redirect marked as a resume from debug mode ends program-buffer mode, and normal fetch restarts at the resume PC.
+|===
+
+Word 4 is never written by the debugger and always holds `EBREAK`, so execution returns to debug mode after the program buffer even if the debugger does not end it with an `EBREAK`. While the program buffer is executed, all fault, error and replay status is forced to zero.
+
+A debug reset while the hart is halted refills buffer 0 with `EBREAK` in the same way.

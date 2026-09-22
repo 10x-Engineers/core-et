@@ -1,0 +1,183 @@
+[appendix]
+[[sec-structs]]
+== Data Structures
+
+Fields are listed MSB first, as declared. Widths are resolved.
+
+[[sec-struct-icache-req]]
+=== `frontend_icache_req` (FE → I-cache request, 58 bits)
+
+Defined in `frontend_types.vh`. [cols="2,1,5",options="header"]
+|===
+| Field | Width | Description
+
+| `thread_id` | 1 | Hart that issued the request. Set from the thread buffer's `THREAD_ID` parameter.
+| `vm_status` | 8 | Virtual-memory status of the hart (<<sec-struct-vm>>), passed through for the I-cache TLB.
+| `addr` | 49 | Fetch address (extended VA). Equal to `f0_pc`; may be unaligned inside the 32-byte block.
+|===
+
+[[sec-struct-vm]]
+=== `minion_vm_status` (8 bits)
+
+Defined in `minion_types.vh`. Driven by the integer pipeline CSRs; the FE only forwards it.
+
+[cols="2,1,5",options="header"]
+|===
+| Field | Width | Description
+
+| `prv` | 2 | Current privilege level.
+| `mprv` | 1 | `mstatus.MPRV`.
+| `mpp` | 2 | `mstatus.MPP`.
+| `sum` | 1 | `mstatus.SUM`.
+| `mxr` | 1 | `mstatus.MXR`.
+| `debug` | 1 | Hart is in debug mode.
+|===
+
+[[sec-struct-icache-resp]]
+=== `icache_frontend_resp` (I-cache → FE response, 261 bits)
+
+Defined in `frontend_types.vh`. [cols="2,1,5",options="header"]
+|===
+| Field | Width | Description
+
+| `data` | 256 | The 32-byte block containing the requested address.
+| `page_fault` | 1 | Fetch page fault from the I-cache TLB.
+| `access_fault` | 1 | Fetch access fault from the PMA check.
+| `cacheable` | 1 | Block comes from a cacheable region.
+| `bus_err` | 1 | The line had an L2 bus error.
+| `ecc_err` | 1 | The line had an ECC error.
+|===
+
+The response itself carries no thread ID. The FE identifies the owner by the fixed request-to-response latency (<<sec-tracking>>).
+
+[[sec-struct-op]]
+=== `frontend_operation` (thread buffer → top, 88 bits)
+
+Defined in `frontend_types.vh`. Output of each thread buffer in F7 (`f7_inst_data`).
+
+[cols="2,1,5",options="header"]
+|===
+| Field | Width | Description
+
+| `pc` | 49 | PC of the instruction.
+| `inst_bits` | 32 | Instruction after RVC expansion.
+| `page_fault0` | 1 | Page fault on the buffer holding the first (or only) halfword.
+| `access_fault0` | 1 | Access fault on that buffer.
+| `page_fault1` | 1 | Page fault on the buffer holding the second halfword of a split instruction.
+| `access_fault1` | 1 | Access fault on that buffer.
+| `replay` | 1 | Instruction must be replayed: fetched from a non-cacheable block while older instructions are in flight (<<sec-f7-status>>).
+| `bus_err` | 1 | Bus error on the block(s) holding the instruction.
+| `ecc_err` | 1 | ECC error on the block(s) holding the instruction.
+|===
+
+[[sec-struct-core-resp]]
+=== `frontend_core_resp` (FE → integer pipeline, 89 bits)
+
+Defined in `frontend_types.vh`.Built in `frontend_top` from `frontend_operation`.
+
+[cols="2,1,5",options="header"]
+|===
+| Field | Width | Description
+
+| `pc` | 49 | Copy of `frontend_operation.pc`.
+| `inst_bits` | 32 | Copy of `frontend_operation.inst_bits`.
+| `pf0`, `pf1` | 1 each | `page_fault0/1` qualified with the thread buffer's valid.
+| `af0`, `af1` | 1 each | `access_fault0/1` qualified with valid.
+| `replay` | 1 | Copy of `replay`. *Not* qualified with valid.
+| `rvc` | 1 | Instruction was 16 bits in memory (compressed) before expansion.
+| `bus_error` | 1 | `bus_err` qualified with valid.
+| `ecc_error` | 1 | `ecc_err` qualified with valid.
+|===
+
+=== `frontend_thread_data` (one queue entry, 179 bits)
+
+Defined in `frontend_types.vh`: `{core_resp (89), vpu_ctrl_sigs (45), intpipe_ctrl (45)}`. One entry of the per-hart instruction queue in `frontend_top`.
+
+[[sec-struct-fe-req]]
+=== `minion_fe_req` (integer pipeline → FE redirect, 52 bits)
+
+Defined in `minion_types.vh`. The integer pipeline drives one per hart; `f0_core_req_valid[t]` qualifies it.
+
+[cols="2,1,5",options="header"]
+|===
+| Field | Width | Description
+
+| `pc` | 49 | New fetch PC. Priority in the integer pipeline: debug resume vector, then exception/`xRET` vector, then replay PC, then branch target, then IPI PC.
+| `speculative` | 1 | This hart has an instruction in EX, TAG, MEM or WB. The intpipe computes it every cycle, whether or not `f0_core_req_valid` is set, and the thread buffer samples it every cycle in F7 (<<sec-f7-status>>).
+| `debug_info.halt` | 1 | The redirect enters debug mode (a trap to debug).
+| `debug_info.resume` | 1 | The redirect leaves debug mode (`dret` or resume).
+|===
+
+[[sec-struct-minion-control]]
+=== `minion_control` (integer decode, 45 bits)
+
+Defined in `minion_types.vh`. Output of `intpipe_decode`. The FE only computes and stores these bits; the integer pipeline uses them. Meanings are taken from the field names and from their use in `intpipe_top.v`.
+
+[cols="2,1,5",options="header"]
+|===
+| Field | Width | Meaning (use in the integer pipeline)
+
+| `legal` | 1 | Decoded as a known instruction. `!legal` raises an illegal-instruction exception.
+| `mcode` | 1 | "M-code" instruction: implemented by a trap to software, so it causes an exception.
+| `fp` | 1 | Instruction uses the VPU/FP register file.
+| `br` | 1 | Conditional branch.
+| `jal` / `jalr` | 1 each | Jump and link / jump and link register.
+| `rxs2` / `rxs1` | 1 each | Reads integer source register 2 / 1 (hazard checks and register-file read enables).
+| `sel_alu2` | 2 | ALU operand 2 select: `X`, `ZERO`, `SIZE`, `RS2`, `IMM`.
+| `sel_alu1` | 2 | ALU operand 1 select: `X`, `ZERO`, `RS1`, `PC`, `FS1`.
+| `sel_imm` | 3 | Immediate format: `X`, `S`, `SB`, `U`, `UJ`, `I`, `Z`.
+| `alu_dw` | 1 | ALU data width: 32 or 64 bits.
+| `alu_fn` | 5 | ALU function.
+| `mem` | 1 | Memory operation.
+| `mem_cmd` | 5 | D-cache command (read, write, AMO type, ...).
+| `mem_type` | 4 | Access size/type (B, H, W, D, unsigned, gather/scatter types).
+| `rma` | 1 | Reads all mask registers (mask hazard check).
+| `wmd` | 1 | Writes one mask register.
+| `wmad` | 1 | Writes all mask registers.
+| `wfd` | 1 | Writes an FP/VPU destination (FP hazard check).
+| `div` | 1 | Uses the multiply/divide unit.
+| `wxd` | 1 | Writes an integer destination.
+| `csr` | 3 | CSR command: `N`, `W`, `S`, `C`, `I` (`I` = privileged/system instruction).
+| `fence` | 1 | Fence instruction.
+| `mem_g` | 1 | Global memory operation, forwarded to the D-cache request.
+| `gsc` | 1 | Gather/scatter instruction.
+| `gfx` | 1 | Graphics instruction; trapped when the `trap_on_gfx` feature is set.
+| `x31` | 1 | Instruction implicitly requires register x31.
+|===
+
+[[sec-struct-vpu-sigs]]
+=== `vpu_ctrl_sigs_t` (VPU decode, 45 bits)
+
+Defined in `vpu_types.vh`. Output of `vpu_decoder`. The FE stores it and exports it as `id_vpu_decoder_sigs`; the VPU uses it. Fields in declaration order:
+
+[cols="2,1,5",options="header"]
+|===
+| Field | Width | Meaning (from name and decoder table)
+
+| `cmd` | 7 | VPU function command (`VPU_FCMD_*` or `VPU_TRANS_*`).
+| `txfma` | 1 | Executes in the TxFMA unit.
+| `shsw` | 1 | Uses the shift/swizzle (integer) path.
+| `rom` | 1 | Uses the transcendental ROM.
+| `scatter` | 1 | Scatter store.
+| `cvt` | 1 | Conversion.
+| `trans` | 1 | Transcendental/divide sequence (column header `transDiv`).
+| `gcvt` | 1 | Graphics format conversion.
+| `fromintf` / `tointm` / `tointf` | 1 each | Source from integer format / result to integer mask / result to integer format.
+| `maskop` | 1 | Mask operation.
+| `ldst` | 1 | Load or store.
+| `m0ren` / `mallren` / `mren1` / `mren2` | 1 each | Reads mask 0 / all masks / mask src1 / mask src2.
+| `wen` | 1 | Writes a destination register.
+| `ren1` / `ren2` / `ren3` / `rend` | 1 each | Reads src1 / src2 / src3 / the destination.
+| `swap12` / `swap23` / `swap13` | 1 each | Operand swaps.
+| `vector` | 1 | Packed (all 8 lanes) instruction, as opposed to scalar.
+| `dtype` | 4 | Data type (`F32`, `INT`, `F16`, graphics types).
+| `fromint` / `toint` | 1 each | Moves from / to the integer register file.
+| `fma` / `fms` / `add` / `sub` / `mul` | 1 each | Arithmetic variant selects.
+| `round` | 1 | Uses the rounding mode.
+| `wflags` | 1 | Updates FP exception flags.
+|===
+
+[[sec-struct-vpu-core]]
+=== `vpu_minion_id_ctrl` (subset driven by the FE)
+
+Defined in `minion_types.vh`. `frontend_top` drives only these fields; all others are zero at the FE output: `m0ren`, `mallren`, `mren1`, `mren2`, `wen` (= `wen | rend`), `ren1`, `ren2`, `ren3`, `rend`, `is_trans` (= `trans`), `fromint`. The remaining fields (`trans_busy`, `id_trans_insert`, `scoreboard`, `tfma_enabled`, `tfma_wrrf_enabled`, `tquant_enabled`, `reduce_enabled`, `fflags_stall`) are VPU status that other logic provides.

@@ -1,0 +1,87 @@
+[[sec-fetch]]
+== Fetch Request Path
+
+This section follows a request from the fetch PC of a hart to the point where its response is recognised in F6.
+
+[[fig-fe-tb]]
+.Thread buffer (one per hart)
+image::fig-fe-thread-buffer.png[Thread buffer,width=100%,align=center]
+
+[[sec-fetch-pc]]
+=== Fetch PC
+
+Each hart keeps a 49-bit fetch PC, `f0_pc`. The PC is 49 bits rather than 48 so that a non-canonical 64-bit address can still be represented: the extra top bit records whether the upper address bits were a proper sign extension.
+
+The fetch PC always points at the next block to request. It changes only on these events:
+
+[cols="2,4",options="header"]
+|===
+| Event | New fetch PC
+
+| Reset, or the hart being enabled | Reset vector (48 bits, sign-extended).
+| A block is written into a buffer | Start of the following 32-byte block. The address is taken from the block just written, with its offset cleared and its block number incremented.
+| Redirect from the integer pipeline | Redirect PC. This has the highest priority.
+|===
+
+The first block after a reset or redirect can therefore start in the middle of a 32-byte block; every following block is aligned. The request always carries the full address, including the offset, and the micro-cache returns the whole aligned block that contains it.
+
+A miss does not change the fetch PC, so the same address is requested again after the fill (<<sec-flow-miss>>).
+
+[[sec-fetch-when]]
+=== When a Hart Requests
+
+A hart issues a request in F0 only when all of the following hold. Each condition has a clear purpose:
+
+[cols="2,4",options="header"]
+|===
+| Condition | Purpose
+
+| Hart enabled, and not in the cycle it is being enabled | The reset vector is loaded at the end of the enable cycle, so the first request follows one cycle later.
+| No redirect this cycle | The redirect PC is loaded at the end of this cycle.
+| No unresolved miss | After a miss, the hart waits for a fill before asking again (<<sec-flow-miss>>).
+| No request of this hart anywhere in F1–F6 | Only one request per hart is in flight. This keeps responses in order and makes ownership by timing possible.
+| A buffer is free, or is being freed this cycle | The returning block must have a place to go. The Front End cannot stall a response.
+| Not in reset, not executing the debug program buffer | While the program buffer is in use, the buffers hold debugger instructions, not fetched code.
+|===
+
+The request payload carries the hart number, the hart's virtual-memory status (privilege, `mstatus` fields that affect translation, debug mode), and the fetch address. The Front End only forwards the virtual-memory status; the micro-cache uses it for translation and permission checks.
+
+When a halt is pending, the hart goes through the same request decision but does not actually bid for the port; the resulting placeholder request is handled internally (<<sec-flow-halt>>).
+
+[[sec-fetch-buffer-select]]
+=== Reserving a Buffer
+
+When the request is granted, the hart reserves the buffer that will receive the block and records the request address as that buffer's base address. A buffer qualifies if it is empty, or if its last instruction is leaving this cycle and it is not being written in the same cycle. If both qualify, buffer 1 is chosen, so after a reset or redirect the first block always lands in buffer 1.
+
+The recorded base address serves three later purposes: it gives the word range to write (words before the request offset are not written), the starting halfword for extraction, and the upper PC bits of every instruction taken from the buffer.
+
+[[sec-fetch-arb]]
+=== Shared Request Port
+
+Both harts share one request port to the micro-cache. It consists of a two-client arbiter in F0 and a single request register in F1.
+
+Arbiter:: A least-recently-granted arbiter (`arb_lru_data`). With one bidder, that bidder wins. With two, the hart that was not granted last time wins, so contending harts alternate. After reset, hart 0 wins the first tie. The arbiter's priority state changes only when a grant is actually issued.
+
+F1 request register:: The winning request is registered and held on the port until the micro-cache accepts it. The register can take a new request when it is empty or when its current request is being accepted in this cycle. When it cannot, the arbiter issues no grant, the bidding hart keeps bidding, and nothing is lost.
+
+The grant is returned to the winning hart in the same cycle as its bid. From that moment the hart treats the request as its own in-flight request.
+
+[[sec-tracking]]
+=== Recognising the Response
+
+The micro-cache response has no hart identifier. The Front End recognises the owner by timing: a response appears in F5 exactly four cycles after the request was accepted from F1.
+
+To use this, each hart moves a small token (a valid bit and the reserved buffer number) through its own copy of stages F1 to F6:
+
+. The token enters F1 when the hart's request is granted, and stays in F1 while the shared request register waits for acceptance.
+. When the micro-cache accepts, the token advances one stage per cycle through F2, F3, F4 and F5, without ever stalling.
+. In F6 the token lines up with the registered response. If the token is valid in the same cycle as a response, the response belongs to this hart, and the token says which buffer to write.
+
+This makes a strict interface requirement on the micro-cache: it must return exactly one response per accepted request, exactly four cycles after acceptance, and never hold or reorder them.
+
+[[sec-tracking-kill]]
+=== Cancelling an In-Flight Request
+
+A redirect for a hart invalidates that hart's token in every stage, so the eventual response is ignored and nothing is written.
+
+A request still waiting in the F1 register is a special case. The register is shared, so a redirect cannot remove the request from it. Instead the hart remembers the cancellation while the request waits, and does not advance the token when the micro-cache accepts it. The request is therefore still looked up in the micro-cache, but its response is discarded. Until it is accepted, it also blocks the shared register, so the redirected hart's new request waits behind it.

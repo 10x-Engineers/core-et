@@ -1,0 +1,24 @@
+[[sec-clock]]
+== Clock Gating
+
+Each hart's Front End logic has its own clock gate. Most of the hart's registers use the gated clock. A few state bits that must see events while the hart is idle use the ungated clock: the buffer empty flags, the miss-pending state, and an _in-flight_ flag that is set when a request is issued and cleared when it reaches F6, is cancelled in F1, or is flushed by a redirect. The buffer memory also takes the ungated clock and gates its own write clocks internally.
+
+The gated clock runs whenever the hart may have work to do:
+
+[cols="2,3",options="header"]
+|===
+| Condition | Reason
+
+| Redirect, or hart being enabled | The fetch PC and the hart state change.
+| Request accepted, or request in flight | The token must advance through F1–F6.
+| Hart enabled, no miss pending, and a buffer free | A new request may be made.
+| Instruction moving from F6 to F7, or F7 being popped | Extraction and hand-off to the queue.
+| Reset or debug reset | Registers must take their reset values.
+| Hart in debug mode | Always on in debug mode.
+| Halt pending | The placeholder instruction must reach the integer pipeline.
+| Front End chicken bit set | Gating disabled. The bit comes from a configuration register (`min_frontend_clock_gate_disable`).
+|===
+
+A hart that is enabled but waiting for a fill, with a full F7 register and a full queue, therefore stops its clock until a fill, a redirect or a pop wakes it.
+
+In `frontend_top`, the thread-enable edge detectors clock only while the enable is changing (<<sec-flow-enable>>). The debug program-buffer write-enable delay registers clock only around their pulses.

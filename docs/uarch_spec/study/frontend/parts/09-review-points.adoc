@@ -1,0 +1,28 @@
+[[sec-review]]
+== Points for Review
+
+These behaviours came out of the study. They are not claimed to be bugs. Each should either be stated precisely in the Instruction Fetch chapter or confirmed with the RTL owners or DV.
+
+[cols="1,3,3",options="header"]
+|===
+| # | Behaviour | Why it matters
+
+| 1 | One request in flight per hart; a new request waits until the previous one has left F6. | Limits each hart to one 32-byte block every seven cycles.
+| 2 | Responses are matched to harts by timing only. | The micro-cache must answer exactly four cycles after accepting, one response per request, without stalling. A natural DV checker.
+| 3 | A request waiting in the F1 register cannot be withdrawn by a redirect. | The lookup, and possibly a fill after a miss, still happen for a request nobody will use. The redirected hart's new request waits behind it.
+| 4 | Fill-done is shared and carries no address. | A waiting hart may retry and miss again on a fill meant for the other hart.
+| 5 | VPU control fields in a queue entry are updated only for VPU instructions. | The VPU fields and their summary in ID show an older instruction when ID holds an integer instruction. Consumers must qualify them.
+| 6 | The replay bit is not qualified with valid, unlike the fault and error bits. It also uses the `speculative` input whether or not a redirect is present. | Relevant for DV checks on invalid slots.
+| 7 | ID valid is not qualified with the hart's stall. With neither hart awake, hart 0 is selected and is shown valid if its queue holds an instruction. | The integer pipeline must apply its own stall.
+| 8 | The ID hart is re-chosen every cycle, independent of acceptance. | An offered instruction that is not accepted can be replaced by the other hart's instruction in the next cycle. The ID interface is not a hold-until-accepted handshake.
+| 9 | The transfer from F7 to the queue does not require the hart to be awake; only the choice of hart does. | A hart that is not awake can still fill its queue when it is the default choice.
+| 10 | The bypass takes data from the arriving block without checking which buffer it is for. | Correct only because of the one-request-per-hart rule; a change to that rule would need to revisit the bypass.
+| 11 | When both buffers are free, buffer 1 is reserved first. | After reset or a redirect the first block lands in buffer 1. Useful for waveform reading and DV expectations.
+| 12 | Compressed double-precision loads and stores are expanded, then decoded as illegal. | The exception is illegal instruction, raised by the integer decoder, not by the expander.
+| 13 | The placeholder instruction for a halt contains the last registered response data, which may be unrelated to the hart. | Its content must never be relied on.
+| 14 | Program-buffer words 2 and 3 both take the lower 32 bits of the APB data; the enables select which is written. | Defines the debugger's word mapping.
+| 15 | Disabling a hart does not clear its F7 register or its queue. | They remain, including across a later re-enable, until a redirect or reset clears them.
+| 16 | The queue has a coded case for "push while full" that cannot occur, because a push requires room. | Dead code; coverage will show it unreachable.
+| 17 | Two RTL comments are out of date: one in `frontend_top` says instructions are expanded there (expansion is in F6 in the thread buffer), and one in the scheduler says its valid input is from F4 (it is from F7). | Documentation only.
+| 18 | The legacy Front End–micro-cache interface document describes a livelock fix (per-hart miss counters and a request mask). It is not in the Front End; it is in the Neighborhood instruction-cache logic (`neigh_shared_icache.v`). | Belongs to the Neighborhood Instruction Cache chapter.
+|===

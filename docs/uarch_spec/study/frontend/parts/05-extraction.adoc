@@ -1,0 +1,63 @@
+[[sec-extract]]
+== Instruction Extraction
+
+Extraction takes one instruction per cycle from a hart's buffers in F6 and hands it to the hart's F7 register.
+
+[[sec-extract-start]]
+=== Starting Position
+
+When both buffers are empty, the read pointer has no valid position. As soon as the hart's token reaches F5, one cycle before the block arrives, the pointer is set to the halfword where the request address starts inside the reserved buffer. This is how fetch begins in the middle of a block after a reset or redirect. For an aligned request it simply points at halfword 0 of the reserved buffer.
+
+Once a buffer holds data, the pointer only moves forward from instruction to instruction.
+
+[[sec-extract-step]]
+=== Stepping Through the Buffers
+
+In each cycle the memory is read at the pointer and the two lowest bits of the returned data are checked:
+
+* If they are not `11`, the instruction is *compressed* (16 bits) and the pointer advances by one halfword.
+* Otherwise the instruction is 32 bits and the pointer advances by two halfwords.
+
+The pointer advances only when the instruction actually moves to F7. When the advance carries it into the other buffer, the instruction is the last one of its buffer, and that buffer becomes empty in the same cycle.
+
+An instruction is available in F6 when the buffer it is read from holds data. A split 32-bit instruction (<<sec-buf-org>>) needs both buffers to hold data.
+
+[[sec-extract-bypass]]
+=== Bypass of an Arriving Block
+
+If the pointer's buffer is empty but the block for it is being written in this cycle, the instruction is taken directly from the arriving response instead of from the memory. The same applies to the upper half of a split instruction whose second buffer is being written. The instruction can therefore move to F7 in the same cycle its block arrives, which saves one cycle on every fetch after a redirect, a miss, or a drained buffer.
+
+The bypass does not check that the arriving block belongs to the buffer being read. It relies on two properties of the design: a hart has only one request in flight, and extraction waits only on an empty buffer, so an arriving block is always the one extraction is waiting for.
+
+[[sec-extract-rvc]]
+=== Compressed-Instruction Expansion
+
+The selected 32 bits pass through `frontend_rvc_expander` in the same cycle. The expander is a combinational RV64C decompressor:
+
+* A compressed instruction is rewritten as its 32-bit equivalent. Encodings that are reserved in the C extension are rewritten to an opcode the integer decoder does not recognise, so they are reported as illegal instructions.
+* A 32-bit instruction passes through unchanged.
+* An all-zero halfword (the defined illegal compressed instruction) produces all zeros.
+
+From F7 onward every instruction is a 32-bit instruction. A separate flag records that the original was compressed; the integer pipeline uses it to step the PC by 2 instead of 4, for both the next sequential PC and the return address of a jump. The full expansion table is in <<sec-rvc-table>>.
+
+The expander also expands the double-precision compressed loads and stores. The ET-Minion integer decoder has no double-precision `FLD`/`FSD`, so they end up reported as illegal.
+
+[[sec-f7]]
+=== F7 Instruction Register
+
+Each hart has a one-entry F7 register holding the expanded instruction, its compressed flag, its read position, whether it was split, and the upper PC bits of its buffer.
+
+F7 behaves as a simple pipeline register with a valid/ready handshake to `frontend_top`: it takes a new instruction from F6 when it is empty or being popped in the same cycle, and holds otherwise. When F7 holds, F6 does not extract. A redirect, or entry to debug mode, invalidates it.
+
+The PC of the instruction is not stored as a whole. It is rebuilt from the buffer's upper address bits and the halfword position of the instruction within the buffer.
+
+[[sec-f7-status]]
+=== Fault, Error and Replay Status
+
+The F7 register also produces the fetch status of the instruction from the flags of the buffer(s) it came from:
+
+Faults:: Page fault and access fault come in two sets. Set 0 belongs to the buffer that holds the start of the instruction. Set 1 is used only for a split instruction and belongs to the buffer that holds its upper half. The integer pipeline can therefore tell whether a fault belongs to the first or the second part of the instruction.
+Errors:: Bus error and ECC error are taken from the instruction's buffer. For a split instruction they are combined over both buffers.
+Replay:: Set when the instruction comes from a non-cacheable block and the integer pipeline reports that this hart has older instructions still in flight (the `speculative` bit of the redirect interface, which the integer pipeline drives in every cycle, not only with a redirect). The status is evaluated while the instruction waits in F7 and captured when it enters the queue. Replay handling itself is in the integer pipeline; the legacy Front End–integer pipeline description gives the intent: code from non-cacheable space is not used while older instructions are still in flight.
+
+While the debug program buffer is being executed, all fault, error and replay status is forced to zero.
