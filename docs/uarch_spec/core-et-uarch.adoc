@@ -21,6 +21,19 @@
 [[document-control]]
 == Document Control
 === Revision History
+
+[[tab-revision-history]]
+.Revision history
+[cols="1,2,2,6",options="header"]
+|===
+| Version | Date | Author | Notes
+
+| v0.1 | 2026-09-22 | Ryan Naveed a|
+* First draft of the document.
+* Chapter 1, ET-SoC-1 Overview: written.
+* Chapter 2, ET-Minion Core: Core Overview (block partitioning, hardware threads, instruction flow) and Front End written. Integer Pipeline, Data Cache and VPU contain headings only.
+* Chapter 3, Neighborhood: headings only.
+|===
 === Chapter Status
 
 [preface]

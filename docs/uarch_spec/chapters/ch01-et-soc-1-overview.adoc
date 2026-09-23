@@ -93,18 +93,17 @@ A Neighborhood groups eight ET-Minion cores that share the following resources. 
 .Neighborhood
 image::ch01/fig-neighborhood.png[Neighborhood,width=100%,align=center]
 
-NOTE: The PTWs were not implemented in the first silicon revision (A0). The RTL described in this document implements them.
-
 [[sec-ch1-shire]]
 ==== Minion Shire
 
 A Minion Shire groups four Neighborhoods (<<fig-ch1-minion-shire>>). It also contains:
 
-* *Shire Cache*: 4 MB, in four 1 MB banks, connected to the Neighborhoods through a crossbar. Programmable ESRs divide the cache into three kinds of partition:
+* *Shire Cache*: 4 MB, in four 1 MB banks. Programmable ESRs divide the cache into three kinds of partition:
 ** L2 cache, private to the Shire
 ** Slice of the chip-wide distributed L3 cache
 ** Scratchpad memory
-* *Local services*: uncacheable accesses, fast inter-processor interrupts (IPIs), fast local barriers and fast local credit counters.
+* *Crossbar*: a 4 × 4 crossbar that connects each of the four Neighborhoods to each of the four Shire Cache banks. Each Neighborhood has one request and response port into the Shire Cache, and each bank accepts at most one request per cycle. The crossbar also connects the Neighborhoods to the uncached (UC) block.
+* *Uncached (UC) block*: receives the Neighborhood requests that are not sent to the Shire Cache banks. It handles uncacheable accesses, contains the fast local barrier (FLB) and fast local credit counter (FCC) units, and delivers messages sent between ET-Minion cores of different Shires. The Shire also supports fast inter-processor interrupts (IPIs).
 * *ESR banks*: the Esperanto System Registers (ESRs) configure the blocks in the Shire.
 * *NoC interface*: L2 misses and uncacheable accesses leave the Shire here, bound for other Shires or the memory controllers.
 
@@ -210,3 +209,21 @@ The I/O Shire contains the ET-Maxions and the Service Processor (<<sec-ch1-maxio
 ** eMMC, USB 2.0 OTG, I2C/SMBus, I3C, SPI and UART
 ** GPIO, timers and watchdog
 * *Debug network.* Provides debug access through JTAG and a USB 2.0 device port.
+
+[[sec-ch1-card]]
+=== ET-SoC-1 Accelerator Card
+
+ET-SoC-1 operates as an accelerator attached to a host system over PCI Express. It is mounted on a PCIe add-in card (<<fig-ch1-pcie-card>>) with the following features:
+
+* PCIe x16 card-edge connector, with an 8-lane Gen4 interface to ET-SoC-1
+* ET-SoC-1 soldered to the card
+* Four LPDDR4X devices forming a 256-bit memory interface
+* 64 GB eMMC flash memory
+* USB connectors for the ET-SoC-1 device and debug ports and for a UART interface, and a JTAG connector
+* DIP switches that select the boot options
+
+Multiple ET-SoC-1 devices can also be integrated on a single card.
+
+[[fig-ch1-pcie-card]]
+.ET-SoC-1 PCIe card
+image::ch01/fig-pcie-card.png["ET-SoC-1 PCIe card",width=70%,align=center]

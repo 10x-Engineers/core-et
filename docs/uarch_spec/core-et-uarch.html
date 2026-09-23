@@ -482,6 +482,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#sec-ch1-ioshire">1.4.4. I/O Shire</a></li>
 </ul>
 </li>
+<li><a href="#sec-ch1-card">1.5. ET-SoC-1 Accelerator Card</a></li>
 </ul>
 </li>
 <li><a href="#ch-et-minion-core">2. ET-Minion Core</a>
@@ -661,7 +662,46 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_revision_history"><a class="anchor" href="#_revision_history"></a><a class="link" href="#_revision_history">Revision History</a></h3>
-
+<table id="tab-revision-history" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Revision history</caption>
+<colgroup>
+<col style="width: 9.0909%;">
+<col style="width: 18.1818%;">
+<col style="width: 18.1818%;">
+<col style="width: 54.5455%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Version</th>
+<th class="tableblock halign-left valign-top">Date</th>
+<th class="tableblock halign-left valign-top">Author</th>
+<th class="tableblock halign-left valign-top">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">v0.1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2026-09-22</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Ryan Naveed</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
+<ul>
+<li>
+<p>First draft of the document.</p>
+</li>
+<li>
+<p>Chapter 1, ET-SoC-1 Overview: written.</p>
+</li>
+<li>
+<p>Chapter 2, ET-Minion Core: Core Overview (block partitioning, hardware threads, instruction flow) and Front End written. Integer Pipeline, Data Cache and VPU contain headings only.</p>
+</li>
+<li>
+<p>Chapter 3, Neighborhood: headings only.</p>
+</li>
+</ul>
+</div></div></td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="sect2">
 <h3 id="_chapter_status"><a class="anchor" href="#_chapter_status"></a><a class="link" href="#_chapter_status">Chapter Status</a></h3>
@@ -715,10 +755,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </div>
 <div class="paragraph">
-<p>The cores are connected to on-die SRAM, external memory and a set of standard interfaces through a mesh network-on-chip (NoC). <a href="#tab-ch1-key-characteristics">Table 1</a> summarizes the device.</p>
+<p>The cores are connected to on-die SRAM, external memory and a set of standard interfaces through a mesh network-on-chip (NoC). <a href="#tab-ch1-key-characteristics">Table 2</a> summarizes the device.</p>
 </div>
 <table id="tab-ch1-key-characteristics" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 1. ET-SoC-1 key characteristics</caption>
+<caption class="title">Table 2. ET-SoC-1 key characteristics</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 75%;">
@@ -885,18 +925,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div class="title">Figure 3. Neighborhood</div>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-The PTWs were not implemented in the first silicon revision (A0). The RTL described in this document implements them.
-</td>
-</tr>
-</table>
-</div>
 </div>
 <div class="sect3">
 <h4 id="sec-ch1-shire"><a class="anchor" href="#sec-ch1-shire"></a><a class="link" href="#sec-ch1-shire">1.2.3. Minion Shire</a></h4>
@@ -906,7 +934,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Shire Cache</strong>: 4 MB, in four 1 MB banks, connected to the Neighborhoods through a crossbar. Programmable ESRs divide the cache into three kinds of partition:</p>
+<p><strong>Shire Cache</strong>: 4 MB, in four 1 MB banks. Programmable ESRs divide the cache into three kinds of partition:</p>
 <div class="ulist">
 <ul>
 <li>
@@ -922,7 +950,10 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </div>
 </li>
 <li>
-<p><strong>Local services</strong>: uncacheable accesses, fast inter-processor interrupts (IPIs), fast local barriers and fast local credit counters.</p>
+<p><strong>Crossbar</strong>: a 4 × 4 crossbar that connects each of the four Neighborhoods to each of the four Shire Cache banks. Each Neighborhood has one request and response port into the Shire Cache, and each bank accepts at most one request per cycle. The crossbar also connects the Neighborhoods to the uncached (UC) block.</p>
+</li>
+<li>
+<p><strong>Uncached (UC) block</strong>: receives the Neighborhood requests that are not sent to the Shire Cache banks. It handles uncacheable accesses, contains the fast local barrier (FLB) and fast local credit counter (FCC) units, and delivers messages sent between ET-Minion cores of different Shires. The Shire also supports fast inter-processor interrupts (IPIs).</p>
 </li>
 <li>
 <p><strong>ESR banks</strong>: the Esperanto System Registers (ESRs) configure the blocks in the Shire.</p>
@@ -1032,10 +1063,10 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect3">
 <h4 id="sec-ch1-mesh-topology"><a class="anchor" href="#sec-ch1-mesh-topology"></a><a class="link" href="#sec-ch1-mesh-topology">1.4.1. Mesh Topology and Mesh Stops</a></h4>
 <div class="paragraph">
-<p>The mesh is organized as an 8 × 6 grid, and each Shire attaches to it at a mesh stop. The Memory Shires occupy the east and west edges, four on each side, which leaves the corners of the grid unoccupied. The result is 44 mesh stops, listed in <a href="#tab-ch1-shire-types">Table 2</a>.</p>
+<p>The mesh is organized as an 8 × 6 grid, and each Shire attaches to it at a mesh stop. The Memory Shires occupy the east and west edges, four on each side, which leaves the corners of the grid unoccupied. The result is 44 mesh stops, listed in <a href="#tab-ch1-shire-types">Table 3</a>.</p>
 </div>
 <table id="tab-ch1-shire-types" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 2. Shires on the mesh</caption>
+<caption class="title">Table 3. Shires on the mesh</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 14.2857%;">
@@ -1151,6 +1182,43 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="sec-ch1-card"><a class="anchor" href="#sec-ch1-card"></a><a class="link" href="#sec-ch1-card">1.5. ET-SoC-1 Accelerator Card</a></h3>
+<div class="paragraph">
+<p>ET-SoC-1 operates as an accelerator attached to a host system over PCI Express. It is mounted on a PCIe add-in card (<a href="#fig-ch1-pcie-card">Figure 7</a>) with the following features:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>PCIe x16 card-edge connector, with an 8-lane Gen4 interface to ET-SoC-1</p>
+</li>
+<li>
+<p>ET-SoC-1 soldered to the card</p>
+</li>
+<li>
+<p>Four LPDDR4X devices forming a 256-bit memory interface</p>
+</li>
+<li>
+<p>64 GB eMMC flash memory</p>
+</li>
+<li>
+<p>USB connectors for the ET-SoC-1 device and debug ports and for a UART interface, and a JTAG connector</p>
+</li>
+<li>
+<p>DIP switches that select the boot options</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Multiple ET-SoC-1 devices can also be integrated on a single card.</p>
+</div>
+<div id="fig-ch1-pcie-card" class="imageblock text-center">
+<div class="content">
+<img src="images/ch01/fig-pcie-card.png" alt="ET-SoC-1 PCIe card" width="70%">
+</div>
+<div class="title">Figure 7. ET-SoC-1 PCIe card</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -1158,15 +1226,102 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="sec-ch2-overview"><a class="anchor" href="#sec-ch2-overview"></a><a class="link" href="#sec-ch2-overview">2.1. Core Overview</a></h3>
+<div class="paragraph">
+<p>This section describes the internal organization of the ET-Minion core: its block partitioning, hardware threads and instruction flow. The features of the core and its position in the ET-Minion hierarchy are summarized in <a href="#sec-ch1-minion">Section 1.2.1</a>.</p>
+</div>
+<div class="paragraph">
+<p>The ET-Minion is a dual-threaded, in-order, single-issue 64-bit RISC-V core that implements RV64IMFC with the Esperanto instruction extensions. It is implemented in <code>minion_top</code> and consists of four units: the Front End, the integer pipeline, the L1 data cache and the VPU. The core fetches instructions from the Neighborhood L0 micro-cache and accesses memory through the Neighborhood memory path; it has no instruction cache of its own.</p>
+</div>
 <div class="sect3">
 <h4 id="sec-ch2-partitioning"><a class="anchor" href="#sec-ch2-partitioning"></a><a class="link" href="#sec-ch2-partitioning">2.1.1. Block Partitioning</a></h4>
 <div class="paragraph">
-<p><em>Figure: ET-Minion core block diagram.</em></p>
+<p>The ET-Minion core is implemented in <code>minion_top</code> (<a href="#fig-ch1-et-minion">Figure 2</a>). <code>minion_top</code> contains two blocks: <code>core_top</code>, which holds the Front End, the integer pipeline, the L1 data cache and the debug APB slave, and <code>vpu_top</code>, the vector processing unit. <a href="#tab-ch2-core-blocks">Table 4</a> lists the blocks.</p>
 </div>
+<table id="tab-ch2-core-blocks" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 4. ET-Minion core blocks</caption>
+<colgroup>
+<col style="width: 20%;">
+<col style="width: 20%;">
+<col style="width: 60%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Block</th>
+<th class="tableblock halign-left valign-top">Module</th>
+<th class="tableblock halign-left valign-top">Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Front End</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>frontend_top</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetches instructions for both threads from the Neighborhood L0 micro-cache, expands compressed instructions, decodes them for the integer pipeline and the VPU, and issues one instruction per cycle to the integer pipeline (<a href="#sec-ch2-fe">Section 2.2</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Integer pipeline</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>intpipe_top</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">In-order, single-issue pipeline with the stages ID, EX, TAG, MEM and WB. Contains the integer register file, ALU, multiply/divide unit, integer, FP and mask scoreboards, and the CSRs. Redirects the Front End on a change of control flow.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Data cache</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>dcache_top</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 KB private L1 data cache, partly configurable as scratchpad memory. Contains the data TLB, PMA check, miss handling, replay queue, store merge, atomic, cache-management, tensor-load and reduce units, and the interface to the Neighborhood memory path.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Debug APB slave</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_debug_apb_slv</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APB slave for debug access to the core, including writes to the debug program buffer.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VPU</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>vpu_top</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Vector processing unit with a control block and eight identical lanes. Executes floating-point, packed-integer, transcendental and tensor operations.</p></td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="sect3">
 <h4 id="sec-ch2-threads"><a class="anchor" href="#sec-ch2-threads"></a><a class="link" href="#sec-ch2-threads">2.1.2. Hardware Threads</a></h4>
-
+<div class="paragraph">
+<p>The core runs two hardware threads (<code>CORE_NR_THREADS</code> = 2). Each thread has its own architectural state; the pipelines and execution units are shared, and instructions of the two threads are interleaved in the pipeline.</p>
+</div>
+<table id="tab-ch2-threads" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 5. Per-thread and shared resources</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Per thread</th>
+<th class="tableblock halign-left valign-top">Shared by both threads</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch PC, thread buffer and instruction FIFO in the Front End</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Front End request port, decoders and thread scheduler</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32 × 64-bit integer registers, in one register file indexed by thread</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Integer pipeline, ALU and multiply/divide unit</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32 vector registers, 256 bits wide (32 bits in each of the eight VPU lanes), in one register file indexed by thread</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VPU control and execution units</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CSR state, interrupt inputs and debug state</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">L1 data cache and scratchpad</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Each thread is enabled by its bit of the <code>enabled</code> input of <code>minion_top</code>, which is registered in <code>minion_top</code> before use. Both threads start at the same reset vector (<code>reset_vector</code>) when enabled.</p>
+</div>
+<div class="paragraph">
+<p>The Front End selects one thread per cycle for issue to the integer pipeline (<a href="#sec-ch2-fe-sched">Section 2.2.9</a>). The integer pipeline can stall each thread independently, for example on <code>WFI</code>, a fence, a scoreboard hazard, or while the other thread holds exclusive mode.</p>
+</div>
 </div>
 <div class="sect3">
 <h4 id="sec-ch2-inst-flow"><a class="anchor" href="#sec-ch2-inst-flow"></a><a class="link" href="#sec-ch2-inst-flow">2.1.3. Instruction Flow Through the Core</a></h4>
@@ -1177,7 +1332,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="content">
 <img src="images/ch02/fig-fe-in-core.png" alt="Front End in the ET-Minion core" width="60%">
 </div>
-<div class="title">Figure 7. Front End in the ET-Minion core</div>
+<div class="title">Figure 8. Front End in the ET-Minion core</div>
 </div>
 </div>
 <div class="sect3">
@@ -1203,13 +1358,13 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <p>The Front End is the interface between the Neighborhood L0 micro-cache and the integer pipeline. It holds the program counter of each thread, fetches instructions from the L0 micro-cache, and delivers them, expanded and decoded, to the ID stage of the integer pipeline at a rate of one instruction per cycle. It serves both threads of the core, and restarts fetch at a new address when the integer pipeline redirects a thread.</p>
 </div>
 <div class="paragraph">
-<p>To hide the latency of the L0 micro-cache, which is shared by four ET-Minion cores, each thread uses a double buffer of two 256-bit entries, each holding half a cache line. A new block can therefore be requested while the thread consumes the instructions already received. Each entry has a dedicated register that holds the address of its block.</p>
+<p>To hide the latency of the L0 micro-cache, which is shared by four ET-Minion cores, the Front End uses double buffering. Each thread has an instruction buffer with two 256-bit entries, and each entry holds a block of instructions equal to half a cache line. A new block can therefore be requested while the thread consumes the instructions already received. Each entry has a dedicated register that holds the address of its block.</p>
 </div>
 <div class="paragraph">
-<p><a href="#tab-ch2-fe-submodules">Table 3</a> lists the submodules and <a href="#fig-ch2-fe-top">Figure 8</a> shows how they are connected.</p>
+<p><a href="#tab-ch2-fe-submodules">Table 6</a> lists the submodules and <a href="#fig-ch2-fe-top">Figure 9</a> shows how they are connected.</p>
 </div>
 <table id="tab-ch2-fe-submodules" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 3. Front End submodules</caption>
+<caption class="title">Table 6. Front End submodules</caption>
 <colgroup>
 <col style="width: 27.2727%;">
 <col style="width: 18.1818%;">
@@ -1264,7 +1419,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="content">
 <img src="images/ch02/fig-fe-top-blocks.png" alt="Front End block diagram" width="75%">
 </div>
-<div class="title">Figure 8. Front End block diagram</div>
+<div class="title">Figure 9. Front End block diagram</div>
 </div>
 </div>
 <div class="sect3">
@@ -1272,10 +1427,10 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect4">
 <h5 id="sec-ch2-fe-ports"><a class="anchor" href="#sec-ch2-fe-ports"></a><a class="link" href="#sec-ch2-fe-ports">2.2.2.1. I/O Signals</a></h5>
 <div class="paragraph">
-<p><a href="#tab-ch2-fe-ports">Table 4</a> lists the ports of <code>frontend_top</code>. <em>Connected to</em> gives the signal in <code>core_top</code>. A width of 2 denotes one bit per thread.</p>
+<p><a href="#tab-ch2-fe-ports">Table 7</a> lists the ports of <code>frontend_top</code>. <em>Connected to</em> gives the signal in <code>core_top</code>. A width of 2 denotes one bit per thread.</p>
 </div>
 <table id="tab-ch2-fe-ports" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 4. Front End I/O signals</caption>
+<caption class="title">Table 7. Front End I/O signals</caption>
 <colgroup>
 <col style="width: 26.3157%;">
 <col style="width: 5.2631%;">
@@ -1356,7 +1511,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_req_valid</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The F1 request register holds a request.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The F1 I-cache request register holds a request.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>f1_icache_req</code></p></td>
@@ -1435,14 +1590,14 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_fe_core_resp_valid</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">An instruction is presented.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The instruction presented to the integer pipeline is valid.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_inst_ready</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_resp_ready</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The integer pipeline accepts the instruction.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The integer pipeline is ready to accept the instruction.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_inst_thread_id</code></p></td>
@@ -1530,7 +1685,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect4">
 <h5 id="sec-ch2-fe-structs"><a class="anchor" href="#sec-ch2-fe-structs"></a><a class="link" href="#sec-ch2-fe-structs">2.2.2.2. Data Structures</a></h5>
 <table id="tab-ch2-fe-icache-req" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 5. <code>frontend_icache_req</code>: fetch request (58 bits)</caption>
+<caption class="title">Table 8. <code>frontend_icache_req</code>: fetch request (58 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1551,8 +1706,8 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>vm_status</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual-memory status of the thread (<a href="#tab-ch2-fe-vm-status">Table 6</a>).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual-memory status of the thread (<a href="#tab-ch2-fe-vm-status">Table 9</a>).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>addr</code></p></td>
@@ -1565,7 +1720,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <p>Front End addresses are 49 bits wide: the 48-bit virtual address and one additional bit that allows a non-canonical 64-bit address to be represented.</p>
 </div>
 <table id="tab-ch2-fe-vm-status" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 6. <code>minion_vm_status</code>: virtual-memory status (8 bits)</caption>
+<caption class="title">Table 9. <code>minion_vm_status</code>: virtual-memory status (8 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1597,7 +1752,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tbody>
 </table>
 <table id="tab-ch2-fe-icache-resp" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 7. <code>icache_frontend_resp</code>: fetch response (261 bits)</caption>
+<caption class="title">Table 10. <code>icache_frontend_resp</code>: fetch response (261 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1644,7 +1799,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tbody>
 </table>
 <table id="tab-ch2-fe-fe-req" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 8. <code>minion_fe_req</code>: redirect (52 bits)</caption>
+<caption class="title">Table 11. <code>minion_fe_req</code>: redirect (52 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1681,7 +1836,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tbody>
 </table>
 <table id="tab-ch2-fe-core-resp" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 9. <code>frontend_core_resp</code>: instruction to the integer pipeline (89 bits)</caption>
+<caption class="title">Table 12. <code>frontend_core_resp</code>: instruction to the integer pipeline (89 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1733,7 +1888,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tbody>
 </table>
 <table id="tab-ch2-fe-thread-data" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 10. <code>frontend_thread_data</code>: instruction FIFO entry (179 bits)</caption>
+<caption class="title">Table 13. <code>frontend_thread_data</code>: instruction FIFO entry (179 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1750,7 +1905,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>core_resp</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">89</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction and fetch status (<a href="#tab-ch2-fe-core-resp">Table 9</a>).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction and fetch status (<a href="#tab-ch2-fe-core-resp">Table 12</a>).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>vpu_ctrl_sigs</code></p></td>
@@ -1765,7 +1920,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tbody>
 </table>
 <table id="tab-ch2-fe-decode-words" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 11. Decoded control words</caption>
+<caption class="title">Table 14. Decoded control words</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1795,7 +1950,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect4">
 <h5 id="sec-ch2-fe-params"><a class="anchor" href="#sec-ch2-fe-params"></a><a class="link" href="#sec-ch2-fe-params">2.2.2.3. Configuration Parameters</a></h5>
 <table id="tab-ch2-fe-params" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 12. Front End configuration parameters</caption>
+<caption class="title">Table 15. Front End configuration parameters</caption>
 <colgroup>
 <col style="width: 37.5%;">
 <col style="width: 12.5%;">
@@ -1841,13 +1996,13 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect3">
 <h4 id="sec-ch2-fe-pipeline"><a class="anchor" href="#sec-ch2-fe-pipeline"></a><a class="link" href="#sec-ch2-fe-pipeline">2.2.3. Pipeline Stages</a></h4>
 <div class="paragraph">
-<p>The Front End pipeline has eight stages, F0 to F7 (<a href="#fig-ch2-fe-pipeline">Figure 9</a>). Stages F1 to F5 overlap the L0 micro-cache pipeline.</p>
+<p>The Front End pipeline has eight stages, F0 to F7 (<a href="#fig-ch2-fe-pipeline">Figure 10</a>). Stages F1 to F5 overlap the L0 micro-cache pipeline.</p>
 </div>
 <div id="fig-ch2-fe-pipeline" class="imageblock text-center">
 <div class="content">
 <img src="images/ch02/fig-fe-pipeline.png" alt="Front End pipeline" width="100%">
 </div>
-<div class="title">Figure 9. Front End pipeline</div>
+<div class="title">Figure 10. Front End pipeline</div>
 </div>
 <div class="dlist">
 <dl>
@@ -1857,7 +2012,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </dd>
 <dt class="hdlist1">F1–F5 Stage</dt>
 <dd>
-<p>The selected request is held in F1 until the L0 micro-cache accepts it, which happens at the earliest in the second F1 cycle. The thread then waits for the response. The L0 micro-cache has a fixed five-cycle latency, whether the request is a hit or a miss: counting the cycle in which it accepts the request as the first cycle, the response is returned in the fifth cycle, in F5 (<a href="#fig-ch2-fe-td-hit">Figure 11</a>).</p>
+<p>The selected request is held in F1 until the L0 micro-cache accepts it, which happens at the earliest in the second F1 cycle. The thread then waits for the response. The L0 micro-cache always responds to an accepted request, whether it is a hit or a miss, with a fixed five-cycle latency: counting the cycle in which it accepts the request as the first cycle, the response is returned in the fifth cycle, in F5 (<a href="#fig-ch2-fe-td-hit">Figure 12</a>).</p>
 </dd>
 <dt class="hdlist1">F6 Stage</dt>
 <dd>
@@ -1876,13 +2031,13 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect3">
 <h4 id="sec-ch2-fe-l0"><a class="anchor" href="#sec-ch2-fe-l0"></a><a class="link" href="#sec-ch2-fe-l0">2.2.4. Interaction with the L0 Micro-Cache</a></h4>
 <div class="paragraph">
-<p>Each L0 micro-cache serves the eight threads of four ET-Minion cores. <a href="#fig-ch2-fe-l0-path">Figure 10</a> shows the request and response path of one core. This section describes the interface from the Front End side; the Neighborhood side is described in <a href="#sec-ch3-fe-ic">Section 3.2</a>.</p>
+<p>Each L0 micro-cache serves the eight threads of four ET-Minion cores. <a href="#fig-ch2-fe-l0-path">Figure 11</a> shows the request and response path of one core. This section describes the interface from the Front End side; the Neighborhood side is described in <a href="#sec-ch3-fe-ic">Section 3.2</a>.</p>
 </div>
 <div id="fig-ch2-fe-l0-path" class="imageblock text-center">
 <div class="content">
 <img src="images/ch02/fig-fe-l0-path.png" alt="Front End to L0 micro-cache request and response path" width="100%">
 </div>
-<div class="title">Figure 10. Front End to L0 micro-cache request and response path</div>
+<div class="title">Figure 11. Front End to L0 micro-cache request and response path</div>
 </div>
 <div class="sect4">
 <h5 id="sec-ch2-fe-arb"><a class="anchor" href="#sec-ch2-fe-arb"></a><a class="link" href="#sec-ch2-fe-arb">2.2.4.1. Request Arbitration and Acceptance</a></h5>
@@ -1895,7 +2050,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <p><strong>2:1 LRU arbiter, F0.</strong> Selects between the two threads of the core. With two clients the grant alternates when both threads request. The priority is updated on every grant.</p>
 </li>
 <li>
-<p><strong>F1 request register.</strong> Holds the granted request on <code>f1_icache_req</code> until the Neighborhood accepts it with <code>f1_icache_req_ready</code>. The register accepts a new request when it is empty or its current request is accepted in the same cycle; otherwise the 2:1 arbiter issues no grant.</p>
+<p><strong>F1 I-cache request register (<code>f1_icache_req</code>).</strong> Holds the granted request until the Neighborhood accepts it with <code>f1_icache_req_ready</code>. The register accepts a new request when it is empty or its current request is accepted in the same cycle; otherwise the 2:1 arbiter issues no grant.</p>
 </li>
 <li>
 <p><strong>8:1 LRU arbiter, Neighborhood.</strong> The request is first captured in a per-thread request register, then arbitrated against the other seven threads served by the same L0 micro-cache. The grant of this arbiter is returned as <code>f1_icache_req_ready</code>. Because of the capture register, a request is accepted at the earliest in its second F1 cycle.</p>
@@ -1906,7 +2061,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect4">
 <h5 id="sec-ch2-fe-track"><a class="anchor" href="#sec-ch2-fe-track"></a><a class="link" href="#sec-ch2-fe-track">2.2.4.2. Response Timing and Ownership</a></h5>
 <div class="paragraph">
-<p>The L0 micro-cache has a five-stage pipeline and returns exactly one response per accepted request, from its last stage, for a hit and for a miss alike. The response reaches the Front End in F5, four cycles after acceptance; with the earliest acceptance this is five cycles after the request enters F1.</p>
+<p>The L0 micro-cache has a five-stage pipeline and returns exactly one response per accepted request, from its last stage, for a hit and for a miss alike. The response reaches the Front End in F5.</p>
 </div>
 <div class="paragraph">
 <p>The response carries no thread identifier. Each thread buffer identifies its responses by position in time: when its request is granted, the thread inserts a token (a valid bit and the reserved entry number) into its own F1–F6 tracker. The token remains in F1 until the request is accepted and then advances one stage per cycle. A response registered in F6 together with a valid token belongs to that thread, and the token selects the entry to be written. The response and fill-done signals are registered in <code>frontend_top</code> and broadcast to both thread buffers.</p>
@@ -1915,10 +2070,10 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="content">
 <img src="images/ch02/td-fe-hit.png" alt="Request and hit response" width="100%">
 </div>
-<div class="title">Figure 11. Request and hit response</div>
+<div class="title">Figure 12. Request and hit response</div>
 </div>
 <div class="paragraph">
-<p>In <a href="#fig-ch2-fe-td-hit">Figure 11</a> the request is issued in cycle 1, accepted in cycle 3, and the block returns in cycle 7. It is written in cycle 8; the first instruction is in F7 in cycle 9 and in ID in cycle 10.</p>
+<p>In <a href="#fig-ch2-fe-td-hit">Figure 12</a> the request is issued in cycle 1, accepted in cycle 3, and the block returns in cycle 7. It is written in cycle 8; the first instruction of the fetched block is in the F7 stage in cycle 9 and in the ID stage in cycle 10.</p>
 </div>
 </div>
 <div class="sect4">
@@ -1933,10 +2088,10 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="content">
 <img src="images/ch02/td-fe-miss.png" alt="Miss, sleep and retry" width="100%">
 </div>
-<div class="title">Figure 12. Miss, sleep and retry</div>
+<div class="title">Figure 13. Miss, sleep and retry</div>
 </div>
 <div class="paragraph">
-<p>In <a href="#fig-ch2-fe-td-miss">Figure 12</a> the miss response arrives in cycle 7 and the thread sleeps from cycle 9. Fill done arrives in cycle 11, is registered, and the thread retries in cycle 12.</p>
+<p>In <a href="#fig-ch2-fe-td-miss">Figure 13</a> the miss response arrives in cycle 7 and the thread sleeps from cycle 9. Fill done arrives in cycle 11, is registered, and the thread retries in cycle 12.</p>
 </div>
 <div class="paragraph">
 <p>Fill done is issued one cycle after the response slot. A request that looks up the L0 micro-cache while a fill is being written still misses, and its response is the last miss that the fill can cause. Issuing fill done one cycle after that response, and registering it again in the Front End, ensures that every thread has entered the sleep state before the wake-up arrives. A wake-up that arrived first would be lost, and the thread would wait for an unrelated fill.</p>
@@ -1948,16 +2103,16 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <p>A redirect invalidates the thread&#8217;s tokens in F2 to F5 and suppresses the F6 write, so the responses of in-flight requests are discarded.</p>
 </div>
 <div class="paragraph">
-<p>A request still waiting in the F1 request register cannot be withdrawn: the register is shared and the Neighborhood already holds a copy. The thread records the cancellation and does not advance the token when the request is accepted. The lookup is performed and its response discarded. The thread&#8217;s new request is issued only after the cancelled request has been accepted.</p>
+<p>A request still waiting in the F1 I-cache request register cannot be withdrawn: the register is shared and the Neighborhood already holds a copy. The thread records the cancellation and does not advance the token when the request is accepted. The I-cache lookup is performed and its response is discarded. The thread&#8217;s new request is issued only after the cancelled request has been accepted.</p>
 </div>
 <div id="fig-ch2-fe-td-kill" class="imageblock text-center">
 <div class="content">
 <img src="images/ch02/td-fe-kill.png" alt="Redirect while a request waits in F1" width="100%">
 </div>
-<div class="title">Figure 13. Redirect while a request waits in F1</div>
+<div class="title">Figure 14. Redirect while a request waits in F1</div>
 </div>
 <div class="paragraph">
-<p>In <a href="#fig-ch2-fe-td-kill">Figure 13</a> the redirect arrives in cycle 3 while the request waits in F1. The cancellation is held until the request is accepted in cycle 5; no token enters F2. The new request is issued in cycle 6 and accepted in cycle 8.</p>
+<p>In <a href="#fig-ch2-fe-td-kill">Figure 14</a> the redirect arrives in cycle 3 while the request waits in F1. The cancellation is held until the request is accepted in cycle 5; no token enters F2. The new request is issued in cycle 6 and accepted in cycle 8.</p>
 </div>
 </div>
 </div>
@@ -1970,13 +2125,13 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="content">
 <img src="images/ch02/fig-fe-thread-buffer-flow.png" alt="Thread buffer operation" width="100%">
 </div>
-<div class="title">Figure 14. Thread buffer operation</div>
+<div class="title">Figure 15. Thread buffer operation</div>
 </div>
 <div id="fig-ch2-fe-tb-detail" class="imageblock text-center">
 <div class="content">
 <img src="images/ch02/fig-fe-pipeline-detail.png" alt="Thread buffer pipeline" width="100%">
 </div>
-<div class="title">Figure 15. Thread buffer pipeline</div>
+<div class="title">Figure 16. Thread buffer pipeline</div>
 </div>
 <div class="sect4">
 <h5 id="sec-ch2-fe-entries"><a class="anchor" href="#sec-ch2-fe-entries"></a><a class="link" href="#sec-ch2-fe-entries">2.2.5.1. Buffer Entries</a></h5>
@@ -2003,10 +2158,10 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="content">
 <img src="images/ch02/fig-fe-buffer.png" alt="Thread-buffer entries and read pointer" width="55%">
 </div>
-<div class="title">Figure 16. Thread-buffer entries and read pointer</div>
+<div class="title">Figure 17. Thread-buffer entries and read pointer</div>
 </div>
 <table id="tab-ch2-fe-buf-state" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 13. Thread-buffer entry state</caption>
+<caption class="title">Table 16. Thread-buffer entry state</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 75%;">
@@ -2023,8 +2178,8 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <td class="tableblock halign-left valign-top"><p class="tableblock">Entry holds no instruction still to be sent. Set for both entries at reset.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Base address</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Address of the request that filled the entry. Defines the words written, the first halfword to extract and the upper PC bits of the entry&#8217;s instructions.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Block address</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Address of the instruction block held in the entry (<code>buffer_pc</code>). Only the words from this address onward are written, extraction in the entry starts at this address, and it provides the upper PC bits of every instruction read from the entry.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Fault flags</p></td>
@@ -2044,10 +2199,10 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect4">
 <h5 id="sec-ch2-fe-pc"><a class="anchor" href="#sec-ch2-fe-pc"></a><a class="link" href="#sec-ch2-fe-pc">2.2.5.2. Program Counter</a></h5>
 <div class="paragraph">
-<p>Each thread buffer holds a 49-bit fetch PC, the address of the next block to request. It is updated as listed in <a href="#tab-ch2-fe-pc">Table 14</a>.</p>
+<p>Each thread buffer holds a 49-bit fetch PC, the address of the next block to request. It is updated as listed in <a href="#tab-ch2-fe-pc">Table 17</a>.</p>
 </div>
 <table id="tab-ch2-fe-pc" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 14. Fetch PC update</caption>
+<caption class="title">Table 17. Fetch PC update</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -2077,16 +2232,16 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <p>Only the first block after a reset or redirect can start within a 32-byte block; all later blocks are aligned. A miss does not change the fetch PC, so the same address is requested again after the fill.</p>
 </div>
 <div class="paragraph">
-<p>The PC of each extracted instruction is formed from the upper bits of its entry&#8217;s base address and the halfword position of the read pointer.</p>
+<p>The PC of each extracted instruction is formed from the upper bits of its entry&#8217;s block address and the halfword position of the read pointer.</p>
 </div>
 </div>
 <div class="sect4">
 <h5 id="sec-ch2-fe-req"><a class="anchor" href="#sec-ch2-fe-req"></a><a class="link" href="#sec-ch2-fe-req">2.2.5.3. Request Generation and Entry Fill</a></h5>
 <div class="paragraph">
-<p>A thread issues a request in F0 when all conditions in <a href="#tab-ch2-fe-req-cond">Table 15</a> are met.</p>
+<p>A thread issues a request in F0 when all conditions in <a href="#tab-ch2-fe-req-cond">Table 18</a> are met.</p>
 </div>
 <table id="tab-ch2-fe-req-cond" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 15. Request conditions</caption>
+<caption class="title">Table 18. Request conditions</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -2125,13 +2280,13 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tbody>
 </table>
 <div class="paragraph">
-<p>On a grant, the thread reserves an entry and records the request address as its base address. If both entries are empty, entry 1 is reserved.</p>
+<p>On a grant, the thread reserves an entry and records the fetch PC of the request as the entry&#8217;s block address. If both entries are empty, entry 1 is reserved.</p>
 </div>
 <div class="paragraph">
-<p><a href="#tab-ch2-fe-fill">Table 16</a> shows the entry sequence after a thread is enabled at address A. <code>[m, n]</code> gives the block number in entry 0 and entry 1; <code>x</code> denotes an empty entry.</p>
+<p><a href="#tab-ch2-fe-fill">Table 19</a> shows the entry sequence after a thread is enabled at address A. <code>[m, n]</code> gives the block number in entry 0 and entry 1; <code>x</code> denotes an empty entry.</p>
 </div>
 <table id="tab-ch2-fe-fill" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 16. Entry fill sequence</caption>
+<caption class="title">Table 19. Entry fill sequence</caption>
 <colgroup>
 <col style="width: 14.2857%;">
 <col style="width: 57.1428%;">
@@ -2213,7 +2368,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <p>Each instruction carries the status of the entries it was read from:</p>
 </div>
 <table id="tab-ch2-fe-status" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 17. Instruction fetch status</caption>
+<caption class="title">Table 20. Instruction fetch status</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 80%;">
@@ -2253,10 +2408,10 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect4">
 <h5 id="sec-ch2-fe-release"><a class="anchor" href="#sec-ch2-fe-release"></a><a class="link" href="#sec-ch2-fe-release">2.2.6.1. Entry Invalidation</a></h5>
 <div class="paragraph">
-<p>An entry is released when its last instruction leaves F6, or when the whole buffer is flushed (<a href="#tab-ch2-fe-release">Table 18</a>).</p>
+<p>An entry is released when its last instruction leaves F6, or when the whole buffer is flushed (<a href="#tab-ch2-fe-release">Table 21</a>).</p>
 </div>
 <table id="tab-ch2-fe-release" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 18. Entry release conditions</caption>
+<caption class="title">Table 21. Entry release conditions</caption>
 <colgroup>
 <col style="width: 60%;">
 <col style="width: 40%;">
@@ -2297,10 +2452,10 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect4">
 <h5 id="sec-ch2-fe-redirect"><a class="anchor" href="#sec-ch2-fe-redirect"></a><a class="link" href="#sec-ch2-fe-redirect">2.2.6.2. Redirect</a></h5>
 <div class="paragraph">
-<p>The integer pipeline redirects a thread by asserting <code>f0_core_req_valid</code> with the new PC in <code>f0_core_req.pc</code>. Redirects are issued for branch and jump mispredictions, exceptions and returns from trap, replays, inter-processor interrupts, and entry to or exit from debug mode. <a href="#tab-ch2-fe-redirect">Table 19</a> lists the effect in the redirect cycle.</p>
+<p>The integer pipeline redirects a thread by asserting <code>f0_core_req_valid</code> with the new PC in <code>f0_core_req.pc</code>. Redirects are issued for branch and jump mispredictions, exceptions and returns from trap, replays, inter-processor interrupts, and entry to or exit from debug mode. <a href="#tab-ch2-fe-redirect">Table 22</a> lists the effect in the redirect cycle.</p>
 </div>
 <table id="tab-ch2-fe-redirect" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 19. Effect of a redirect</caption>
+<caption class="title">Table 22. Effect of a redirect</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 75%;">
@@ -2318,7 +2473,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F1</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Request waiting in the F1 request register marked cancelled.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request waiting in the F1 I-cache request register marked cancelled.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F2–F5</p></td>
@@ -2339,13 +2494,13 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tbody>
 </table>
 <div class="paragraph">
-<p>The target block is requested in the following cycle. Its first instruction reaches ID ten cycles after the redirect (<a href="#fig-ch2-fe-td-redirect">Figure 17</a>).</p>
+<p>The target block is requested in the following cycle. Its first instruction reaches ID ten cycles after the redirect (<a href="#fig-ch2-fe-td-redirect">Figure 18</a>).</p>
 </div>
 <div id="fig-ch2-fe-td-redirect" class="imageblock text-center">
 <div class="content">
 <img src="images/ch02/td-fe-redirect.png" alt="Redirect to first target instruction" width="100%">
 </div>
-<div class="title">Figure 17. Redirect to first target instruction</div>
+<div class="title">Figure 18. Redirect to first target instruction</div>
 </div>
 </div>
 <div class="sect4">
@@ -2356,7 +2511,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Enable.</strong> The fetch PC is loaded with <code>f0_reset_vector</code> at the end of the enable cycle, and the first request is issued in the next cycle. The first instruction reaches ID eleven cycles after <code>f0_thread_enabled</code> rises (<a href="#fig-ch2-fe-td-enable">Figure 18</a>).</p>
+<p><strong>Enable.</strong> The fetch PC is loaded with <code>f0_reset_vector</code> at the end of the enable cycle, and the first request is issued in the next cycle. The first instruction reaches ID eleven cycles after <code>f0_thread_enabled</code> rises (<a href="#fig-ch2-fe-td-enable">Figure 19</a>).</p>
 </li>
 <li>
 <p><strong>Disable.</strong> No further requests are issued, both entries are released and the sleep state is cleared. The instruction in F7 and the FIFO contents are not cleared; the thread scheduler no longer selects the thread.</p>
@@ -2367,7 +2522,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="content">
 <img src="images/ch02/td-fe-enable.png" alt="Thread enable to first instruction" width="100%">
 </div>
-<div class="title">Figure 18. Thread enable to first instruction</div>
+<div class="title">Figure 19. Thread enable to first instruction</div>
 </div>
 <div class="paragraph">
 <p>After reset, both entries are empty and the fetch PC holds the reset vector.</p>
@@ -2377,13 +2532,13 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="sect3">
 <h4 id="sec-ch2-fe-decode"><a class="anchor" href="#sec-ch2-fe-decode"></a><a class="link" href="#sec-ch2-fe-decode">2.2.7. Decoders</a></h4>
 <div class="paragraph">
-<p>One integer decoder (<code>intpipe_decode</code>) and one VPU decoder (<code>vpu_decoder</code>) are shared by both threads (<a href="#fig-ch2-fe-fifo">Figure 19</a>). In F7, the instruction of one thread passes through both decoders in parallel, and the instruction and both control words are written into that thread&#8217;s FIFO. Decoding before the FIFO removes decode logic from the ID stage.</p>
+<p>One integer decoder (<code>intpipe_decode</code>) and one VPU decoder (<code>vpu_decoder</code>) are shared by both threads (<a href="#fig-ch2-fe-fifo">Figure 20</a>). In F7, the instruction of one thread passes through both decoders in parallel, and the instruction and both control words are written into that thread&#8217;s FIFO. Decoding before the FIFO removes decode logic from the ID stage.</p>
 </div>
 <div id="fig-ch2-fe-fifo" class="imageblock text-center">
 <div class="content">
 <img src="images/ch02/fig-fe-fifo-sched.png" alt="Decoders, instruction FIFOs and thread scheduler" width="100%">
 </div>
-<div class="title">Figure 19. Decoders, instruction FIFOs and thread scheduler</div>
+<div class="title">Figure 20. Decoders, instruction FIFOs and thread scheduler</div>
 </div>
 <div class="paragraph">
 <p>Both decoders are combinational look-up tables over the 32-bit instruction:</p>
@@ -2391,7 +2546,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Integer decoder.</strong> Produces <code>minion_control</code> (<a href="#tab-ch2-fe-decode-words">Table 11</a>). An unlisted encoding is marked not legal, and the integer pipeline raises an illegal-instruction exception.</p>
+<p><strong>Integer decoder.</strong> Produces <code>minion_control</code> (<a href="#tab-ch2-fe-decode-words">Table 14</a>). An unlisted encoding is marked not legal, and the integer pipeline raises an illegal-instruction exception.</p>
 </li>
 <li>
 <p><strong>VPU decoder.</strong> Produces <code>vpu_ctrl_sigs_t</code> and a flag that identifies VPU instructions. An unlisted encoding is a non-VPU instruction.</p>
@@ -2402,7 +2557,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <p>A thread is a decode candidate when it has an extracted instruction, its FIFO is not full and it is awake (<a href="#sec-ch2-fe-sched">Section 2.2.9</a>). The decoded thread is selected as follows:</p>
 </div>
 <table id="tab-ch2-fe-dec-pick" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 20. Decode thread selection</caption>
+<caption class="title">Table 23. Decode thread selection</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -2435,11 +2590,14 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="paragraph">
 <p>The instruction is written into the FIFO when the selected thread has an extracted instruction and its FIFO is not full; the awake condition affects only the selection.</p>
 </div>
+<div class="paragraph">
+<p>The Front End does not issue instructions to the VPU. In ID, the VPU control word of the presented instruction (<code>id_vpu_decoder_sigs</code>) is sent directly to the VPU, bypassing the integer pipeline. The integer pipeline issues the instruction to the VPU in the same cycle, when the instruction is accepted in ID and decoded as an FP or VPU instruction, together with its thread and rounding mode. The integer pipeline also receives a summary of the VPU control word (<code>id_vpu_core_ctrl</code>), with the VPU and mask register reads and writes of the instruction, for its FP and mask scoreboard checks.</p>
+</div>
 </div>
 <div class="sect3">
 <h4 id="sec-ch2-fe-fifo"><a class="anchor" href="#sec-ch2-fe-fifo"></a><a class="link" href="#sec-ch2-fe-fifo">2.2.8. Instruction FIFO</a></h4>
 <div class="paragraph">
-<p>Each thread has a two-entry instruction FIFO between F7 and ID. It decouples fetch from issue: while ID is stalled or serving the other thread, the thread continues to extract and decode, and the decoded instructions are held in the FIFO. An entry is a <code>frontend_thread_data</code> (<a href="#tab-ch2-fe-thread-data">Table 10</a>): the instruction, its fetch status and both control words.</p>
+<p>Each thread has a two-entry instruction FIFO between F7 and ID. It decouples fetch from issue: while ID is stalled or serving the other thread, the thread continues to extract and decode, and the decoded instructions are held in the FIFO. An entry is a <code>frontend_thread_data</code> (<a href="#tab-ch2-fe-thread-data">Table 13</a>): the instruction, its fetch status and both control words.</p>
 </div>
 <div class="paragraph">
 <p>The FIFO is written when its thread is selected for decode and read when the integer pipeline accepts the thread&#8217;s instruction (<code>id_inst_valid</code>, <code>id_inst_ready</code> and <code>id_inst_thread_id</code>). It uses 2-bit read and write pointers; it is full when the pointers differ only in the wrap bit and empty when they are equal.</p>
@@ -2448,7 +2606,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <p>The storage is organized for timing rather than as an indexed array. Entry 0 is always the head, whose content drives the ID outputs; entry 1 is a holding register. The ID multiplexer therefore selects between two fixed registers, one per thread.</p>
 </div>
 <table id="tab-ch2-fe-fifo" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 21. Instruction FIFO update</caption>
+<caption class="title">Table 24. Instruction FIFO update</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 33.3333%;">
@@ -2517,7 +2675,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <p>A thread that is awake and ready is eligible. The scheduler selects between eligible threads in round-robin order:</p>
 </div>
 <table id="tab-ch2-fe-sched" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 22. Thread selection</caption>
+<caption class="title">Table 25. Thread selection</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -2563,10 +2721,10 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <div class="content">
 <img src="images/ch02/td-fe-sched.png" alt="Round-robin issue with a stall" width="70%">
 </div>
-<div class="title">Figure 20. Round-robin issue with a stall</div>
+<div class="title">Figure 21. Round-robin issue with a stall</div>
 </div>
 <div class="paragraph">
-<p>In <a href="#fig-ch2-fe-td-sched">Figure 20</a> both threads are eligible and alternate. <code>id_core_stall</code> of thread 1 is asserted in cycles 3 and 4, and thread 1 is not awake in cycles 4 and 5. Thread 0 is selected in cycles 3 to 5 and presented in ID in cycles 4 to 6; the selection alternates again from cycle 6.</p>
+<p>In <a href="#fig-ch2-fe-td-sched">Figure 21</a> both threads are eligible and alternate. <code>id_core_stall</code> of thread 1 is asserted in cycles 3 and 4, and thread 1 is not awake in cycles 4 and 5. Thread 0 is selected in cycles 3 to 5 and presented in ID in cycles 4 to 6; the selection alternates again from cycle 6.</p>
 </div>
 </div>
 <div class="sect3">
@@ -2602,7 +2760,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 <p>In debug mode, entry 0 of the halted thread&#8217;s buffer is used as the program buffer: the debugger writes instructions into it and the thread executes them.</p>
 </div>
 <table id="tab-ch2-fe-debug" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 23. Debug program-buffer sequence</caption>
+<caption class="title">Table 26. Debug program-buffer sequence</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 83.3334%;">
@@ -2620,7 +2778,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Write</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The debugger writes the program buffer through <code>debug_ffb_wdata</code>, <code>debug_ffb_en</code> and <code>debug_ffb_thread_sel</code> (<a href="#tab-ch2-fe-pb-map">Table 24</a>). The words are written one cycle after the enables.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The debugger writes the program buffer through <code>debug_ffb_wdata</code>, <code>debug_ffb_en</code> and <code>debug_ffb_thread_sel</code> (<a href="#tab-ch2-fe-pb-map">Table 27</a>). The words are written one cycle after the enables.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Execute</p></td>
@@ -2633,7 +2791,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </tbody>
 </table>
 <table id="tab-ch2-fe-pb-map" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 24. Program-buffer word mapping</caption>
+<caption class="title">Table 27. Program-buffer word mapping</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 40%;">
@@ -3172,7 +3330,7 @@ The PTWs were not implemented in the first silicon revision (A0). The RTL descri
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-09-22 08:58:46 +0500
+Last updated 2026-09-22 18:50:15 +0500
 </div>
 </div>
 </body>

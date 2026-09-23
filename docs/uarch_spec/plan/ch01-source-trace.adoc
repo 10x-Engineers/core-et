@@ -38,10 +38,12 @@ RTL::: file under `rtl/`
 | 1.2.2 | 2 L0 micro-caches, 4 cores each, 16 fully associative entries, access L1 on miss | DS §2.1.2, §2.1.2.1; RTL `icache_top` `NR_REQUESTORS = 2`, `ICACHE_MICRO_CACHE_SIZE = 16`
 | 1.2.2 | 2 PTWs, 4 cores each, plus I-cache side requests | DS §2.1.2.2; RTL `MIN_PER_PTW = 4`, `neigh_channel.v` PTW loop (`N_REQS = MIN_PER_PTW + 1`, D-cache and I-cache request inputs)
 | 1.2.2 | Arbitrated request path for instruction and data caches | DS §2.1.1.5 ("Data Cache to Shire Cache Interface")
-| 1.2.2 note | PTWs absent in A0 | DS §2.1.2, footnote 1
 | 1.2.2 | PMU: 12 shared 64-bit counters, 8 for ET-Minion events, 4 for Neighborhood events | DS §2.1.2.3; RTL `PMU_MINION_COUNTERS_NUM = 8`, `PMU_NEIGH_COUNTERS_NUM = 4`, `neigh_pmu` counter arrays sized `PMU_TOTAL_COUNTERS_NUM` with 7 + 57 = 64-bit width
 | 1.2.3 | 4 MB Shire Cache, 4 × 1 MB banks, crossbar; L2 / L3 slice / scratchpad partitions set by ESRs | DS §2.1, §2.1.3, §2.1.3.1; RTL `SC_BANKS = 4`
 | 1.2.3 | Uncacheable accesses, IPIs, fast local credit counters, ESR banks | SD §1
+| 1.2.3 | UC block: Neighborhood requests go either to the four bank FIFOs or to the UC FIFO | `docs/u_arch_md/CORE-ET-Neigborhood-MAS` (request datapath output FIFOs)
+| 1.2.3 | FLB unit is in the UC block; FLB and FCC implementation | `docs/u_arch_md/CORE-ET-Neigborhood-MAS` (FLB routing); RTL `rtl/shire/uncached/uncacheable_flb.v`, `uncacheable_fcc.v`
+| 1.2.3 | UC block delivers messages between Minions of different Shires | `docs/u_arch_md/ET-Link-Specification` (message routing)
 | 1.2.3 | Fast local barriers | DS §2.1.1.1 ("Fast sync (FLB, FCC)"); SD glossary
 | 1.2.3 | "ESR" = Esperanto System Register | DS memory-map section ("Esperanto System Registers (ESR) region")
 | 1.2.3 | NoC interface for L2 misses and uncacheable accesses | DS §2.1.3; SD §1
@@ -53,6 +55,8 @@ RTL::: file under `rtl/`
 3+h| 1.3 ET-Maxion and Service Processor
 | 1.3 | Single-threaded superscalar out-of-order 64-bit; 4 identical; Maxion Neighborhood with 4 MB L2/L3 in the I/O Shire; system bus and coherency hub | DS §1; DS §2.1; DS §2.5.2
 | Figure (ET-Maxion) | Pipeline picture | `docs/presentation/Esperanto Presentation.pdf`, slide 19 (figure only; no numbers are quoted in the text)
+
+| 1.2.3 | Crossbar between four Neighborhoods and four Shire Cache banks; one port per Neighborhood; one request per bank per cycle; also reaches the uncached block | DS §2.1.3 ("crossbar switch that interconnects these elements"); `docs/u_arch_md/CORE-ET-Shire-Cache-Specification` (four banks, one request per cycle; Xbars from each Neighborhood to all banks and UC); `docs/presentation/Esperanto SoC Session - 1` ("4×4 crossbar")
 
 3+h| 1.4 Mesh Network-on-Chip
 | 1.4.1 | 8 × 6 grid, empty corners, 44 mesh stops, Shire counts | DS §4
@@ -70,6 +74,12 @@ RTL::: file under `rtl/`
 | 1.4.4 | Peripheral network shared by SP, Maxions and master Minion | DS §2.5; DS §6.1.1, §6.3.2, §6.6.1
 | 1.4.4 | Debug network: JTAG and USB 2.0 device port | DS §2.2.5
 
+3+h| 1.5 ET-SoC-1 Accelerator Card
+| 1.5 | ET-SoC-1 is an AI accelerator platform | `docs/arch/ET Introduction.pdf`, slide "What is ET?"
+| 1.5 | PCIe x16 add-in card; x8 Gen4 interface; soldered-down ET-SoC; 4 LPDDR4x devices, 256-bit interface; 64 GB eMMC; USB device/debug, UART-to-USB, JTAG; DIP switches for boot options | `docs/arch/ET-PCIe-Dev-Card-V3.pdf`, "General Information – Features"
+| 1.5 | Multiple ET-SoC-1 devices on a single card | Author statement; no document in this repository states it
+| Figure (PCIe card) | Photograph of the ET-SoC-1 PCIe card | Supplied by the author (`images/ch01/fig-pcie-card.png`)
+
 |===
 
 == Excluded on purpose
@@ -81,4 +91,4 @@ These items were in earlier drafts but are not in the chapter, because no source
 * the ET-Maxion micro-architectural numbers (fetch width, ROB size, cache sizes);
 * the Scope of This Document section (the CPU Subsystem facts are reused in Chapter 13);
 * source citations in figure captions (sources are kept in this trace instead);
-* the host/card deployment section, the website card photo, the host software stack and the PCIe add-in card example.
+* the host software stack.
