@@ -41,6 +41,20 @@ python3 tools/build_docx.py        # DOCX only (needs pandoc 3.1+ on PATH, or PA
 
 Study notes: `asciidoctor-pdf study/frontend/frontend-rtl-study.adoc`
 
+## Hosting on Read the Docs
+
+[`.readthedocs.yaml`](../../.readthedocs.yaml) in the repository root builds this document on Read the Docs. It installs Asciidoctor and pandoc, converts `core-et-uarch.adoc` to HTML as the served page, copies `images/`, and puts the PDF and DOCX next to it so the page can offer them as downloads.
+
+To publish:
+
+1. Sign in at <https://app.readthedocs.org> with the GitHub account that owns the repository.
+2. **Add project** → import `open_hw-core-et`. Read the Docs finds `.readthedocs.yaml` by itself.
+3. Build. The document appears at `https://<project-slug>.readthedocs.io/`.
+4. Optional: in **Settings → Automation rules**, build only the branches you want to publish.
+
+The `rtd` attribute passed by the build adds the download links at the top of the page; local builds do not show them.
+
+
 ## Figures
 
 Every figure drawn for this document has a source in `images/<chapter>/src/`. After editing a source, export the PNG that the document uses:

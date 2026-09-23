@@ -17,6 +17,11 @@
 :pdf-themesdir: {docdir}/themes
 :docinfo: shared
 
+ifdef::rtd[]
+[.text-center]
+Downloads: link:core-et-uarch.pdf[PDF] | link:core-et-uarch.docx[Word]
+
+endif::rtd[]
 [preface]
 [[document-control]]
 == Document Control
