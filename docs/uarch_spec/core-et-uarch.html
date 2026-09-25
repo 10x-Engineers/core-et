@@ -446,15 +446,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#document-control">Document Control</a>
 <ul class="sectlevel2">
 <li><a href="#_revision_history">Revision History</a></li>
-<li><a href="#_chapter_status">Chapter Status</a></li>
-</ul>
-</li>
-<li><a href="#preface">Preface</a>
-<ul class="sectlevel2">
-<li><a href="#_purpose">Purpose</a></li>
-<li><a href="#_audience">Audience</a></li>
-<li><a href="#_sources_and_source_of_truth">Sources and Source of Truth</a></li>
-<li><a href="#_conventions">Conventions</a></li>
 </ul>
 </li>
 <li><a href="#ch-et-soc-1-overview">1. ET-SoC-1 Overview</a>
@@ -665,10 +656,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <table id="tab-revision-history" class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 1. Revision history</caption>
 <colgroup>
-<col style="width: 9.0909%;">
-<col style="width: 18.1818%;">
-<col style="width: 18.1818%;">
-<col style="width: 54.5455%;">
+<col style="width: 12.7272%;">
+<col style="width: 16.3636%;">
+<col style="width: 16.3636%;">
+<col style="width: 54.5456%;">
 </colgroup>
 <thead>
 <tr>
@@ -702,31 +693,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tr>
 </tbody>
 </table>
-</div>
-<div class="sect2">
-<h3 id="_chapter_status"><a class="anchor" href="#_chapter_status"></a><a class="link" href="#_chapter_status">Chapter Status</a></h3>
-
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="preface"><a class="anchor" href="#preface"></a><a class="link" href="#preface">Preface</a></h2>
-<div class="sectionbody">
-<div class="sect2">
-<h3 id="_purpose"><a class="anchor" href="#_purpose"></a><a class="link" href="#_purpose">Purpose</a></h3>
-
-</div>
-<div class="sect2">
-<h3 id="_audience"><a class="anchor" href="#_audience"></a><a class="link" href="#_audience">Audience</a></h3>
-
-</div>
-<div class="sect2">
-<h3 id="_sources_and_source_of_truth"><a class="anchor" href="#_sources_and_source_of_truth"></a><a class="link" href="#_sources_and_source_of_truth">Sources and Source of Truth</a></h3>
-
-</div>
-<div class="sect2">
-<h3 id="_conventions"><a class="anchor" href="#_conventions"></a><a class="link" href="#_conventions">Conventions</a></h3>
-
 </div>
 </div>
 </div>
@@ -784,7 +750,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">On-die SRAM</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">140 MB. Each 1 MB block is configurable as L2 cache, as part of the chip-wide L3 cache, or as scratchpad memory.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Each Minion Shire&#8217;s 4 MB Shire Cache can be partitioned by ESRs into L2, a slice of the chip-wide L3, and scratchpad.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Interconnect</p></td>
@@ -792,7 +758,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">External memory</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">LPDDR4X, 16 channels × 16 bits, up to 4,266 MT/s</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">LPDDR4X, 16 channels x 16 bits, up to 4,266 MT/s</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">PCI Express</p></td>
@@ -875,7 +841,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Front end (FE)</strong>: fetches instructions from the shared instruction cache and decodes them</p>
+<p><strong>Front end (FE)</strong></p>
 </li>
 <li>
 <p><strong>Integer pipeline</strong></p>
@@ -912,10 +878,26 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p><strong>Page-table walkers (PTWs)</strong>: two, each shared by four cores. Each PTW serves the data caches of its four cores and the instruction-cache side.</p>
 </li>
 <li>
-<p><strong>Request/response path</strong>: a single path to the memory hierarchy outside the Neighborhood. Requests from the instruction and data caches are arbitrated onto it.</p>
+<p><strong>Request/response path</strong>: a single path to the memory hierarchy outside the Neighborhood. Requests from the eight data caches, the instruction cache, the two PTWs and, the cooperative TensorLoad/TensorStore units are arbitrated into (256-bit internally which is converted to a 512-bit ET-Link bus).</p>
 </li>
 <li>
-<p><strong>Performance monitoring unit (PMU)</strong>: twelve 64-bit event counters shared by the eight cores. Eight counters count ET-Minion events and four count Neighborhood events.</p>
+<p><strong>Performance monitoring unit (PMU)</strong>: twelve 64-bit event counters shared by the eight cores.<br>
+Eight counters count ET-Minion events and four count Neighborhood events.</p>
+</li>
+<li>
+<p><strong>Cooperative TensorLoad</strong>:</p>
+</li>
+<li>
+<p><strong>Cooperative TensorStore</strong>:</p>
+</li>
+<li>
+<p><strong>Fast Local Messaging Network</strong>:</p>
+</li>
+<li>
+<p><strong>FLB unit</strong>:</p>
+</li>
+<li>
+<p><strong>Neighborhood ESRs</strong>:</p>
 </li>
 </ul>
 </div>
@@ -1111,7 +1093,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sect3">
 <h4 id="sec-ch1-memshire"><a class="anchor" href="#sec-ch1-memshire"></a><a class="link" href="#sec-ch1-memshire">1.4.2. Memory Shires</a></h4>
 <div class="paragraph">
-<p>Each of the eight Memory Shires contains one 32-bit LPDDR4X controller that drives two 16-bit channels at up to 4,266 MT/s. The Memory Shires also support global atomic operations.</p>
+<p>Each Memory Shire contains a 32-bit LPDDR4X PHY and two memory controllers, each driving one 16-bit channel achieving 4,266 MT/s/channel.
+The Memory Shires also support global atomic operations.</p>
 </div>
 </div>
 <div class="sect3">
@@ -3330,7 +3313,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-09-22 18:50:15 +0500
+Last updated 2026-09-25 12:02:00 +0500
 </div>
 </div>
 </body>

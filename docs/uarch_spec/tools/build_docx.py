@@ -11,7 +11,8 @@ Pipeline:
   5. pre-filled field results -> the TOC and both lists show their entries in any viewer;
                                Word regenerates them with page numbers on open (updateFields)
 
-Requirements: asciidoctor and pandoc >= 3.1 (PANDOC env var or on PATH).
+Requirements: asciidoctor, and pandoc >= 3.1 taken from $PANDOC, from PATH, or from a
+pypandoc installation (for example ~/.venvs/uarch-docs).
 
 Usage: python3 tools/build_docx.py
 """
@@ -28,7 +29,26 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DOCDIR = os.path.dirname(HERE)
 SRC = os.path.join(DOCDIR, "core-et-uarch.adoc")
 OUT = os.path.join(DOCDIR, "core-et-uarch.docx")
-PANDOC = os.environ.get("PANDOC") or shutil.which("pandoc")
+def find_pandoc():
+    """PANDOC env var, then PATH, then a pandoc bundled by pypandoc."""
+    cand = os.environ.get("PANDOC") or shutil.which("pandoc")
+    if cand:
+        return cand
+    try:
+        import pypandoc
+        return pypandoc.get_pandoc_path()
+    except Exception:
+        pass
+    import glob
+    for pat in (os.path.expanduser("~/.venvs/*/lib/*/site-packages/pypandoc/files/pandoc"),
+                os.path.expanduser("~/.local/lib/*/site-packages/pypandoc/files/pandoc")):
+        hits = sorted(glob.glob(pat))
+        if hits:
+            return hits[0]
+    return None
+
+
+PANDOC = find_pandoc()
 
 LUA_FILTER = r"""
 -- Front matter (everything before the first chapter, whose id starts with "ch-") is unnumbered.
@@ -221,7 +241,8 @@ def fix_styles(s):
 
 def main():
     if not PANDOC:
-        sys.exit("pandoc not found: install it or set PANDOC=/path/to/pandoc")
+        sys.exit("pandoc not found: install it, set PANDOC=/path/to/pandoc, or\n"
+                 "  python3 -m venv ~/.venvs/uarch-docs && ~/.venvs/uarch-docs/bin/pip install pypandoc_binary")
     with tempfile.TemporaryDirectory() as tmp:
         html_out = os.path.join(tmp, "doc.html")
         db_out = os.path.join(tmp, "doc.xml")

@@ -36,10 +36,21 @@ Generated outputs, kept in the repository: `core-et-uarch.pdf`, `core-et-uarch.d
 tools/build.sh                     # HTML, PDF and DOCX
 asciidoctor core-et-uarch.adoc     # HTML only
 asciidoctor-pdf core-et-uarch.adoc # PDF only
-python3 tools/build_docx.py        # DOCX only (needs pandoc 3.1+ on PATH, or PANDOC=/path/to/pandoc)
+python3 tools/build_docx.py        # DOCX only
 ```
 
 Study notes: `asciidoctor-pdf study/frontend/frontend-rtl-study.adoc`
+
+The DOCX build needs pandoc 3.1 or later. It is taken from `$PANDOC`, from `PATH`, or from a pypandoc installation. If pandoc is not installed system-wide, create it once:
+
+```sh
+python3 -m venv ~/.venvs/uarch-docs
+~/.venvs/uarch-docs/bin/pip install pypandoc_binary
+```
+
+`tools/build_docx.py` then finds that pandoc by itself.
+
+The Word file is built from the AsciiDoc source, not converted from the PDF: it keeps Word heading styles, a field-based table of contents, list of tables and list of figures, numbered captions and working cross-reference links. Converting `core-et-uarch.pdf` with a PDF-to-Word tool reconstructs each page from positioned text and loses all of that.
 
 ## Hosting on Read the Docs
 
