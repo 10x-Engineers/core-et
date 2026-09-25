@@ -27,14 +27,14 @@ The ET-Minion core is implemented in `minion_top` (<<fig-ch1-et-minion>>). `mini
 
 [[tab-ch2-core-blocks]]
 .ET-Minion core blocks
-[cols="2,2,6",options="header"]
+[cols="20%,24%,56%",options="header"]
 |===
 | Block | Module | Function
 
 | Front End | `frontend_top` | Fetches instructions for both threads from the Neighborhood L0 micro-cache, expands compressed instructions, decodes them for the integer pipeline and the VPU, and issues one instruction per cycle to the integer pipeline (<<sec-ch2-fe>>).
 | Integer pipeline | `intpipe_top` | In-order, single-issue pipeline with the stages ID, EX, TAG, MEM and WB. Contains the integer register file, ALU, multiply/divide unit, integer, FP and mask scoreboards, and the CSRs. Redirects the Front End on a change of control flow.
-| Data cache | `dcache_top` | 4 KB private L1 data cache, partly configurable as scratchpad memory. Contains the data TLB, PMA check, miss handling, replay queue, store merge, atomic, cache-management, tensor-load and reduce units, and the interface to the Neighborhood memory path.
-| Debug APB slave | `minion_debug_apb_slv` | APB slave for debug access to the core, including writes to the debug program buffer.
+| Data cache | `dcache_top` | 4 KB private L1 data cache, partly configurable as scratchpad memory. Contains the data TLB, PMA check, miss handling, replay queue, store merge, atomic (AMO) forwarding to L2 through the miss handler's UC flow, scratchpad controller, write-back unit, cache-management, tensor-load and reduce units, and the interface to the Neighborhood memory path.
+| APB slave for debug registers | `minion_debug_apb_slv` | APB slave for debug access to the core, including writes to the debug program buffer.
 | VPU | `vpu_top` | Vector processing unit with a control block and eight identical lanes. Executes floating-point, packed-integer, transcendental and tensor operations.
 |===
 
@@ -52,19 +52,21 @@ The core runs two hardware threads (`CORE_NR_THREADS` = 2). Each thread has its 
 | Fetch PC, thread buffer and instruction FIFO in the Front End
 | Front End request port, decoders and thread scheduler
 
-| 32 × 64-bit integer registers, in one register file indexed by thread
+| 32 x 64-bit integer registers, in one register file indexed by thread
 | Integer pipeline, ALU and multiply/divide unit
 
-| 32 vector registers, 256 bits wide (32 bits in each of the eight VPU lanes), in one register file indexed by thread
+| 32 vector registers, (also the FP f-registers), 256 bits wide, held as a 32-bit slice in each lane's RF, which are indexed by the thread number. Eight 8-bit mask registers. +
+*`TODO: Add a new row for Mask registers`*
+
 | VPU control and execution units
 
 | CSR state, interrupt inputs and debug state
 | L1 data cache and scratchpad
 |===
 
-Each thread is enabled by its bit of the `enabled` input of `minion_top`, which is registered in `minion_top` before use. Both threads start at the same reset vector (`reset_vector`) when enabled.
+Each thread is enabled by its corrseponding bit of the `enabled` input of `minion_top`. `minion_top` registers `enabled` once, and the integer pipeline and debug logic uses this registered copy directly. The Front End regsisters it twice more, so that it can detect the edges of the enable and turn each rising and falling edge into a one-cycle enable of disable event (<<sec-ch2-fe-enable>>). When a thread is enabled, it starts fetching at `reset_vector`, which is the same for both threads.
 
-The Front End selects one thread per cycle for issue to the integer pipeline (<<sec-ch2-fe-sched>>). The integer pipeline can stall each thread independently, for example on `WFI`, a fence, a scoreboard hazard, or while the other thread holds exclusive mode.
+The Front End selects one thread per cycle for issue to the integer pipeline. The integer pipeline can stall each thread independently, for example on `WFI`, a fence, a scoreboard hazard, or while the other thread holds exclusive mode. As a result, the Front End sees a change of `enabled` two cycles later than the integer pipeline does.
 
 [[sec-ch2-inst-flow]]
 ==== Instruction Flow Through the Core
@@ -94,11 +96,27 @@ _Table: ET-Minion core interface groups._
 [[sec-ch2-fe-overview]]
 ==== Overview
 
-The Front End is the interface between the Neighborhood L0 micro-cache and the integer pipeline. It holds the program counter of each thread, fetches instructions from the L0 micro-cache, and delivers them, expanded and decoded, to the ID stage of the integer pipeline at a rate of one instruction per cycle. It serves both threads of the core, and restarts fetch at a new address when the integer pipeline redirects a thread.
+The Front End (`frontend_top`) supplies instructions to the ET-Minion core. It sits between the Neighborhood L0 micro-cache and the ID stage of the integer pipeline. It holds the program counter of each of the two threads and fetches 32-byte instruction blocks from the L0 micro-cache.
+It then extracts the instruction, expands compressed instructions to 32 bits and decodes them for both the integer pipeline and the VPU.
+It delivers one decoded instruction per cycle to ID, from either thread. The core has no instruction cache of its own. Each L0 micro-cache is shared by four ET-Minion cores, eight threads in all, so the design of the Front End is driven by the need to hide the latency of shared fetch path.
 
-To hide the latency of the L0 micro-cache, which is shared by four ET-Minion cores, the Front End uses double buffering. Each thread has an instruction buffer with two 256-bit entries, and each entry holds a block of instructions equal to half a cache line. A new block can therefore be requested while the thread consumes the instructions already received. Each entry has a dedicated register that holds the address of its block.
+The Front End is built around the following four concepts:
 
-<<tab-ch2-fe-submodules>> lists the submodules and <<fig-ch2-fe-top>> shows how they are connected.
+. *Fetch is double-buffered:* each thread has a thread buffer with two 256-bit entries, each holding half a cache line, so the next block can be requested while the current one is being consumed.
+
+. *Each thread has at most one fetch request in flight:* the L0 micro-cache answers every accepted request, hit or miss, after a fixed latency, so a thread recognizes its own by timing alone, without a thread identifier. On a miss the thread sleeps until the L0 micro-cache reports that a fill has completed, and then retries.
+
+. *Instructions are decoded before they are queued:* one integer decoder and one VPU decoder, shared by both threads, decode in F7, and each thread has a two-entry instruction FIFO that holds decoded instructions until ID accepts them. This moves decode out of the ID stage and lets a thread keep fetching while ID serves the other thread.
+
+. *The two threads are independent:* each thread fetches, sleeps, stalls and restarts on its own. They share only the fetch request port, the decoders and the issue slot into ID, and the thread scheduler alternates between them when both are eligible.
+
+The Front End is a pipeline of eight stages, F0 to F7. F1 to F5 overlap the L0 micro-cache pipeline. With an L0 hit and no competing requests, the first instruction of a block reaches ID nine cycles after it is requested. The first target instruction reaches ID ten cycles after a redirect, and the first instruction reaches ID eleven cycles after a thread is enabled.
+
+The integer pipeline controls the Front End through two per-thread signals. A redirect (`f0_core_req_valid`, `f0_core_req`) flushes the thread and restarts fetch at a new PC. It is used for mispredictions, exceptions, replays, interrupts and debug-mode transitions. A stall (`id_core_stall`) stops the thread from being scheduled, for example on WFI, a fence, a CSR access that must wait, or a scoreboard hazard. The Front End attaches the fetch status to each instruction: page and access faults, bus and ECC errors, and a replay flag for uncacheable fetches issued while older instructions are still in flight. The integer pipeline acts on this status in ID.
+
+The Front End also starts and stops threads through their enable inputs and reset vector. It supports debug in two ways: it generates the placeholder instruction on which a halt is taken, and it lets entry 0 of a halted thread's buffer serve as the debug program buffer. Each thread buffer runs on its own gated clock; a chicken bit disables the gating.
+
+<<tab-ch2-fe-submodules>> lists the submodules and <<fig-ch2-fe-top>> shows how they are connected. The sections that follow cover the interface (<<sec-ch2-fe-if>>), the pipeline stages (<<sec-ch2-fe-pipeline>>), the fetch protocol with the L0 micro-cache (<<sec-ch2-fe-l0>>), the thread buffer (<<sec-ch2-fe-tb>> and <<sec-ch2-fe-inval>>), decode (<<sec-ch2-fe-decode>>), the instruction FIFO (<<sec-ch2-fe-fifo>>), the thread scheduler (<<sec-ch2-fe-sched>>), and halt and debug support (<<sec-ch2-fe-debug>>).
 
 [[tab-ch2-fe-submodules]]
 .Front End submodules
@@ -123,6 +141,10 @@ image::ch02/fig-fe-top-blocks.png["Front End block diagram",width=75%,align=cent
 [[sec-ch2-fe-if]]
 ==== Interface
 
+This section defines the boundary of `frontend_top`. <<sec-ch2-fe-ports>> lists its ports in six groups. The system group has the clock, the warm and debug resets and the clock-gating chicken bit. Thread control has the thread enables, the reset vector and the virtual-memory status of each thread. The L0 micro-cache group has the fetch request and response and the fill-done signal. The integer-pipeline group has the per-thread redirect and stall inputs. The output group carries the instruction and it's decoded data to ID. The debug group has the halt, halted and program-buffer signals. For each port the table gives the net it connects to in `core_top`.
+
+<<sec-ch2-fe-structs>> gives the field layout and bit width of each packed structure that crosses these ports. These are the fetch request and response, the virtual-memory status, the redirect, the instruction delivered to ID, the instruction FIFO entry, and the two decoded control words. <<sec-ch2-fe-params>> lists the defines that set the number of threads, the buffer geometry and the PC width.
+
 [[sec-ch2-fe-ports]]
 ===== I/O Signals
 
@@ -130,7 +152,7 @@ image::ch02/fig-fe-top-blocks.png["Front End block diagram",width=75%,align=cent
 
 [[tab-ch2-fe-ports]]
 .Front End I/O signals
-[cols="5,1,3,4,6",options="header"]
+[cols="20%,6%,20%,25%,29%",options="header"]
 |===
 | Signal | Dir | Width / type | Connected to | Description
 
@@ -142,7 +164,7 @@ image::ch02/fig-fe-top-blocks.png["Front End block diagram",width=75%,align=cent
 5+h| Thread control
 | `f0_thread_enabled` | in | 2 | `enabled` | Thread enable. A rising edge starts fetch at the reset vector; a falling edge stops fetch.
 | `f0_reset_vector` | in | 48 | `reset_vector` | Fetch address after reset or thread enable.
-| `vm_status` | in | 2 × `minion_vm_status` | `vm_status` | Virtual-memory status of each thread, forwarded with every fetch request.
+| `vm_status` | in | 2 x `minion_vm_status` | `vm_status` | Virtual-memory status of each thread, forwarded with every fetch request.
 5+h| Fetch request to the L0 micro-cache
 | `f1_icache_req_valid` | out | 1 | `icache_req_valid` | The F1 I-cache request register holds a request.
 | `f1_icache_req` | out | `frontend_icache_req` | `icache_req` | Fetch request: thread, VM status and address.
@@ -154,8 +176,9 @@ image::ch02/fig-fe-top-blocks.png["Front End block diagram",width=75%,align=cent
 | `f6_icache_fill_done` | in | 1 | `icache_fill_done` | The L0 micro-cache has completed a line or translation fill.
 5+h| Redirect and stall from the integer pipeline
 | `f0_core_req_valid` | in | 2 | `id_core_fe_req_valid` | Redirect. Flushes the thread and restarts fetch at `f0_core_req.pc`.
-| `f0_core_req` | in | 2 × `minion_fe_req` | `id_core_fe_req` | Redirect PC, speculation status and debug-mode transition.
-| `id_core_stall` | in | 2 | `id_core_fe_stall` | Thread must not issue. Raised for `WFI`, a fence, exclusive mode held by the other thread, and integer or FP scoreboard stalls.
+| `f0_core_req` | in | 2 x `minion_fe_req` | `id_core_fe_req` | Redirect PC, speculation status and debug-mode transition.
+| `id_core_stall` | in | 2 | `id_core_fe_stall` | Thread must not issue. Raised for `WFI`, CSR accesses that are replayed until a resource is ready (e.g., TensorWait, tensor ops, FCC), a fence, exclusive mode held by the other thread, and integer or FP scoreboard stalls. The WFI/CSR term is suppressed while debug mode or halt request is active.
+
 5+h| Instruction to the integer pipeline (ID)
 | `id_inst_valid` | out | 1 | `id_fe_core_resp_valid` | The instruction presented to the integer pipeline is valid.
 | `id_inst_ready` | in | 1 | `id_core_fe_resp_ready` | The integer pipeline is ready to accept the instruction.
@@ -274,7 +297,9 @@ Front End addresses are 49 bits wide: the 48-bit virtual address and one additio
 | `CORE_NR_THREADS` | 2 | Threads per core.
 | `FE_FETCH_BUFFERS` | 2 | Thread-buffer entries per thread.
 | `FE_FETCH_READ_SIZE` | 256 | Bits per fetch block and per entry.
-| `FE_FETCH_PTR_SIZE` | 5 | Read-pointer width: 1 entry bit and 4 halfword bits.
+| `FE_FETCH_PTR_SIZE` | 5 | Read-pointer width: 1 entry bit and 4 halfword bits. +
+log2(`FE_FETCH_VALID_INST_SIZE` * `FE_FETCH_BUFFERS`) = log2(16 * 2) = 5 +
+*`TODO: Define the FE_FETCH_PTR_SIZE parameter`*
 | `PC_SIZE_EXT` | 49 | Front End PC width.
 |===
 
@@ -283,7 +308,9 @@ Front End addresses are 49 bits wide: the 48-bit virtual address and one additio
 [[sec-ch2-fe-pipeline]]
 ==== Pipeline Stages
 
-The Front End pipeline has eight stages, F0 to F7 (<<fig-ch2-fe-pipeline>>). Stages F1 to F5 overlap the L0 micro-cache pipeline.
+This section describes the eight Front End stages, F0 to F7, and how they line up with the L0 micro-cache pipeline. Two activities run in parallel and meet in the thread buffer. Fetch runs from F0 to F6: a thread's request is arbitrated and sent in F0, waits for acceptance in F1, is looked up in F1 to F5, and the response is written into the thread buffer in F6; a miss writes nothing and the thread goes to sleep. In F7 each thread pulls its next instruction out of its buffer and expands it if compressed. One thread's instruction is decoded and placed in its FIFO. The scheduler presents one thread's FIFO head to the integer pipeline each cycle
+
+Fetching and extracting are independent: a thread keeps extracting instructions from a filled buffer entry while its next request is still in F0-F5.
 
 [[fig-ch2-fe-pipeline]]
 .Front End pipeline
@@ -300,7 +327,17 @@ With an L0 hit and no competing requests, the first instruction of a block reach
 [[sec-ch2-fe-l0]]
 ==== Interaction with the L0 Micro-Cache
 
-Each L0 micro-cache serves the eight threads of four ET-Minion cores. <<fig-ch2-fe-l0-path>> shows the request and response path of one core. This section describes the interface from the Front End side; the Neighborhood side is described in <<sec-ch3-fe-ic>>.
+This section describes the fetch protocol between the Front End and the L0 micro-cache, from the Front End side. It covers the following four things:
+
+. How a request is arbitrated and accepted: by the 2:1 LRU arbiter and F1 request register in the core, then by the 8:1 arbiter of the Neighborhood.
+
+. The fixed response timing, and how a thread recognizes its own responses with a token tracker, since responses carry no thread identifier.
+
+. The miss, sleep and fill-done protocol, and why its timing guarantees that no wake-up is lost.
+
+. How a redirect cancels requests already in flight, including one still waiting in the F1 register.
+
+Each L0 micro-cache serves the eight threads of four ET-Minion cores. <<fig-ch2-fe-l0-path>> shows the request and response path of one core. The Neighborhood side of the interface is described in <<sec-ch3-fe-ic>>.
 
 [[fig-ch2-fe-l0-path]]
 .Front End to L0 micro-cache request and response path
@@ -360,7 +397,9 @@ In <<fig-ch2-fe-td-kill>> the redirect arrives in cycle 3 while the request wait
 [[sec-ch2-fe-tb]]
 ==== Thread Buffer
 
-Each thread has a thread buffer (`frontend_thread_buffer`). It holds the thread's fetch PC and a 64-byte instruction buffer, generates and tracks fetch requests, writes the returned blocks, and extracts one instruction per cycle.
+The thread buffer (`frontend_thread_buffer`) holds almost all of a thread's Front End state; there is one buffer per thread. This section describes how the buffer stores instructions: two 256-bit entries in a latch register file with a 32-bit, wrap-around read port. It then describes the state kept for each entry, the fetch PC and how it is updated, and the conditions under which the thread requests a new block. It also shows how an entry is reserved and written.
+
+The section then shows the instruction side: how the read pointer extracts one instruction per cycle, including instructions that cross from one entry to the other and the bypass from incoming data. It then covers how the RVC expander turns compressed instructions into 32-bit ones, and which fault, error and replay status is attached to each instruction on its way to the integer pipeline.
 
 [[fig-ch2-fe-tb]]
 .Thread buffer operation
@@ -499,6 +538,8 @@ All status fields are forced to zero while the debug program buffer is executed.
 [[sec-ch2-fe-inval]]
 ==== Entry Invalidation, Redirect and Thread Start
 
+This section describes the events that discard buffered instructions or restart fetch. <<sec-ch2-fe-release>> lists when a buffer entry is released: normally when its last instruction has been extracted, but also on a redirect, a thread disable or entry to debug mode. <<sec-ch2-fe-redirect>> describes a redirect from the integer pipeline: what triggers it, what it clears in each stage, and how long the thread takes to deliver its first target instruction. <<sec-ch2-fe-enable>> describes how thread enable and disable events are derived from the enable input, how fetch starts at the reset vector, and what state a thread has after reset.
+
 [[sec-ch2-fe-release]]
 ===== Entry Invalidation
 
@@ -550,7 +591,7 @@ image::ch02/td-fe-redirect.png["Redirect to first target instruction",width=100%
 `f0_thread_enabled` is registered on entry to the Front End, and one-cycle enable and disable events are derived from its edges.
 
 * *Enable.* The fetch PC is loaded with `f0_reset_vector` at the end of the enable cycle, and the first request is issued in the next cycle. The first instruction reaches ID eleven cycles after `f0_thread_enabled` rises (<<fig-ch2-fe-td-enable>>).
-* *Disable.* No further requests are issued, both entries are released and the sleep state is cleared. The instruction in F7 and the FIFO contents are not cleared; the thread scheduler no longer selects the thread.
+* *Disable.* No further requests are issued, both entries are released and the sleep state is cleared. A fetch already in flight is not cancelled: its response is still written into its reserved entry. The instruction in F7 and the FIFO contents are not cleared. The thread is removed from the scheduler's eligible set one cycle later. Because the scheduler defaults to thread 0, FIFO entries left by a disabled thread 0 can still be presented to ID. The eleven-cycle enable latency applies to a thread whose F7, FIFO and buffer are empty, for example the first enable after reset.
 
 [[fig-ch2-fe-td-enable]]
 .Thread enable to first instruction
@@ -563,7 +604,9 @@ After reset, both entries are empty and the fetch PC holds the reset vector.
 [[sec-ch2-fe-decode]]
 ==== Decoders
 
-One integer decoder (`intpipe_decode`) and one VPU decoder (`vpu_decoder`) are shared by both threads (<<fig-ch2-fe-fifo>>). In F7, the instruction of one thread passes through both decoders in parallel, and the instruction and both control words are written into that thread's FIFO. Decoding before the FIFO removes decode logic from the ID stage.
+This section describes the integer decoder (`intpipe_decode`) and the VPU decoder (`vpu_decoder`). Both are shared by the two threads and decode in F7, before the instruction is queued. It describes the control words the decoders produce, `minion_control` and `vpu_ctrl_sigs_t`, and how each decoder handles an encoding it does not recognize. It also describes the rule that selects which thread's instruction is decoded in a cycle.
+
+The section also explains how the VPU decode is used once the instruction reaches ID. The Front End does not issue to the VPU itself: the VPU control word goes directly to the VPU. The integer pipeline issues the instruction to the VPU and uses a summary of the control word for its FP and mask scoreboard checks
 
 [[fig-ch2-fe-fifo]]
 .Decoders, instruction FIFOs and thread scheduler
@@ -590,13 +633,13 @@ A thread is a decode candidate when it has an extracted instruction, its FIFO is
 
 The instruction is written into the FIFO when the selected thread has an extracted instruction and its FIFO is not full; the awake condition affects only the selection.
 
-The Front End does not issue instructions to the VPU. In ID, the VPU control word of the presented instruction (`id_vpu_decoder_sigs`) is sent directly to the VPU, bypassing the integer pipeline. The integer pipeline issues the instruction to the VPU in the same cycle, when the instruction is accepted in ID and decoded as an FP or VPU instruction, together with its thread and rounding mode. The integer pipeline also receives a summary of the VPU control word (`id_vpu_core_ctrl`), with the VPU and mask register reads and writes of the instruction, for its FP and mask scoreboard checks.
+The Front End does not issue instructions to the VPU. In ID, the VPU control word of the presented instruction (`id_vpu_decoder_sigs`) is sent directly to the VPU, bypassing the integer pipeline. The integer pipeline issues the instruction to the VPU in the same cycle, when the instruction is accepted in ID and decoded as an FP or VPU instruction, together with its thread and that thread's fcsr rounding mode. The integer pipeline also receives a summary of the VPU control word (`id_vpu_core_ctrl`), with the VPU and mask register reads and writes of the instruction, for its FP and mask scoreboard checks.
 
 // ---------------------------------------------------------------------------
 [[sec-ch2-fe-fifo]]
 ==== Instruction FIFO
 
-Each thread has a two-entry instruction FIFO between F7 and ID. It decouples fetch from issue: while ID is stalled or serving the other thread, the thread continues to extract and decode, and the decoded instructions are held in the FIFO. An entry is a `frontend_thread_data` (<<tab-ch2-fe-thread-data>>): the instruction, its fetch status and both control words.
+This section describes the two-entry instruction FIFO that each thread has (uses) between F7 and ID. The FIFO decouples fetch from issue. While ID is stalled or serving the other thread, the thread keeps extracting and decoding, and the FIFO holds the decoded instructions with their fetch status. The section covers what an entry holds and the pointer scheme that tracks occupancy. It explains why the storage is arranged for timing, as a fixed head register and a holding register, and gives the update rules. It also covers when the VPU control word is valid and how a redirect empties the FIFO.
 
 The FIFO is written when its thread is selected for decode and read when the integer pipeline accepts the thread's instruction (`id_inst_valid`, `id_inst_ready` and `id_inst_thread_id`). It uses 2-bit read and write pointers; it is full when the pointers differ only in the wrap bit and empty when they are equal.
 
@@ -623,7 +666,7 @@ A redirect empties the thread's FIFO.
 [[sec-ch2-fe-sched]]
 ==== Thread Scheduler
 
-The integer pipeline accepts one instruction per cycle from either thread. The thread scheduler (`frontend_thread_sched`) selects the thread whose FIFO head is presented to ID in the next cycle.
+The integer pipeline accepts one instruction per cycle from either thread. This section describes how the thread scheduler (`frontend_thread_sched`) chooses which thread's FIFO head is presented to ID in the next cycle. It defines when a thread is awake (enabled and not stalled by the integer pipeline) and when it is ready (it has an instruction and is not being redirected). It gives the round-robin rule between eligible threads, including the default choice when neither thread is eligible. It then describes the handshake with ID: what drives the ID outputs, why the valid signal is not qualified with the stall, and what happens to an instruction that ID does not accept.
 
 Awake:: The thread is enabled and `id_core_stall` is deasserted. Awake is registered, so a stall affects scheduling one cycle after it is asserted.
 Ready:: The thread's FIFO is not empty or is being written in the current cycle, and the thread is not being redirected. Including the write allows an instruction to pass from F7 to ID in consecutive cycles.
@@ -656,6 +699,10 @@ In <<fig-ch2-fe-td-sched>> both threads are eligible and alternate. `id_core_sta
 [[sec-ch2-fe-debug]]
 ==== Halt and Debug Program Buffer
 
+This section describes the Front End's two debug functions. <<sec-ch2-fe-halt>> covers halt. The integer pipeline takes a halt only on a valid instruction in ID, so while a halt is requested the thread buffer generates a placeholder instruction instead of fetching, and passes it through the normal pipeline to ID.
+
+<<sec-ch2-fe-pb>> covers the debug program buffer. In debug mode, entry 0 of the halted thread's buffer holds the instructions written by the debugger. The section describes how the buffer is prepared with *EBREAK* on entry to debug mode, how the debugger writes words into it and starts execution, and how a resume redirect ends program-buffer mode. It also shows which write data goes to which word, and why the last word always holds *EBREAK*.
+
 [[sec-ch2-fe-halt]]
 ===== Halt
 
@@ -680,7 +727,7 @@ In debug mode, entry 0 of the halted thread's buffer is used as the program buff
 | Step | Operation
 
 | Entry | A redirect with `debug_info.halt` arrives; the thread stops fetching in the same cycle. In the next cycle both entries are released, the extracted instruction is discarded, and words 0 to 4 of entry 0 are written with `EBREAK`.
-| Write | The debugger writes the program buffer through `debug_ffb_wdata`, `debug_ffb_en` and `debug_ffb_thread_sel` (<<tab-ch2-fe-pb-map>>). The words are written one cycle after the enables.
+| Write | The debugger writes the program buffer through `debug_ffb_wdata`, `debug_ffb_en` and `debug_ffb_thread_sel` (<<tab-ch2-fe-pb-map>>). The data and enables come together but the data is written into the entry in the cycle after the enables.
 | Execute | `debug_ffb_exec` resets the read pointer to halfword 0 of entry 0. In the next cycle entry 0 is marked non-empty and entry 1 empty, and instructions are extracted from word 0.
 | Exit | A redirect with `debug_info.resume` ends program-buffer mode; fetch restarts at the redirect PC.
 |===
