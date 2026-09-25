@@ -29,7 +29,7 @@ endif::rtd[]
 
 [[tab-revision-history]]
 .Revision history
-[cols="1,2,2,6",options="header"]
+[cols="14%,18%,18%,60%",options="header"]
 |===
 | Version | Date | Author | Notes
 
@@ -39,15 +39,6 @@ endif::rtd[]
 * Chapter 2, ET-Minion Core: Core Overview (block partitioning, hardware threads, instruction flow) and Front End written. Integer Pipeline, Data Cache and VPU contain headings only.
 * Chapter 3, Neighborhood: headings only.
 |===
-=== Chapter Status
-
-[preface]
-[[preface]]
-== Preface
-=== Purpose
-=== Audience
-=== Sources and Source of Truth
-=== Conventions
 
 include::chapters/ch01-et-soc-1-overview.adoc[]
 

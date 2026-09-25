@@ -31,9 +31,9 @@ The cores are connected to on-die SRAM, external memory and a set of standard in
 | ET-Minion cores | 1,088 in-order, dual-threaded RV64IMFC cores, each with an 8-lane vector/tensor unit
 | ET-Maxion cores | 4 single-threaded, superscalar, out-of-order 64-bit RISC-V cores
 | Service Processor | 1 single-threaded core derived from the ET-Minion
-| On-die SRAM | 140 MB. Each 1 MB block is configurable as L2 cache, as part of the chip-wide L3 cache, or as scratchpad memory.
+| On-die SRAM | Each Minion Shire's 4 MB Shire Cache can be partitioned by ESRs into L2, a slice of the chip-wide L3, and scratchpad.
 | Interconnect | Mesh NoC with 44 mesh stops
-| External memory | LPDDR4X, 16 channels × 16 bits, up to 4,266 MT/s
+| External memory | LPDDR4X, 16 channels x 16 bits, up to 4,266 MT/s
 | PCI Express | Gen4, 8 lanes. Endpoint, root complex, or both at once.
 | Other interfaces | eMMC, USB 2.0 OTG, I2C/SMBus, I3C, SPI, UART, GPIO. Debug access through JTAG and a USB 2.0 device port.
 |===
@@ -69,7 +69,7 @@ The ET-Minion is a dual-threaded, in-order, single-issue 64-bit RISC-V core that
 
 The core consists of four top-level blocks, shown in <<fig-ch1-et-minion>>:
 
-* *Front end (FE)*: fetches instructions from the shared instruction cache and decodes them
+* *Front end (FE)*
 * *Integer pipeline*
 * *L1 data cache and scratchpad*
 * *VPU*
@@ -86,8 +86,16 @@ A Neighborhood groups eight ET-Minion cores that share the following resources. 
 * *L1 instruction cache*: 32 KB, organized as 128 sets × 4 ways with 64-byte lines. It is shared by all eight cores, and its data RAMs are located outside the Neighborhood.
 * *L0 micro-caches*: two, each shared by four cores. Each holds 16 fully associative cache lines, sits between its cores and the L1 instruction cache, and accesses the L1 instruction cache on a miss.
 * *Page-table walkers (PTWs)*: two, each shared by four cores. Each PTW serves the data caches of its four cores and the instruction-cache side.
-* *Request/response path*: a single path to the memory hierarchy outside the Neighborhood. Requests from the instruction and data caches are arbitrated onto it.
-* *Performance monitoring unit (PMU)*: twelve 64-bit event counters shared by the eight cores. Eight counters count ET-Minion events and four count Neighborhood events.
+* *Request/response path*: a single path to the memory hierarchy outside the Neighborhood. Requests from the eight data caches, the instruction cache, the two PTWs and, the cooperative TensorLoad/TensorStore units are arbitrated into (256-bit internally which is converted to a 512-bit ET-Link bus).
+* *Performance monitoring unit (PMU)*: twelve 64-bit event counters shared by the eight cores. +
+Eight counters count ET-Minion events and four count Neighborhood events.
+
+* *Cooperative TensorLoad*:
+* *Cooperative TensorStore*:
+* *Fast Local Messaging Network*:
+* *FLB unit*:
+* *Neighborhood ESRs*:
+
 
 [[fig-ch1-neighborhood]]
 .Neighborhood
@@ -182,7 +190,8 @@ The mesh is organized as an 8 × 6 grid, and each Shire attaches to it at a mesh
 [[sec-ch1-memshire]]
 ==== Memory Shires
 
-Each of the eight Memory Shires contains one 32-bit LPDDR4X controller that drives two 16-bit channels at up to 4,266 MT/s. The Memory Shires also support global atomic operations.
+Each Memory Shire contains a 32-bit LPDDR4X PHY and two memory controllers, each driving one 16-bit channel achieving 4,266 MT/s/channel.
+The Memory Shires also support global atomic operations.
 
 [[sec-ch1-pcieshire]]
 ==== PCIe Shire
