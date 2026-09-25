@@ -90,11 +90,11 @@ A Neighborhood groups eight ET-Minion cores that share the following resources. 
 * *Performance monitoring unit (PMU)*: twelve 64-bit event counters shared by the eight cores. +
 Eight counters count ET-Minion events and four count Neighborhood events.
 
-* *Cooperative TensorLoad*:
-* *Cooperative TensorStore*:
-* *Fast Local Messaging Network*:
-* *FLB unit*:
-* *Neighborhood ESRs*:
+* *Cooperative TensorLoad*
+* *Cooperative TensorStore*
+* *Fast Local Messaging Network*
+* *FLB unit*
+* *Neighborhood ESRs*
 
 
 [[fig-ch1-neighborhood]]
@@ -110,8 +110,8 @@ A Minion Shire groups four Neighborhoods (<<fig-ch1-minion-shire>>). It also con
 ** L2 cache, private to the Shire
 ** Slice of the chip-wide distributed L3 cache
 ** Scratchpad memory
-* *Crossbar*: a 4 × 4 crossbar that connects each of the four Neighborhoods to each of the four Shire Cache banks. Each Neighborhood has one request and response port into the Shire Cache, and each bank accepts at most one request per cycle. The crossbar also connects the Neighborhoods to the uncached (UC) block.
-* *Uncached (UC) block*: receives the Neighborhood requests that are not sent to the Shire Cache banks. It handles uncacheable accesses, contains the fast local barrier (FLB) and fast local credit counter (FCC) units, and delivers messages sent between ET-Minion cores of different Shires. The Shire also supports fast inter-processor interrupts (IPIs).
+* *Crossbar*: Request and response crossbars connect four Neighborhoods and the RBOX port to the four Shire Cache banks and the UC block. Each Neighborhood has one request and response port into the Shire Cache, and each bank accepts at most one request per cycle. The crossbar also connects the Neighborhoods to the un-cached (UC) block.
+* *Uncached (UC) block*: receives the Neighborhood requests that are not sent to the Shire Cache banks. It handles uncacheable accesses, contains the fast local barrier (FLB) and fast local credit counter (FCC) units, and delivers messages sent between ET-Minion cores of different Shires. 
 * *ESR banks*: the Esperanto System Registers (ESRs) configure the blocks in the Shire.
 * *NoC interface*: L2 misses and uncacheable accesses leave the Shire here, bound for other Shires or the memory controllers.
 

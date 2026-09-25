@@ -27,8 +27,8 @@ endif::rtd[]
 == Document Control
 === Revision History
 
-[[tab-revision-history]]
-.Revision history
+// [[tab-revision-history]]
+// .Revision history
 [cols="14%,18%,18%,60%",options="header"]
 |===
 | Version | Date | Author | Notes
