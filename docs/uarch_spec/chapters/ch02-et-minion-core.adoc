@@ -55,8 +55,7 @@ The core runs two hardware threads (`CORE_NR_THREADS` = 2). Each thread has its 
 | 32 x 64-bit integer registers, in one register file indexed by thread
 | Integer pipeline, ALU and multiply/divide unit
 
-| 32 vector registers, (also the FP f-registers), 256 bits wide, held as a 32-bit slice in each lane's RF, which are indexed by the thread number. Eight 8-bit mask registers. +
-*`TODO: Add a new row for Mask registers`*
+| 32 vector registers, (also the FP f-registers), 256 bits wide, held as a 32-bit slice in each lane's RF, which are indexed by the thread number. Eight 8-bit mask registers.
 
 | VPU control and execution units
 
@@ -298,8 +297,7 @@ Front End addresses are 49 bits wide: the 48-bit virtual address and one additio
 | `FE_FETCH_BUFFERS` | 2 | Thread-buffer entries per thread.
 | `FE_FETCH_READ_SIZE` | 256 | Bits per fetch block and per entry.
 | `FE_FETCH_PTR_SIZE` | 5 | Read-pointer width: 1 entry bit and 4 halfword bits. +
-log2(`FE_FETCH_VALID_INST_SIZE` * `FE_FETCH_BUFFERS`) = log2(16 * 2) = 5 +
-*`TODO: Define the FE_FETCH_PTR_SIZE parameter`*
+log2(`FE_FETCH_VALID_INST_SIZE` * `FE_FETCH_BUFFERS`) = log2(16 * 2) = 5
 | `PC_SIZE_EXT` | 49 | Front End PC width.
 |===
 
