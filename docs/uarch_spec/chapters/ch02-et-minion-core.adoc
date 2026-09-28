@@ -32,8 +32,8 @@ The ET-Minion core is implemented in `minion_top` (<<fig-ch1-et-minion>>). `mini
 | Block | Module | Function
 
 | Front End | `frontend_top` | Fetches instructions for both threads from the Neighborhood L0 micro-cache, expands compressed instructions, decodes them for the integer pipeline and the VPU, and issues one instruction per cycle to the integer pipeline (<<sec-ch2-fe>>).
-| Integer pipeline | `intpipe_top` | In-order, single-issue pipeline with the stages ID, EX, TAG, MEM and WB. Contains the integer register file, ALU, multiply/divide unit, integer, FP and mask scoreboards, and the CSRs. Redirects the Front End on a change of control flow.
-| Data cache | `dcache_top` | 4 KB private L1 data cache, partly configurable as scratchpad memory. Contains the data TLB, PMA check, miss handling, replay queue, store merge, atomic (AMO) forwarding to L2 through the miss handler's UC flow, scratchpad controller, write-back unit, cache-management, tensor-load and reduce units, and the interface to the Neighborhood memory path.
+| Integer pipeline | `intpipe_top` | In-order, single-issue pipeline with the stages ID, EX, GSC, TAG, MEM and WB. Contains the integer register file, ALU, multiply/divide unit, integer, FP and mask scoreboards, and the CSRs. Redirects the Front End on a change of control flow.
+| Data cache | `dcache_top` | 4 KB private L1 data cache, partly configurable as scratchpad memory. Contains the data TLB, PMA check, miss handling, replay queue, store merge, atomic (AMO) forwarding to L2 through the miss handler's UC flow, scratchpad controller, write-back unit, cache management, tensor-load and reduce units, and the interface to the Neighborhood memory path.
 | APB slave for debug registers | `minion_debug_apb_slv` | APB slave for debug access to the core, including writes to the debug program buffer.
 | VPU | `vpu_top` | Vector processing unit with a control block and eight identical lanes. Executes floating-point, packed-integer, transcendental and tensor operations.
 |===
@@ -41,7 +41,7 @@ The ET-Minion core is implemented in `minion_top` (<<fig-ch1-et-minion>>). `mini
 [[sec-ch2-threads]]
 ==== Hardware Threads
 
-The core runs two hardware threads (`CORE_NR_THREADS` = 2). Each thread has its own architectural state; the pipelines and execution units are shared, and instructions of the two threads are interleaved in the pipeline.
+The core runs two hardware threads (`CORE_NR_THREADS` = 2). Each thread has its own architectural state; the pipeline and execution units are shared, and instructions of the two threads are interleaved in the pipeline.
 
 [[tab-ch2-threads]]
 .Per-thread and shared resources
@@ -128,7 +128,8 @@ The Front End also starts and stops threads through their enable inputs and rese
 | Request arbiter (`arb_lru_data`) | 1 | 2:1 LRU arbiter. Selects the thread whose fetch request is sent to the L0 micro-cache.
 | Integer decoder (`intpipe_decode`) | 1 | Decodes the instruction into integer-pipeline control signals.
 | VPU decoder (`vpu_decoder`) | 1 | Decodes the instruction into VPU control signals.
-| Instruction FIFO | 2, one per thread | Two-entry queue of decoded instructions waiting for the integer pipeline.
+| Instruction FIFO +
+(inline generate block) | 2, one per thread | Two-entry queue of decoded instructions waiting for the integer pipeline.
 | Thread scheduler (`frontend_thread_sched`) | 1 | Selects the thread whose instruction is presented to the integer pipeline.
 |===
 
@@ -469,9 +470,10 @@ A thread issues a request in F0 when all conditions in <<tab-ch2-fe-req-cond>> a
 
 | Thread enabled, and not in the enable cycle | Reset vector is loaded at the end of the enable cycle.
 | No redirect in the current cycle | Redirect PC is loaded at the end of the cycle.
-| Thread not sleeping | A missed line is requested again only after a fill.
+| Thread not sleeping, or registered fill done in this cycle | After a miss the thread waits for a fill; the request is issued in the cycle the registered fill done arrives.
 | No request of the thread in F1 to F6 | At most one request per thread is in flight, which keeps responses in order and allows ownership by timing.
 | An entry is empty or is released in the current cycle | The response cannot be stalled and must have a destination.
+| No halt pending | While a halt is pending the thread sends no request to the L0 micro-cache; it produces a placeholder instruction instead (<<sec-ch2-fe-halt>>).
 | Not in reset; not executing the debug program buffer | —
 |===
 

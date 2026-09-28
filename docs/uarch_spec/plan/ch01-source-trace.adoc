@@ -74,6 +74,15 @@ RTL::: file under `rtl/`
 | 1.4.4 | Peripheral network shared by SP, Maxions and master Minion | DS §2.5; DS §6.1.1, §6.3.2, §6.6.1
 | 1.4.4 | Debug network: JTAG and USB 2.0 device port | DS §2.2.5
 
+| 1.2.2 | Cooperative TensorLoad: coalescing, cooperation across the four Neighborhoods of a Shire, master Neighborhood, response to every cooperating core | `docs/u_arch_md/CORE-ET-Neigborhood-MAS` §4.5; `docs/u_arch_md/Cooperative-TensorLoad-Description` §2, §4; RTL `neigh_coop_tload`, `neigh_coop_tload_tag_table`
+| 1.2.2 | Cooperative TensorStore: two groups of four cores; Quad-128, Pair-256 and Pair-128 modes and their 512-bit or half-line writes; request held until the group is complete; acknowledgement replicated | `docs/u_arch_md/CORE-ET-Neigborhood-MAS` §4.6; RTL `neigh_tensor_store_buffer` (two blocks), `neigh_tensor_store_buffer_block` (2-way and 4-way cooperation masks, line and half-line request sizes)
+
+| 1.2.2 | FLN: direct intra-Neighborhood message path, connection pattern follows the tensor reduction instructions, highest priority at the receiving core's response path | `docs/u_arch_md/CORE-ET-Neigborhood-MAS` §4.7 (connection list, response arbitration); RTL `neigh_local_message_network` (per-core connection mask)
+
+| 1.2.2 | FLB path: barrier unit in the Shire UC block; requests flopped, LRU-arbitrated and sent across the voltage crossing; four-entry index FIFO; in-order responses; at most four outstanding per Neighborhood | `docs/u_arch_md/CORE-ET-Neigborhood-MAS` §4.8; RTL `neigh_fl_barrier` (LRU arbiter, index FIFO)
+
+| 1.2.2 | Interrupt lines registered per core (timer, external, software, FCC); redirect IPI trigger from a Shire ESR write, target PC from the Neighborhood ESR `ipi_redirect_pc` | RTL `neigh_channel.v` (per-core `minion_interrupts` flop), `neigh_top.v` (`ipi_msip`, `ipi_redirect_trigger` inputs), `esr/esr_shire_other.v` (`esr_ipi_redirect_trigger_op`); `docs/u_arch_md/CORE-ET-Neigborhood-MAS` §4.9
+
 3+h| 1.5 ET-SoC-1 Accelerator Card
 | 1.5 | ET-SoC-1 is an AI accelerator platform | `docs/arch/ET Introduction.pdf`, slide "What is ET?"
 | 1.5 | PCIe x16 add-in card; x8 Gen4 interface; soldered-down ET-SoC; 4 LPDDR4x devices, 256-bit interface; 64 GB eMMC; USB device/debug, UART-to-USB, JTAG; DIP switches for boot options | `docs/arch/ET-PCIe-Dev-Card-V3.pdf`, "General Information – Features"

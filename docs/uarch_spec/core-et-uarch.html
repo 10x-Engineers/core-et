@@ -434,7 +434,14 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
+/* Centered figure captions. */
 .imageblock > .title { text-align: center; }
+
+/* Slightly wider content area than the default 62.5em, so the side margins
+   are smaller without making the lines hard to read. */
+@media screen and (min-width: 768px) {
+  #header, #content, #footnotes, #footer { max-width: 75em; }
+}
 </style>
 </head>
 <body class="book toc2 toc-left">
@@ -653,8 +660,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_revision_history"><a class="anchor" href="#_revision_history"></a><a class="link" href="#_revision_history">Revision History</a></h3>
-<table id="tab-revision-history" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 1. Revision history</caption>
+<table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 12.7272%;">
 <col style="width: 16.3636%;">
@@ -721,10 +727,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </div>
 <div class="paragraph">
-<p>The cores are connected to on-die SRAM, external memory and a set of standard interfaces through a mesh network-on-chip (NoC). <a href="#tab-ch1-key-characteristics">Table 2</a> summarizes the device.</p>
+<p>The cores are connected to on-die SRAM, external memory and a set of standard interfaces through a mesh network-on-chip (NoC). <a href="#tab-ch1-key-characteristics">Table 1</a> summarizes the device.</p>
 </div>
 <table id="tab-ch1-key-characteristics" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 2. ET-SoC-1 key characteristics</caption>
+<caption class="title">Table 1. ET-SoC-1 key characteristics</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 75%;">
@@ -885,19 +891,38 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 Eight counters count ET-Minion events and four count Neighborhood events.</p>
 </li>
 <li>
-<p><strong>Cooperative TensorLoad</strong>:</p>
+<p><strong>Cooperative TensorLoad</strong>: coalesces the TensorLoad requests that several cores issue for the same address into a single memory request, and delivers the one response back to every cooperating core. Cores in all four Neighborhoods of a Minion Shire can cooperate; one Neighborhood acts as master and sends the combined request.</p>
 </li>
 <li>
-<p><strong>Cooperative TensorStore</strong>:</p>
+<p><strong>Cooperative TensorStore</strong>: combines the partial writes of cooperating cores into one Shire Cache write, and replicates the acknowledgement to every core that took part. Cores cooperate in two fixed groups, cores 0 to 3 and cores 4 to 7, in one of three modes:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Quad-128</strong>: 128 bits from each of four cores, forming a full 512-bit cache line</p>
 </li>
 <li>
-<p><strong>Fast Local Messaging Network</strong>:</p>
+<p><strong>Pair-256</strong>: 256 bits from each of two cores, forming a full 512-bit cache line</p>
 </li>
 <li>
-<p><strong>FLB unit</strong>:</p>
+<p><strong>Pair-128</strong>: 128 bits from each of two cores, forming half a cache line</p>
+<div class="paragraph">
+<p>Each core holds its request until every core of the group has presented one, so operations of different modes cannot mix.</p>
+</div>
+</li>
+</ul>
+</div>
 </li>
 <li>
-<p><strong>Neighborhood ESRs</strong>:</p>
+<p><strong>Fast Local Messaging Network (FLN)</strong>: carries messages between cores of the same Neighborhood directly, instead of sending them out through the request path and back in through the response path. Connections are not all-to-all; they follow the pattern used by the tensor reduction instructions, and a message arriving over this network takes priority over the other responses to that core.</p>
+</li>
+<li>
+<p><strong>Fast local barrier (FLB) path</strong></p>
+</li>
+<li>
+<p><strong>Neighborhood ESRs</strong></p>
+</li>
+<li>
+<p><strong>Interrupts</strong>: routes the external, timer and software interrupt lines to the cores, and delivers the inter-processor interrupts (IPIs). A software write to a Shire ESR raises a machine software interrupt for a hart, or a redirect IPI that sends the selected harts to the PC held in the Neighborhood <code>ipi_redirect_pc</code> ESR.</p>
 </li>
 </ul>
 </div>
@@ -932,10 +957,10 @@ Eight counters count ET-Minion events and four count Neighborhood events.</p>
 </div>
 </li>
 <li>
-<p><strong>Crossbar</strong>: a 4 × 4 crossbar that connects each of the four Neighborhoods to each of the four Shire Cache banks. Each Neighborhood has one request and response port into the Shire Cache, and each bank accepts at most one request per cycle. The crossbar also connects the Neighborhoods to the uncached (UC) block.</p>
+<p><strong>Crossbar</strong>: Request and response crossbars connect four Neighborhoods and the RBOX port to the four Shire Cache banks and the UC block. Each Neighborhood has one request and response port into the Shire Cache, and each bank accepts at most one request per cycle. The crossbar also connects the Neighborhoods to the un-cached (UC) block.</p>
 </li>
 <li>
-<p><strong>Uncached (UC) block</strong>: receives the Neighborhood requests that are not sent to the Shire Cache banks. It handles uncacheable accesses, contains the fast local barrier (FLB) and fast local credit counter (FCC) units, and delivers messages sent between ET-Minion cores of different Shires. The Shire also supports fast inter-processor interrupts (IPIs).</p>
+<p><strong>Uncached (UC) block</strong>: receives the Neighborhood requests that are not sent to the Shire Cache banks. It handles uncacheable accesses, contains the fast local barrier (FLB) and fast local credit counter (FCC) units, and delivers messages sent between ET-Minion cores of different Shires.</p>
 </li>
 <li>
 <p><strong>ESR banks</strong>: the Esperanto System Registers (ESRs) configure the blocks in the Shire.</p>
@@ -1045,10 +1070,10 @@ Eight counters count ET-Minion events and four count Neighborhood events.</p>
 <div class="sect3">
 <h4 id="sec-ch1-mesh-topology"><a class="anchor" href="#sec-ch1-mesh-topology"></a><a class="link" href="#sec-ch1-mesh-topology">1.4.1. Mesh Topology and Mesh Stops</a></h4>
 <div class="paragraph">
-<p>The mesh is organized as an 8 × 6 grid, and each Shire attaches to it at a mesh stop. The Memory Shires occupy the east and west edges, four on each side, which leaves the corners of the grid unoccupied. The result is 44 mesh stops, listed in <a href="#tab-ch1-shire-types">Table 3</a>.</p>
+<p>The mesh is organized as an 8 × 6 grid, and each Shire attaches to it at a mesh stop. The Memory Shires occupy the east and west edges, four on each side, which leaves the corners of the grid unoccupied. The result is 44 mesh stops, listed in <a href="#tab-ch1-shire-types">Table 2</a>.</p>
 </div>
 <table id="tab-ch1-shire-types" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 3. Shires on the mesh</caption>
+<caption class="title">Table 2. Shires on the mesh</caption>
 <colgroup>
 <col style="width: 28.5714%;">
 <col style="width: 14.2857%;">
@@ -1218,14 +1243,14 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect3">
 <h4 id="sec-ch2-partitioning"><a class="anchor" href="#sec-ch2-partitioning"></a><a class="link" href="#sec-ch2-partitioning">2.1.1. Block Partitioning</a></h4>
 <div class="paragraph">
-<p>The ET-Minion core is implemented in <code>minion_top</code> (<a href="#fig-ch1-et-minion">Figure 2</a>). <code>minion_top</code> contains two blocks: <code>core_top</code>, which holds the Front End, the integer pipeline, the L1 data cache and the debug APB slave, and <code>vpu_top</code>, the vector processing unit. <a href="#tab-ch2-core-blocks">Table 4</a> lists the blocks.</p>
+<p>The ET-Minion core is implemented in <code>minion_top</code> (<a href="#fig-ch1-et-minion">Figure 2</a>). <code>minion_top</code> contains two blocks: <code>core_top</code>, which holds the Front End, the integer pipeline, the L1 data cache and the debug APB slave, and <code>vpu_top</code>, the vector processing unit. <a href="#tab-ch2-core-blocks">Table 3</a> lists the blocks.</p>
 </div>
 <table id="tab-ch2-core-blocks" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 4. ET-Minion core blocks</caption>
+<caption class="title">Table 3. ET-Minion core blocks</caption>
 <colgroup>
 <col style="width: 20%;">
-<col style="width: 20%;">
-<col style="width: 60%;">
+<col style="width: 24%;">
+<col style="width: 56%;">
 </colgroup>
 <thead>
 <tr>
@@ -1243,15 +1268,15 @@ The Memory Shires also support global atomic operations.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Integer pipeline</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>intpipe_top</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">In-order, single-issue pipeline with the stages ID, EX, TAG, MEM and WB. Contains the integer register file, ALU, multiply/divide unit, integer, FP and mask scoreboards, and the CSRs. Redirects the Front End on a change of control flow.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">In-order, single-issue pipeline with the stages ID, EX, GSC, TAG, MEM and WB. Contains the integer register file, ALU, multiply/divide unit, integer, FP and mask scoreboards, and the CSRs. Redirects the Front End on a change of control flow.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Data cache</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>dcache_top</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">4 KB private L1 data cache, partly configurable as scratchpad memory. Contains the data TLB, PMA check, miss handling, replay queue, store merge, atomic, cache-management, tensor-load and reduce units, and the interface to the Neighborhood memory path.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 KB private L1 data cache, partly configurable as scratchpad memory. Contains the data TLB, PMA check, miss handling, replay queue, store merge, atomic (AMO) forwarding to L2 through the miss handler&#8217;s UC flow, scratchpad controller, write-back unit, cache management, tensor-load and reduce units, and the interface to the Neighborhood memory path.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Debug APB slave</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APB slave for debug registers</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_debug_apb_slv</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">APB slave for debug access to the core, including writes to the debug program buffer.</p></td>
 </tr>
@@ -1266,10 +1291,10 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect3">
 <h4 id="sec-ch2-threads"><a class="anchor" href="#sec-ch2-threads"></a><a class="link" href="#sec-ch2-threads">2.1.2. Hardware Threads</a></h4>
 <div class="paragraph">
-<p>The core runs two hardware threads (<code>CORE_NR_THREADS</code> = 2). Each thread has its own architectural state; the pipelines and execution units are shared, and instructions of the two threads are interleaved in the pipeline.</p>
+<p>The core runs two hardware threads (<code>CORE_NR_THREADS</code> = 2). Each thread has its own architectural state; the pipeline and execution units are shared, and instructions of the two threads are interleaved in the pipeline.</p>
 </div>
 <table id="tab-ch2-threads" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 5. Per-thread and shared resources</caption>
+<caption class="title">Table 4. Per-thread and shared resources</caption>
 <colgroup>
 <col style="width: 50%;">
 <col style="width: 50%;">
@@ -1286,11 +1311,11 @@ The Memory Shires also support global atomic operations.</p>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Front End request port, decoders and thread scheduler</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">32 × 64-bit integer registers, in one register file indexed by thread</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32 x 64-bit integer registers, in one register file indexed by thread</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Integer pipeline, ALU and multiply/divide unit</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">32 vector registers, 256 bits wide (32 bits in each of the eight VPU lanes), in one register file indexed by thread</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32 vector registers, (also the FP f-registers), 256 bits wide, held as a 32-bit slice in each lane&#8217;s RF, which are indexed by the thread number. Eight 8-bit mask registers.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">VPU control and execution units</p></td>
 </tr>
 <tr>
@@ -1300,10 +1325,10 @@ The Memory Shires also support global atomic operations.</p>
 </tbody>
 </table>
 <div class="paragraph">
-<p>Each thread is enabled by its bit of the <code>enabled</code> input of <code>minion_top</code>, which is registered in <code>minion_top</code> before use. Both threads start at the same reset vector (<code>reset_vector</code>) when enabled.</p>
+<p>Each thread is enabled by its corrseponding bit of the <code>enabled</code> input of <code>minion_top</code>. <code>minion_top</code> registers <code>enabled</code> once, and the integer pipeline and debug logic uses this registered copy directly. The Front End regsisters it twice more, so that it can detect the edges of the enable and turn each rising and falling edge into a one-cycle enable of disable event (<a href="#sec-ch2-fe-enable">Section 2.2.6.3</a>). When a thread is enabled, it starts fetching at <code>reset_vector</code>, which is the same for both threads.</p>
 </div>
 <div class="paragraph">
-<p>The Front End selects one thread per cycle for issue to the integer pipeline (<a href="#sec-ch2-fe-sched">Section 2.2.9</a>). The integer pipeline can stall each thread independently, for example on <code>WFI</code>, a fence, a scoreboard hazard, or while the other thread holds exclusive mode.</p>
+<p>The Front End selects one thread per cycle for issue to the integer pipeline. The integer pipeline can stall each thread independently, for example on <code>WFI</code>, a fence, a scoreboard hazard, or while the other thread holds exclusive mode. As a result, the Front End sees a change of <code>enabled</code> two cycles later than the integer pipeline does.</p>
 </div>
 </div>
 <div class="sect3">
@@ -1338,16 +1363,43 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect3">
 <h4 id="sec-ch2-fe-overview"><a class="anchor" href="#sec-ch2-fe-overview"></a><a class="link" href="#sec-ch2-fe-overview">2.2.1. Overview</a></h4>
 <div class="paragraph">
-<p>The Front End is the interface between the Neighborhood L0 micro-cache and the integer pipeline. It holds the program counter of each thread, fetches instructions from the L0 micro-cache, and delivers them, expanded and decoded, to the ID stage of the integer pipeline at a rate of one instruction per cycle. It serves both threads of the core, and restarts fetch at a new address when the integer pipeline redirects a thread.</p>
+<p>The Front End (<code>frontend_top</code>) supplies instructions to the ET-Minion core. It sits between the Neighborhood L0 micro-cache and the ID stage of the integer pipeline. It holds the program counter of each of the two threads and fetches 32-byte instruction blocks from the L0 micro-cache.
+It then extracts the instruction, expands compressed instructions to 32 bits and decodes them for both the integer pipeline and the VPU.
+It delivers one decoded instruction per cycle to ID, from either thread. The core has no instruction cache of its own. Each L0 micro-cache is shared by four ET-Minion cores, eight threads in all, so the design of the Front End is driven by the need to hide the latency of shared fetch path.</p>
 </div>
 <div class="paragraph">
-<p>To hide the latency of the L0 micro-cache, which is shared by four ET-Minion cores, the Front End uses double buffering. Each thread has an instruction buffer with two 256-bit entries, and each entry holds a block of instructions equal to half a cache line. A new block can therefore be requested while the thread consumes the instructions already received. Each entry has a dedicated register that holds the address of its block.</p>
+<p>The Front End is built around the following four concepts:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>Fetch is double-buffered:</strong> each thread has a thread buffer with two 256-bit entries, each holding half a cache line, so the next block can be requested while the current one is being consumed.</p>
+</li>
+<li>
+<p><strong>Each thread has at most one fetch request in flight:</strong> the L0 micro-cache answers every accepted request, hit or miss, after a fixed latency, so a thread recognizes its own by timing alone, without a thread identifier. On a miss the thread sleeps until the L0 micro-cache reports that a fill has completed, and then retries.</p>
+</li>
+<li>
+<p><strong>Instructions are decoded before they are queued:</strong> one integer decoder and one VPU decoder, shared by both threads, decode in F7, and each thread has a two-entry instruction FIFO that holds decoded instructions until ID accepts them. This moves decode out of the ID stage and lets a thread keep fetching while ID serves the other thread.</p>
+</li>
+<li>
+<p><strong>The two threads are independent:</strong> each thread fetches, sleeps, stalls and restarts on its own. They share only the fetch request port, the decoders and the issue slot into ID, and the thread scheduler alternates between them when both are eligible.</p>
+</li>
+</ol>
 </div>
 <div class="paragraph">
-<p><a href="#tab-ch2-fe-submodules">Table 6</a> lists the submodules and <a href="#fig-ch2-fe-top">Figure 9</a> shows how they are connected.</p>
+<p>The Front End is a pipeline of eight stages, F0 to F7. F1 to F5 overlap the L0 micro-cache pipeline. With an L0 hit and no competing requests, the first instruction of a block reaches ID nine cycles after it is requested. The first target instruction reaches ID ten cycles after a redirect, and the first instruction reaches ID eleven cycles after a thread is enabled.</p>
+</div>
+<div class="paragraph">
+<p>The integer pipeline controls the Front End through two per-thread signals. A redirect (<code>f0_core_req_valid</code>, <code>f0_core_req</code>) flushes the thread and restarts fetch at a new PC. It is used for mispredictions, exceptions, replays, interrupts and debug-mode transitions. A stall (<code>id_core_stall</code>) stops the thread from being scheduled, for example on WFI, a fence, a CSR access that must wait, or a scoreboard hazard. The Front End attaches the fetch status to each instruction: page and access faults, bus and ECC errors, and a replay flag for uncacheable fetches issued while older instructions are still in flight. The integer pipeline acts on this status in ID.</p>
+</div>
+<div class="paragraph">
+<p>The Front End also starts and stops threads through their enable inputs and reset vector. It supports debug in two ways: it generates the placeholder instruction on which a halt is taken, and it lets entry 0 of a halted thread&#8217;s buffer serve as the debug program buffer. Each thread buffer runs on its own gated clock; a chicken bit disables the gating.</p>
+</div>
+<div class="paragraph">
+<p><a href="#tab-ch2-fe-submodules">Table 5</a> lists the submodules and <a href="#fig-ch2-fe-top">Figure 9</a> shows how they are connected. The sections that follow cover the interface (<a href="#sec-ch2-fe-if">Section 2.2.2</a>), the pipeline stages (<a href="#sec-ch2-fe-pipeline">Section 2.2.3</a>), the fetch protocol with the L0 micro-cache (<a href="#sec-ch2-fe-l0">Section 2.2.4</a>), the thread buffer (<a href="#sec-ch2-fe-tb">Section 2.2.5</a> and <a href="#sec-ch2-fe-inval">Section 2.2.6</a>), decode (<a href="#sec-ch2-fe-decode">Section 2.2.7</a>), the instruction FIFO (<a href="#sec-ch2-fe-fifo">Section 2.2.8</a>), the thread scheduler (<a href="#sec-ch2-fe-sched">Section 2.2.9</a>), and halt and debug support (<a href="#sec-ch2-fe-debug">Section 2.2.10</a>).</p>
 </div>
 <table id="tab-ch2-fe-submodules" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 6. Front End submodules</caption>
+<caption class="title">Table 5. Front End submodules</caption>
 <colgroup>
 <col style="width: 27.2727%;">
 <col style="width: 18.1818%;">
@@ -1387,7 +1439,8 @@ The Memory Shires also support global atomic operations.</p>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Decodes the instruction into VPU control signals.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction FIFO</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction FIFO<br>
+(inline generate block)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">2, one per thread</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Two-entry queue of decoded instructions waiting for the integer pipeline.</p></td>
 </tr>
@@ -1407,19 +1460,25 @@ The Memory Shires also support global atomic operations.</p>
 </div>
 <div class="sect3">
 <h4 id="sec-ch2-fe-if"><a class="anchor" href="#sec-ch2-fe-if"></a><a class="link" href="#sec-ch2-fe-if">2.2.2. Interface</a></h4>
+<div class="paragraph">
+<p>This section defines the boundary of <code>frontend_top</code>. <a href="#sec-ch2-fe-ports">Section 2.2.2.1</a> lists its ports in six groups. The system group has the clock, the warm and debug resets and the clock-gating chicken bit. Thread control has the thread enables, the reset vector and the virtual-memory status of each thread. The L0 micro-cache group has the fetch request and response and the fill-done signal. The integer-pipeline group has the per-thread redirect and stall inputs. The output group carries the instruction and it&#8217;s decoded data to ID. The debug group has the halt, halted and program-buffer signals. For each port the table gives the net it connects to in <code>core_top</code>.</p>
+</div>
+<div class="paragraph">
+<p><a href="#sec-ch2-fe-structs">Section 2.2.2.2</a> gives the field layout and bit width of each packed structure that crosses these ports. These are the fetch request and response, the virtual-memory status, the redirect, the instruction delivered to ID, the instruction FIFO entry, and the two decoded control words. <a href="#sec-ch2-fe-params">Section 2.2.2.3</a> lists the defines that set the number of threads, the buffer geometry and the PC width.</p>
+</div>
 <div class="sect4">
 <h5 id="sec-ch2-fe-ports"><a class="anchor" href="#sec-ch2-fe-ports"></a><a class="link" href="#sec-ch2-fe-ports">2.2.2.1. I/O Signals</a></h5>
 <div class="paragraph">
-<p><a href="#tab-ch2-fe-ports">Table 7</a> lists the ports of <code>frontend_top</code>. <em>Connected to</em> gives the signal in <code>core_top</code>. A width of 2 denotes one bit per thread.</p>
+<p><a href="#tab-ch2-fe-ports">Table 6</a> lists the ports of <code>frontend_top</code>. <em>Connected to</em> gives the signal in <code>core_top</code>. A width of 2 denotes one bit per thread.</p>
 </div>
 <table id="tab-ch2-fe-ports" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 7. Front End I/O signals</caption>
+<caption class="title">Table 6. Front End I/O signals</caption>
 <colgroup>
-<col style="width: 26.3157%;">
-<col style="width: 5.2631%;">
-<col style="width: 15.7894%;">
-<col style="width: 21.0526%;">
-<col style="width: 31.5792%;">
+<col style="width: 20%;">
+<col style="width: 6%;">
+<col style="width: 20%;">
+<col style="width: 25%;">
+<col style="width: 29%;">
 </colgroup>
 <thead>
 <tr>
@@ -1482,7 +1541,7 @@ The Memory Shires also support global atomic operations.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>vm_status</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2 × <code>minion_vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 x <code>minion_vm_status</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>vm_status</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Virtual-memory status of each thread, forwarded with every fetch request.</p></td>
 </tr>
@@ -1554,7 +1613,7 @@ The Memory Shires also support global atomic operations.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_core_req</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2 × <code>minion_fe_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 x <code>minion_fe_req</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_req</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Redirect PC, speculation status and debug-mode transition.</p></td>
 </tr>
@@ -1563,7 +1622,7 @@ The Memory Shires also support global atomic operations.</p>
 <td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>id_core_fe_stall</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Thread must not issue. Raised for <code>WFI</code>, a fence, exclusive mode held by the other thread, and integer or FP scoreboard stalls.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread must not issue. Raised for <code>WFI</code>, CSR accesses that are replayed until a resource is ready (e.g., TensorWait, tensor ops, FCC), a fence, exclusive mode held by the other thread, and integer or FP scoreboard stalls. The WFI/CSR term is suppressed while debug mode or halt request is active.</p></td>
 </tr>
 <tr>
 <th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Instruction to the integer pipeline (ID)</p></th>
@@ -1668,7 +1727,7 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect4">
 <h5 id="sec-ch2-fe-structs"><a class="anchor" href="#sec-ch2-fe-structs"></a><a class="link" href="#sec-ch2-fe-structs">2.2.2.2. Data Structures</a></h5>
 <table id="tab-ch2-fe-icache-req" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 8. <code>frontend_icache_req</code>: fetch request (58 bits)</caption>
+<caption class="title">Table 7. <code>frontend_icache_req</code>: fetch request (58 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1690,7 +1749,7 @@ The Memory Shires also support global atomic operations.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>vm_status</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_vm_status</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual-memory status of the thread (<a href="#tab-ch2-fe-vm-status">Table 9</a>).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual-memory status of the thread (<a href="#tab-ch2-fe-vm-status">Table 8</a>).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>addr</code></p></td>
@@ -1703,7 +1762,7 @@ The Memory Shires also support global atomic operations.</p>
 <p>Front End addresses are 49 bits wide: the 48-bit virtual address and one additional bit that allows a non-canonical 64-bit address to be represented.</p>
 </div>
 <table id="tab-ch2-fe-vm-status" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 9. <code>minion_vm_status</code>: virtual-memory status (8 bits)</caption>
+<caption class="title">Table 8. <code>minion_vm_status</code>: virtual-memory status (8 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1735,7 +1794,7 @@ The Memory Shires also support global atomic operations.</p>
 </tbody>
 </table>
 <table id="tab-ch2-fe-icache-resp" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 10. <code>icache_frontend_resp</code>: fetch response (261 bits)</caption>
+<caption class="title">Table 9. <code>icache_frontend_resp</code>: fetch response (261 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1782,7 +1841,7 @@ The Memory Shires also support global atomic operations.</p>
 </tbody>
 </table>
 <table id="tab-ch2-fe-fe-req" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 11. <code>minion_fe_req</code>: redirect (52 bits)</caption>
+<caption class="title">Table 10. <code>minion_fe_req</code>: redirect (52 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1819,7 +1878,7 @@ The Memory Shires also support global atomic operations.</p>
 </tbody>
 </table>
 <table id="tab-ch2-fe-core-resp" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 12. <code>frontend_core_resp</code>: instruction to the integer pipeline (89 bits)</caption>
+<caption class="title">Table 11. <code>frontend_core_resp</code>: instruction to the integer pipeline (89 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1871,7 +1930,7 @@ The Memory Shires also support global atomic operations.</p>
 </tbody>
 </table>
 <table id="tab-ch2-fe-thread-data" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 13. <code>frontend_thread_data</code>: instruction FIFO entry (179 bits)</caption>
+<caption class="title">Table 12. <code>frontend_thread_data</code>: instruction FIFO entry (179 bits)</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1888,7 +1947,7 @@ The Memory Shires also support global atomic operations.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>core_resp</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">89</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction and fetch status (<a href="#tab-ch2-fe-core-resp">Table 12</a>).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction and fetch status (<a href="#tab-ch2-fe-core-resp">Table 11</a>).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>vpu_ctrl_sigs</code></p></td>
@@ -1903,7 +1962,7 @@ The Memory Shires also support global atomic operations.</p>
 </tbody>
 </table>
 <table id="tab-ch2-fe-decode-words" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 14. Decoded control words</caption>
+<caption class="title">Table 13. Decoded control words</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 12.5%;">
@@ -1933,7 +1992,7 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect4">
 <h5 id="sec-ch2-fe-params"><a class="anchor" href="#sec-ch2-fe-params"></a><a class="link" href="#sec-ch2-fe-params">2.2.2.3. Configuration Parameters</a></h5>
 <table id="tab-ch2-fe-params" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 15. Front End configuration parameters</caption>
+<caption class="title">Table 14. Front End configuration parameters</caption>
 <colgroup>
 <col style="width: 37.5%;">
 <col style="width: 12.5%;">
@@ -1965,7 +2024,8 @@ The Memory Shires also support global atomic operations.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>FE_FETCH_PTR_SIZE</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Read-pointer width: 1 entry bit and 4 halfword bits.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Read-pointer width: 1 entry bit and 4 halfword bits.<br>
+log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = log2(16 * 2) = 5</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>PC_SIZE_EXT</code></p></td>
@@ -1979,7 +2039,10 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect3">
 <h4 id="sec-ch2-fe-pipeline"><a class="anchor" href="#sec-ch2-fe-pipeline"></a><a class="link" href="#sec-ch2-fe-pipeline">2.2.3. Pipeline Stages</a></h4>
 <div class="paragraph">
-<p>The Front End pipeline has eight stages, F0 to F7 (<a href="#fig-ch2-fe-pipeline">Figure 10</a>). Stages F1 to F5 overlap the L0 micro-cache pipeline.</p>
+<p>This section describes the eight Front End stages, F0 to F7, and how they line up with the L0 micro-cache pipeline. Two activities run in parallel and meet in the thread buffer. Fetch runs from F0 to F6: a thread&#8217;s request is arbitrated and sent in F0, waits for acceptance in F1, is looked up in F1 to F5, and the response is written into the thread buffer in F6; a miss writes nothing and the thread goes to sleep. In F7 each thread pulls its next instruction out of its buffer and expands it if compressed. One thread&#8217;s instruction is decoded and placed in its FIFO. The scheduler presents one thread&#8217;s FIFO head to the integer pipeline each cycle</p>
+</div>
+<div class="paragraph">
+<p>Fetching and extracting are independent: a thread keeps extracting instructions from a filled buffer entry while its next request is still in F0-F5.</p>
 </div>
 <div id="fig-ch2-fe-pipeline" class="imageblock text-center">
 <div class="content">
@@ -2014,7 +2077,26 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect3">
 <h4 id="sec-ch2-fe-l0"><a class="anchor" href="#sec-ch2-fe-l0"></a><a class="link" href="#sec-ch2-fe-l0">2.2.4. Interaction with the L0 Micro-Cache</a></h4>
 <div class="paragraph">
-<p>Each L0 micro-cache serves the eight threads of four ET-Minion cores. <a href="#fig-ch2-fe-l0-path">Figure 11</a> shows the request and response path of one core. This section describes the interface from the Front End side; the Neighborhood side is described in <a href="#sec-ch3-fe-ic">Section 3.2</a>.</p>
+<p>This section describes the fetch protocol between the Front End and the L0 micro-cache, from the Front End side. It covers the following four things:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>How a request is arbitrated and accepted: by the 2:1 LRU arbiter and F1 request register in the core, then by the 8:1 arbiter of the Neighborhood.</p>
+</li>
+<li>
+<p>The fixed response timing, and how a thread recognizes its own responses with a token tracker, since responses carry no thread identifier.</p>
+</li>
+<li>
+<p>The miss, sleep and fill-done protocol, and why its timing guarantees that no wake-up is lost.</p>
+</li>
+<li>
+<p>How a redirect cancels requests already in flight, including one still waiting in the F1 register.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>Each L0 micro-cache serves the eight threads of four ET-Minion cores. <a href="#fig-ch2-fe-l0-path">Figure 11</a> shows the request and response path of one core. The Neighborhood side of the interface is described in <a href="#sec-ch3-fe-ic">Section 3.2</a>.</p>
 </div>
 <div id="fig-ch2-fe-l0-path" class="imageblock text-center">
 <div class="content">
@@ -2102,7 +2184,10 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect3">
 <h4 id="sec-ch2-fe-tb"><a class="anchor" href="#sec-ch2-fe-tb"></a><a class="link" href="#sec-ch2-fe-tb">2.2.5. Thread Buffer</a></h4>
 <div class="paragraph">
-<p>Each thread has a thread buffer (<code>frontend_thread_buffer</code>). It holds the thread&#8217;s fetch PC and a 64-byte instruction buffer, generates and tracks fetch requests, writes the returned blocks, and extracts one instruction per cycle.</p>
+<p>The thread buffer (<code>frontend_thread_buffer</code>) holds almost all of a thread&#8217;s Front End state; there is one buffer per thread. This section describes how the buffer stores instructions: two 256-bit entries in a latch register file with a 32-bit, wrap-around read port. It then describes the state kept for each entry, the fetch PC and how it is updated, and the conditions under which the thread requests a new block. It also shows how an entry is reserved and written.</p>
+</div>
+<div class="paragraph">
+<p>The section then shows the instruction side: how the read pointer extracts one instruction per cycle, including instructions that cross from one entry to the other and the bypass from incoming data. It then covers how the RVC expander turns compressed instructions into 32-bit ones, and which fault, error and replay status is attached to each instruction on its way to the integer pipeline.</p>
 </div>
 <div id="fig-ch2-fe-tb" class="imageblock text-center">
 <div class="content">
@@ -2144,7 +2229,7 @@ The Memory Shires also support global atomic operations.</p>
 <div class="title">Figure 17. Thread-buffer entries and read pointer</div>
 </div>
 <table id="tab-ch2-fe-buf-state" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 16. Thread-buffer entry state</caption>
+<caption class="title">Table 15. Thread-buffer entry state</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 75%;">
@@ -2182,10 +2267,10 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect4">
 <h5 id="sec-ch2-fe-pc"><a class="anchor" href="#sec-ch2-fe-pc"></a><a class="link" href="#sec-ch2-fe-pc">2.2.5.2. Program Counter</a></h5>
 <div class="paragraph">
-<p>Each thread buffer holds a 49-bit fetch PC, the address of the next block to request. It is updated as listed in <a href="#tab-ch2-fe-pc">Table 17</a>.</p>
+<p>Each thread buffer holds a 49-bit fetch PC, the address of the next block to request. It is updated as listed in <a href="#tab-ch2-fe-pc">Table 16</a>.</p>
 </div>
 <table id="tab-ch2-fe-pc" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 17. Fetch PC update</caption>
+<caption class="title">Table 16. Fetch PC update</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -2221,10 +2306,10 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect4">
 <h5 id="sec-ch2-fe-req"><a class="anchor" href="#sec-ch2-fe-req"></a><a class="link" href="#sec-ch2-fe-req">2.2.5.3. Request Generation and Entry Fill</a></h5>
 <div class="paragraph">
-<p>A thread issues a request in F0 when all conditions in <a href="#tab-ch2-fe-req-cond">Table 18</a> are met.</p>
+<p>A thread issues a request in F0 when all conditions in <a href="#tab-ch2-fe-req-cond">Table 17</a> are met.</p>
 </div>
 <table id="tab-ch2-fe-req-cond" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 18. Request conditions</caption>
+<caption class="title">Table 17. Request conditions</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -2245,8 +2330,8 @@ The Memory Shires also support global atomic operations.</p>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Redirect PC is loaded at the end of the cycle.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Thread not sleeping</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A missed line is requested again only after a fill.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread not sleeping, or registered fill done in this cycle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">After a miss the thread waits for a fill; the request is issued in the cycle the registered fill done arrives.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">No request of the thread in F1 to F6</p></td>
@@ -2255,6 +2340,10 @@ The Memory Shires also support global atomic operations.</p>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">An entry is empty or is released in the current cycle</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">The response cannot be stalled and must have a destination.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No halt pending</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">While a halt is pending the thread sends no request to the L0 micro-cache; it produces a placeholder instruction instead (<a href="#sec-ch2-fe-halt">Section 2.2.10.1</a>).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Not in reset; not executing the debug program buffer</p></td>
@@ -2266,10 +2355,10 @@ The Memory Shires also support global atomic operations.</p>
 <p>On a grant, the thread reserves an entry and records the fetch PC of the request as the entry&#8217;s block address. If both entries are empty, entry 1 is reserved.</p>
 </div>
 <div class="paragraph">
-<p><a href="#tab-ch2-fe-fill">Table 19</a> shows the entry sequence after a thread is enabled at address A. <code>[m, n]</code> gives the block number in entry 0 and entry 1; <code>x</code> denotes an empty entry.</p>
+<p><a href="#tab-ch2-fe-fill">Table 18</a> shows the entry sequence after a thread is enabled at address A. <code>[m, n]</code> gives the block number in entry 0 and entry 1; <code>x</code> denotes an empty entry.</p>
 </div>
 <table id="tab-ch2-fe-fill" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 19. Entry fill sequence</caption>
+<caption class="title">Table 18. Entry fill sequence</caption>
 <colgroup>
 <col style="width: 14.2857%;">
 <col style="width: 57.1428%;">
@@ -2351,7 +2440,7 @@ The Memory Shires also support global atomic operations.</p>
 <p>Each instruction carries the status of the entries it was read from:</p>
 </div>
 <table id="tab-ch2-fe-status" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 20. Instruction fetch status</caption>
+<caption class="title">Table 19. Instruction fetch status</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 80%;">
@@ -2388,13 +2477,16 @@ The Memory Shires also support global atomic operations.</p>
 </div>
 <div class="sect3">
 <h4 id="sec-ch2-fe-inval"><a class="anchor" href="#sec-ch2-fe-inval"></a><a class="link" href="#sec-ch2-fe-inval">2.2.6. Entry Invalidation, Redirect and Thread Start</a></h4>
+<div class="paragraph">
+<p>This section describes the events that discard buffered instructions or restart fetch. <a href="#sec-ch2-fe-release">Section 2.2.6.1</a> lists when a buffer entry is released: normally when its last instruction has been extracted, but also on a redirect, a thread disable or entry to debug mode. <a href="#sec-ch2-fe-redirect">Section 2.2.6.2</a> describes a redirect from the integer pipeline: what triggers it, what it clears in each stage, and how long the thread takes to deliver its first target instruction. <a href="#sec-ch2-fe-enable">Section 2.2.6.3</a> describes how thread enable and disable events are derived from the enable input, how fetch starts at the reset vector, and what state a thread has after reset.</p>
+</div>
 <div class="sect4">
 <h5 id="sec-ch2-fe-release"><a class="anchor" href="#sec-ch2-fe-release"></a><a class="link" href="#sec-ch2-fe-release">2.2.6.1. Entry Invalidation</a></h5>
 <div class="paragraph">
-<p>An entry is released when its last instruction leaves F6, or when the whole buffer is flushed (<a href="#tab-ch2-fe-release">Table 21</a>).</p>
+<p>An entry is released when its last instruction leaves F6, or when the whole buffer is flushed (<a href="#tab-ch2-fe-release">Table 20</a>).</p>
 </div>
 <table id="tab-ch2-fe-release" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 21. Entry release conditions</caption>
+<caption class="title">Table 20. Entry release conditions</caption>
 <colgroup>
 <col style="width: 60%;">
 <col style="width: 40%;">
@@ -2435,10 +2527,10 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect4">
 <h5 id="sec-ch2-fe-redirect"><a class="anchor" href="#sec-ch2-fe-redirect"></a><a class="link" href="#sec-ch2-fe-redirect">2.2.6.2. Redirect</a></h5>
 <div class="paragraph">
-<p>The integer pipeline redirects a thread by asserting <code>f0_core_req_valid</code> with the new PC in <code>f0_core_req.pc</code>. Redirects are issued for branch and jump mispredictions, exceptions and returns from trap, replays, inter-processor interrupts, and entry to or exit from debug mode. <a href="#tab-ch2-fe-redirect">Table 22</a> lists the effect in the redirect cycle.</p>
+<p>The integer pipeline redirects a thread by asserting <code>f0_core_req_valid</code> with the new PC in <code>f0_core_req.pc</code>. Redirects are issued for branch and jump mispredictions, exceptions and returns from trap, replays, inter-processor interrupts, and entry to or exit from debug mode. <a href="#tab-ch2-fe-redirect">Table 21</a> lists the effect in the redirect cycle.</p>
 </div>
 <table id="tab-ch2-fe-redirect" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 22. Effect of a redirect</caption>
+<caption class="title">Table 21. Effect of a redirect</caption>
 <colgroup>
 <col style="width: 25%;">
 <col style="width: 75%;">
@@ -2497,7 +2589,7 @@ The Memory Shires also support global atomic operations.</p>
 <p><strong>Enable.</strong> The fetch PC is loaded with <code>f0_reset_vector</code> at the end of the enable cycle, and the first request is issued in the next cycle. The first instruction reaches ID eleven cycles after <code>f0_thread_enabled</code> rises (<a href="#fig-ch2-fe-td-enable">Figure 19</a>).</p>
 </li>
 <li>
-<p><strong>Disable.</strong> No further requests are issued, both entries are released and the sleep state is cleared. The instruction in F7 and the FIFO contents are not cleared; the thread scheduler no longer selects the thread.</p>
+<p><strong>Disable.</strong> No further requests are issued, both entries are released and the sleep state is cleared. A fetch already in flight is not cancelled: its response is still written into its reserved entry. The instruction in F7 and the FIFO contents are not cleared. The thread is removed from the scheduler&#8217;s eligible set one cycle later. Because the scheduler defaults to thread 0, FIFO entries left by a disabled thread 0 can still be presented to ID. The eleven-cycle enable latency applies to a thread whose F7, FIFO and buffer are empty, for example the first enable after reset.</p>
 </li>
 </ul>
 </div>
@@ -2515,7 +2607,10 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect3">
 <h4 id="sec-ch2-fe-decode"><a class="anchor" href="#sec-ch2-fe-decode"></a><a class="link" href="#sec-ch2-fe-decode">2.2.7. Decoders</a></h4>
 <div class="paragraph">
-<p>One integer decoder (<code>intpipe_decode</code>) and one VPU decoder (<code>vpu_decoder</code>) are shared by both threads (<a href="#fig-ch2-fe-fifo">Figure 20</a>). In F7, the instruction of one thread passes through both decoders in parallel, and the instruction and both control words are written into that thread&#8217;s FIFO. Decoding before the FIFO removes decode logic from the ID stage.</p>
+<p>This section describes the integer decoder (<code>intpipe_decode</code>) and the VPU decoder (<code>vpu_decoder</code>). Both are shared by the two threads and decode in F7, before the instruction is queued. It describes the control words the decoders produce, <code>minion_control</code> and <code>vpu_ctrl_sigs_t</code>, and how each decoder handles an encoding it does not recognize. It also describes the rule that selects which thread&#8217;s instruction is decoded in a cycle.</p>
+</div>
+<div class="paragraph">
+<p>The section also explains how the VPU decode is used once the instruction reaches ID. The Front End does not issue to the VPU itself: the VPU control word goes directly to the VPU. The integer pipeline issues the instruction to the VPU and uses a summary of the control word for its FP and mask scoreboard checks</p>
 </div>
 <div id="fig-ch2-fe-fifo" class="imageblock text-center">
 <div class="content">
@@ -2529,7 +2624,7 @@ The Memory Shires also support global atomic operations.</p>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Integer decoder.</strong> Produces <code>minion_control</code> (<a href="#tab-ch2-fe-decode-words">Table 14</a>). An unlisted encoding is marked not legal, and the integer pipeline raises an illegal-instruction exception.</p>
+<p><strong>Integer decoder.</strong> Produces <code>minion_control</code> (<a href="#tab-ch2-fe-decode-words">Table 13</a>). An unlisted encoding is marked not legal, and the integer pipeline raises an illegal-instruction exception.</p>
 </li>
 <li>
 <p><strong>VPU decoder.</strong> Produces <code>vpu_ctrl_sigs_t</code> and a flag that identifies VPU instructions. An unlisted encoding is a non-VPU instruction.</p>
@@ -2540,7 +2635,7 @@ The Memory Shires also support global atomic operations.</p>
 <p>A thread is a decode candidate when it has an extracted instruction, its FIFO is not full and it is awake (<a href="#sec-ch2-fe-sched">Section 2.2.9</a>). The decoded thread is selected as follows:</p>
 </div>
 <table id="tab-ch2-fe-dec-pick" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 23. Decode thread selection</caption>
+<caption class="title">Table 22. Decode thread selection</caption>
 <colgroup>
 <col style="width: 40%;">
 <col style="width: 60%;">
@@ -2574,13 +2669,13 @@ The Memory Shires also support global atomic operations.</p>
 <p>The instruction is written into the FIFO when the selected thread has an extracted instruction and its FIFO is not full; the awake condition affects only the selection.</p>
 </div>
 <div class="paragraph">
-<p>The Front End does not issue instructions to the VPU. In ID, the VPU control word of the presented instruction (<code>id_vpu_decoder_sigs</code>) is sent directly to the VPU, bypassing the integer pipeline. The integer pipeline issues the instruction to the VPU in the same cycle, when the instruction is accepted in ID and decoded as an FP or VPU instruction, together with its thread and rounding mode. The integer pipeline also receives a summary of the VPU control word (<code>id_vpu_core_ctrl</code>), with the VPU and mask register reads and writes of the instruction, for its FP and mask scoreboard checks.</p>
+<p>The Front End does not issue instructions to the VPU. In ID, the VPU control word of the presented instruction (<code>id_vpu_decoder_sigs</code>) is sent directly to the VPU, bypassing the integer pipeline. The integer pipeline issues the instruction to the VPU in the same cycle, when the instruction is accepted in ID and decoded as an FP or VPU instruction, together with its thread and that thread&#8217;s fcsr rounding mode. The integer pipeline also receives a summary of the VPU control word (<code>id_vpu_core_ctrl</code>), with the VPU and mask register reads and writes of the instruction, for its FP and mask scoreboard checks.</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="sec-ch2-fe-fifo"><a class="anchor" href="#sec-ch2-fe-fifo"></a><a class="link" href="#sec-ch2-fe-fifo">2.2.8. Instruction FIFO</a></h4>
 <div class="paragraph">
-<p>Each thread has a two-entry instruction FIFO between F7 and ID. It decouples fetch from issue: while ID is stalled or serving the other thread, the thread continues to extract and decode, and the decoded instructions are held in the FIFO. An entry is a <code>frontend_thread_data</code> (<a href="#tab-ch2-fe-thread-data">Table 13</a>): the instruction, its fetch status and both control words.</p>
+<p>This section describes the two-entry instruction FIFO that each thread has (uses) between F7 and ID. The FIFO decouples fetch from issue. While ID is stalled or serving the other thread, the thread keeps extracting and decoding, and the FIFO holds the decoded instructions with their fetch status. The section covers what an entry holds and the pointer scheme that tracks occupancy. It explains why the storage is arranged for timing, as a fixed head register and a holding register, and gives the update rules. It also covers when the VPU control word is valid and how a redirect empties the FIFO.</p>
 </div>
 <div class="paragraph">
 <p>The FIFO is written when its thread is selected for decode and read when the integer pipeline accepts the thread&#8217;s instruction (<code>id_inst_valid</code>, <code>id_inst_ready</code> and <code>id_inst_thread_id</code>). It uses 2-bit read and write pointers; it is full when the pointers differ only in the wrap bit and empty when they are equal.</p>
@@ -2589,7 +2684,7 @@ The Memory Shires also support global atomic operations.</p>
 <p>The storage is organized for timing rather than as an indexed array. Entry 0 is always the head, whose content drives the ID outputs; entry 1 is a holding register. The ID multiplexer therefore selects between two fixed registers, one per thread.</p>
 </div>
 <table id="tab-ch2-fe-fifo" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 24. Instruction FIFO update</caption>
+<caption class="title">Table 23. Instruction FIFO update</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 33.3333%;">
@@ -2640,7 +2735,7 @@ The Memory Shires also support global atomic operations.</p>
 <div class="sect3">
 <h4 id="sec-ch2-fe-sched"><a class="anchor" href="#sec-ch2-fe-sched"></a><a class="link" href="#sec-ch2-fe-sched">2.2.9. Thread Scheduler</a></h4>
 <div class="paragraph">
-<p>The integer pipeline accepts one instruction per cycle from either thread. The thread scheduler (<code>frontend_thread_sched</code>) selects the thread whose FIFO head is presented to ID in the next cycle.</p>
+<p>The integer pipeline accepts one instruction per cycle from either thread. This section describes how the thread scheduler (<code>frontend_thread_sched</code>) chooses which thread&#8217;s FIFO head is presented to ID in the next cycle. It defines when a thread is awake (enabled and not stalled by the integer pipeline) and when it is ready (it has an instruction and is not being redirected). It gives the round-robin rule between eligible threads, including the default choice when neither thread is eligible. It then describes the handshake with ID: what drives the ID outputs, why the valid signal is not qualified with the stall, and what happens to an instruction that ID does not accept.</p>
 </div>
 <div class="dlist">
 <dl>
@@ -2658,7 +2753,7 @@ The Memory Shires also support global atomic operations.</p>
 <p>A thread that is awake and ready is eligible. The scheduler selects between eligible threads in round-robin order:</p>
 </div>
 <table id="tab-ch2-fe-sched" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 25. Thread selection</caption>
+<caption class="title">Table 24. Thread selection</caption>
 <colgroup>
 <col style="width: 33.3333%;">
 <col style="width: 33.3333%;">
@@ -2712,6 +2807,12 @@ The Memory Shires also support global atomic operations.</p>
 </div>
 <div class="sect3">
 <h4 id="sec-ch2-fe-debug"><a class="anchor" href="#sec-ch2-fe-debug"></a><a class="link" href="#sec-ch2-fe-debug">2.2.10. Halt and Debug Program Buffer</a></h4>
+<div class="paragraph">
+<p>This section describes the Front End&#8217;s two debug functions. <a href="#sec-ch2-fe-halt">Section 2.2.10.1</a> covers halt. The integer pipeline takes a halt only on a valid instruction in ID, so while a halt is requested the thread buffer generates a placeholder instruction instead of fetching, and passes it through the normal pipeline to ID.</p>
+</div>
+<div class="paragraph">
+<p><a href="#sec-ch2-fe-pb">Section 2.2.10.2</a> covers the debug program buffer. In debug mode, entry 0 of the halted thread&#8217;s buffer holds the instructions written by the debugger. The section describes how the buffer is prepared with <strong>EBREAK</strong> on entry to debug mode, how the debugger writes words into it and starts execution, and how a resume redirect ends program-buffer mode. It also shows which write data goes to which word, and why the last word always holds <strong>EBREAK</strong>.</p>
+</div>
 <div class="sect4">
 <h5 id="sec-ch2-fe-halt"><a class="anchor" href="#sec-ch2-fe-halt"></a><a class="link" href="#sec-ch2-fe-halt">2.2.10.1. Halt</a></h5>
 <div class="paragraph">
@@ -2743,7 +2844,7 @@ The Memory Shires also support global atomic operations.</p>
 <p>In debug mode, entry 0 of the halted thread&#8217;s buffer is used as the program buffer: the debugger writes instructions into it and the thread executes them.</p>
 </div>
 <table id="tab-ch2-fe-debug" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 26. Debug program-buffer sequence</caption>
+<caption class="title">Table 25. Debug program-buffer sequence</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 83.3334%;">
@@ -2761,7 +2862,7 @@ The Memory Shires also support global atomic operations.</p>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Write</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The debugger writes the program buffer through <code>debug_ffb_wdata</code>, <code>debug_ffb_en</code> and <code>debug_ffb_thread_sel</code> (<a href="#tab-ch2-fe-pb-map">Table 27</a>). The words are written one cycle after the enables.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The debugger writes the program buffer through <code>debug_ffb_wdata</code>, <code>debug_ffb_en</code> and <code>debug_ffb_thread_sel</code> (<a href="#tab-ch2-fe-pb-map">Table 26</a>). The data and enables come together but the data is written into the entry in the cycle after the enables.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Execute</p></td>
@@ -2774,7 +2875,7 @@ The Memory Shires also support global atomic operations.</p>
 </tbody>
 </table>
 <table id="tab-ch2-fe-pb-map" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 27. Program-buffer word mapping</caption>
+<caption class="title">Table 26. Program-buffer word mapping</caption>
 <colgroup>
 <col style="width: 20%;">
 <col style="width: 40%;">
@@ -3313,7 +3414,7 @@ The Memory Shires also support global atomic operations.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-09-25 12:02:00 +0500
+Last updated 2026-09-25 16:26:06 +0500
 </div>
 </div>
 </body>

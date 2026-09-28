@@ -90,11 +90,17 @@ A Neighborhood groups eight ET-Minion cores that share the following resources. 
 * *Performance monitoring unit (PMU)*: twelve 64-bit event counters shared by the eight cores. +
 Eight counters count ET-Minion events and four count Neighborhood events.
 
-* *Cooperative TensorLoad*
-* *Cooperative TensorStore*
-* *Fast Local Messaging Network*
-* *FLB unit*
+* *Cooperative TensorLoad*: coalesces the TensorLoad requests that several cores issue for the same address into a single memory request, and delivers the one response back to every cooperating core. Cores in all four Neighborhoods of a Minion Shire can cooperate; one Neighborhood acts as master and sends the combined request.
+* *Cooperative TensorStore*: combines the partial writes of cooperating cores into one Shire Cache write, and replicates the acknowledgement to every core that took part. Cores cooperate in two fixed groups, cores 0 to 3 and cores 4 to 7, in one of three modes:
+** *Quad-128*: 128 bits from each of four cores, forming a full 512-bit cache line
+** *Pair-256*: 256 bits from each of two cores, forming a full 512-bit cache line
+** *Pair-128*: 128 bits from each of two cores, forming half a cache line
++
+Each core holds its request until every core of the group has presented one, so operations of different modes cannot mix.
+* *Fast Local Messaging Network (FLN)*: carries messages between cores of the same Neighborhood directly, instead of sending them out through the request path and back in through the response path. Connections are not all-to-all; they follow the pattern used by the tensor reduction instructions, and a message arriving over this network takes priority over the other responses to that core.
+* *Fast local barrier (FLB) path*
 * *Neighborhood ESRs*
+* *Interrupts*: routes the external, timer and software interrupt lines to the cores, and delivers the inter-processor interrupts (IPIs). A software write to a Shire ESR raises a machine software interrupt for a hart, or a redirect IPI that sends the selected harts to the PC held in the Neighborhood `ipi_redirect_pc` ESR.
 
 
 [[fig-ch1-neighborhood]]
