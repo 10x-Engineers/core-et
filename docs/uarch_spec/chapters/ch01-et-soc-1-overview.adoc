@@ -83,6 +83,8 @@ image::ch01/fig-et-minion.png[ET-Minion core,width=70%,align=center]
 
 A Neighborhood groups eight ET-Minion cores that share the following resources. In <<fig-ch1-neighborhood>>, the L0 micro-caches are labeled "I-Cache".
 
+A Neighborhood also spans two supply-voltage regions. The cores and most of the Neighborhood logic are in the low-voltage region, while the interface towards the Shire Channel and the memory cells that need speed, among them the data RAMs of the L1 instruction cache, are in the high-voltage region (<<sec-ch3-voltage>>).
+
 * *L1 instruction cache*: 32 KB, organized as 128 sets × 4 ways with 64-byte lines. It is shared by all eight cores, and its data RAMs are located outside the Neighborhood.
 * *L0 micro-caches*: two, each shared by four cores. Each holds 16 fully associative cache lines, sits between its cores and the L1 instruction cache, and accesses the L1 instruction cache on a miss.
 * *Page-table walkers (PTWs)*: two, each shared by four cores. Each PTW serves the data caches of its four cores and the instruction-cache side.

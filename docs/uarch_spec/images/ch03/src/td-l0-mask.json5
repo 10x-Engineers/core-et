@@ -1,0 +1,19 @@
+{ signal: [
+  { name: 'clk', wave: 'p.................' },
+  {},
+  { name: 'f4_resp_valid', wave: '0101010.......10..' },
+  { name: 'f4_grant (thread)', wave: 'x3x4x3x.......3x..', data: ['A','B','A','A'] },
+  { name: 'f4_resp_miss', wave: 'x1x1x1x.......0x..' },
+  {},
+  { name: 'th_miss_cnt (thread A)', wave: '2.2...2........2..', data: ['29','30','31 (saturated)','0'] },
+  { name: 'th_miss_cnt_sat', wave: '0.....1........0..' },
+  { name: 'th_miss_mask', wave: '2......2........2.', data: ['all threads bid','Minion 0 threads only','all threads bid'] },
+  { name: 'bid from other Minions', wave: '1......0........1.' },
+  {},
+  { name: 'icache_fill_done', wave: '0.......10........' },
+  { name: 'icache_req_valid (M0.T0)', wave: '0.........10......' },
+  { name: 'grant (8:1 LRU arbiter)', wave: 'x.........3x......', data: ['A (retry)'] }
+ ],
+ head: { tick: 0 },
+ config: { hscale: 2 }
+}
