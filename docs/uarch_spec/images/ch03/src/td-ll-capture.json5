@@ -1,0 +1,25 @@
+{ signal: [
+  { name: 'clk', wave: 'p.............' },
+  {},
+  { name: 'f0_prefetch_state',      wave: '2.2.2.........', data: ['Request','Check_Hit','Fill_Wait'] },
+  { name: 'f0_prefetch_req_ready',  wave: '1...0..1......' },
+  { name: 'prefetch in L0 pipeline',wave: 'x222x.........', data: ['F0','F1','F2'] },
+  {},
+  { name: 'f0_miss_state',          wave: '22...22.......', data: ['Fill_Wait','Ready','Request','Fill_Wait'] },
+  { name: 'f2_miss (prefetch)',     wave: '0..10.........' },
+  { name: 'icache_fill_done',       wave: '0.10..........' },
+  {},
+  { name: 'icache_req_valid (A)',   wave: '0...1.0.......' },
+  { name: 'L0 stage (thread A)',    wave: 'x....22222x...', data: ['F0','F1','F2','F3','F4'] },
+  { name: 'icache_resp_miss (A)',   wave: 'x........1x...' },
+  { name: 'th_miss_cnt[A]',         wave: '2.........2...', data: ['n','n+1'] },
+  {},
+  { name: 'f0_prefetch_miss_nomh_state', wave: '2.......2.....', data: ['NotPending','FillDone_Wait'] }
+ ],
+ group: [
+   { name: 'Prefetch engine', from: 'f0_prefetch_state', to: 'prefetch in L0 pipeline' },
+   { name: 'Miss handler',    from: 'f0_miss_state',     to: 'icache_fill_done' },
+   { name: 'Thread A',        from: 'icache_req_valid (A)', to: 'th_miss_cnt[A]' }
+ ],
+ head: { tick: 0 }
+}
