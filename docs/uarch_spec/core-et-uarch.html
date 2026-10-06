@@ -3361,7 +3361,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <div class="sect3">
 <h4 id="sec-ch3-fe-ic-overview"><a class="anchor" href="#sec-ch3-fe-ic-overview"></a><a class="link" href="#sec-ch3-fe-ic-overview">3.3.1. Overview</a></h4>
 <div class="paragraph">
-<p>The eight cores of a Neighborhood are served by two L0 micro-caches, each shared by four cores, that is by eight threads. Both L0 micro-caches are backed by the L1 instruction cache of the Neighborhood. <a href="#fig-ch3-fe-ic">Figure 23</a> shows the whole path and names the signals of the interface: the two thread buffers and the 2:1 LRU arbiter inside each core, the per-thread request registers and the 8:1 LRU arbiter of each micro-cache, and the round-robin arbiter through which both micro-caches reach the L1 instruction cache.</p>
+<p>The eight cores of a Neighborhood are served by two L0 micro-caches, each shared by four cores, that is by eight threads, two threads per core. Both L0 micro-caches are backed by the L1 instruction cache of the Neighborhood. <a href="#fig-ch3-fe-ic">Figure 23</a> shows the whole fetch path and names the signals of the interface: the two thread buffers and the 2:1 LRU arbiter inside each core, the per-thread request registers and the 8:1 LRU arbiter of each micro-cache, and the round-robin arbiter through which both micro-caches reach the L1 instruction cache.</p>
 </div>
 <div id="fig-ch3-fe-ic" class="imageblock text-center">
 <div class="content">
@@ -3381,7 +3381,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>In the Neighborhood, the request is steered into the request register of the thread that made it, using the thread identifier it carries. One register exists per thread, so eight per L0 micro-cache, which lets the threads of all four cores arbitrate on equal terms.</p>
 </li>
 <li>
-<p>The 8:1 LRU arbiter selects one of the eight captured requests and presents it to the L0 micro-cache. Its grant is returned to the core as the acceptance of the request.</p>
+<p>The 8:1 LRU arbiter selects one of the eight captured thread requests and presents it to the L0 micro-cache. The grant is returned to the core in the same cycle, as <code>icache_req_ready</code>, and it frees the core&#8217;s F1 request register: the core&#8217;s 2:1 arbiter runs in that same cycle and loads the other thread&#8217;s request, so the core presents it on the next cycle with no idle cycle in between.</p>
 </li>
 <li>
 <p>The L0 micro-cache looks the request up in five stages: arbitration, instruction-TLB translation, tag lookup and PMA check, data-array read, and response.</p>
@@ -3390,7 +3390,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>One response is returned a fixed four cycles after the grant, for a hit and for a miss alike, and it reaches the core in its F5 stage. It is shared by the eight threads the micro-cache serves and carries no thread identifier; on a hit it carries the instruction block. How a core recognizes its own response is described in <a href="#sec-ch2-fe-track">Section 2.2.4.2</a>.</p>
 </li>
 <li>
-<p>On a miss, the L0 micro-cache requests the line from the L1 instruction cache, through a round-robin arbiter that the two micro-caches share. When the fill completes, the micro-cache pulses fill done, which is shared in the same way, and the sleeping threads wake and retry.</p>
+<p>On a miss, which can be a TLB miss or a line miss, the L0 micro-cache requests a translation from its page-table walker, or requests the line from the L1 instruction cache through a round-robin arbiter that the two micro-caches share. When the fill completes, the micro-cache pulses fill done to all the threads it serves, and the sleeping ones wake and retry.</p>
 </li>
 </ol>
 </div>
@@ -3398,7 +3398,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <div class="sect3">
 <h4 id="sec-ch3-fe-ic-signals"><a class="anchor" href="#sec-ch3-fe-ic-signals"></a><a class="link" href="#sec-ch3-fe-ic-signals">3.3.2. Interface Signals</a></h4>
 <div class="paragraph">
-<p><a href="#tab-ch3-fe-ic-signals">Table 27</a> lists the signals between one core and the Neighborhood. Directions are given from the Neighborhood side.</p>
+<p><a href="#tab-ch3-fe-ic-signals">Table 27</a> lists the signals between a single core and the Neighborhood. Directions are given from the Neighborhood side.</p>
 </div>
 <table id="tab-ch3-fe-ic-signals" class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 27. Front End – I-cache interface signals</caption>
@@ -3436,7 +3436,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_req_ready</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The 8:1 arbiter has granted the request; the core may present the next one.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The 8:1 arbiter has granted the request. Returned in the grant cycle, it frees the core&#8217;s F1 request register, so the core can load its other thread&#8217;s request in the same cycle and present it on the next.</p></td>
 </tr>
 <tr>
 <th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Fetch response</p></th>
@@ -3445,7 +3445,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_resp_valid</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A response is returned in this cycle. It carries no thread identifier.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A response is returned in this cycle.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_resp_miss</code></p></td>
@@ -3489,22 +3489,22 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </tbody>
 </table>
 <div class="paragraph">
-<p>Responses and fill-done pulses are driven to all four cores of the L0 micro-cache at the same time; each core keeps only what belongs to it (<a href="#sec-ch3-fe-ic-timing">Section 3.3.4</a>).</p>
+<p>The fetch response ports are the exception to that one-core view. The Neighborhood drives one set of them per L0 micro-cache, common to the four cores it serves, so <code>icache_resp_valid</code>, <code>icache_resp_miss</code>, <code>icache_resp</code> and <code>icache_fill_done</code> reach all four at the same time. Being common, the response carries no thread identifier and nothing that says which core it belongs to.</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="sec-ch3-fe-ic-arb"><a class="anchor" href="#sec-ch3-fe-ic-arb"></a><a class="link" href="#sec-ch3-fe-ic-arb">3.3.3. Request Arbitration</a></h4>
 <div class="paragraph">
-<p>This section describes how the Neighborhood decides which thread reaches the L0 micro-cache in a given cycle, and when the arbiter updates the priority that decision is based on. Both start with the registers that hold a request on its way in.</p>
+<p>This section describes how the Neighborhood decides which thread&#8217;s request reaches the L0 micro-cache in a given cycle, and when the arbiter updates the priority that decision is based on. Lets start with the registers that hold a thread&#8217;s request on its way in.</p>
 </div>
 <div class="paragraph">
 <p>A fetch request is flopped twice before it enters the L0 micro-cache.</p>
 </div>
 <div class="paragraph">
-<p><strong>First flop, in the core.</strong> Two threads share one fetch port, so the 2:1 LRU arbiter selects one of them and its request is held in the F1 request register. That register keeps the request until the Neighborhood accepts it, so a core presents one request at a time, carrying the identifier of the thread that made it.</p>
+<p><strong>First flop, in the core.</strong> Two threads share one fetch port of the core, so the 2:1 LRU arbiter selects one of them and its request is held in the F1 request register. That register keeps the request until the Neighborhood (the L0 micro-cache in this case) accepts it, so a core presents one request at a time, carrying the identifier of the thread that made it.</p>
 </div>
 <div class="paragraph">
-<p><strong>Second flop, in the Neighborhood.</strong> Each micro-cache is served by four cores, so it sees at most four requests in a cycle, and it holds one request register per thread, eight in all. Each request is written into the register of the thread its identifier names. At most four of the eight registers are valid at a time, because a core frees its F1 register only when its request is accepted. Eight registers exist nevertheless so that every thread bids for itself, which is what makes the arbitration fair between the two threads of a core as well as between cores.</p>
+<p><strong>Second flop, in the Neighborhood.</strong> Each micro-cache serves four cores, so it sees at most four requests in a cycle, and it holds one request register per thread, eight in all. Each request is written into the register of the thread its identifier names. At most four of the eight registers are valid at a time, because a core frees its F1 register only when its request is accepted. Eight registers exist nevertheless so that every thread bids for itself, which is what makes the arbitration fair between the two threads of a core as well as between cores.</p>
 </div>
 <div class="paragraph">
 <p>The eight registers bid through the 8:1 LRU arbiter (<code>arb_lru_delayed_data</code>). A bid is the register&#8217;s valid qualified with the thread&#8217;s bid mask. The mask exists to avoid livelock and is described in <a href="#sec-ch3-fe-ic-livelock">Section 3.3.8</a>; until then, take it that masking suppresses a thread&#8217;s valid at the arbiter, so the thread takes no part in the arbitration while its request stays in its register.</p>
@@ -3518,7 +3518,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>The 8:1 LRU arbiter holds its priority in an aging matrix: one bit for every pair of the eight threads it serves, recording which of the two was served more recently. A thread wins when it has priority over every other thread bidding in that cycle, which makes the grant one-hot. Two threads can never hold the same priority, because every pair is ordered by exactly one bit. Granting a thread clears all of its bits, that is it is placed behind every other thread, and the threads that have waited longest move up.</p>
 </div>
 <div class="paragraph">
-<p>The grant is combinational. In the same cycle it is returned to the core as <code>icache_req_ready</code>, the thread&#8217;s request register is freed, so it reads invalid in the next cycle, and the core may load the request of its other thread into the F1 register. This is why a request is accepted at the earliest in its second F1 cycle.</p>
+<p>The grant is combinational. In the same cycle it is returned to the core as <code>icache_req_ready</code>, the thread&#8217;s request register is freed, so it reads invalid in the next cycle, and the core may load the request of its other thread into the F1 register. A request is therefore accepted at the earliest in its second F1 cycle, because the F1 register has to hold it for one more cycle while it is flopped into the Neighborhood&#8217;s per-thread register.</p>
 </div>
 </div>
 <div class="sect4">
@@ -3527,7 +3527,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>Every accepted request gets exactly one response, and it comes back a fixed four cycles after the grant, whether it hits or misses (<a href="#sec-ch3-fe-ic-timing">Section 3.3.4</a>). The arbiter waits for it: priority is not updated when the grant is issued, but when that response arrives.</p>
 </div>
 <div class="paragraph">
-<p>Waiting means the arbiter has to remember whose response is due. The grant vector travels down with the request in its own registers, <code>f1_grant</code> to <code>f4_grant</code>, so that in F4 it can be told which thread the response belongs to (<a href="#tab-ch3-grant-pipe">Table 28</a>).</p>
+<p>Waiting means the arbiter has to remember whose response is due, because the response is shared and carries no thread identifier. The grant vector therefore travels down with the request in its own registers, <code>f1_grant</code> to <code>f4_grant</code>, so that in F4 it can be told which thread the response belongs to (<a href="#tab-ch3-grant-pipe">Table 28</a>).</p>
 </div>
 <table id="tab-ch3-grant-pipe" class="tableblock frame-all grid-all stretch">
 <caption class="title">Table 28. Grant pipeline in the Neighborhood</caption>
@@ -3630,11 +3630,11 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F2</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Tag lookup, PMA check and LRU update; on a miss, the request to the L1 instruction cache is generated.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tag lookup, PMA check and LRU update. A miss is detected here, and accepted if the miss handler is idle.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F3</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Data array read.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Data array read. On an accepted miss, the request to the L1 instruction cache is driven in this cycle.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F4</p></td>
@@ -3649,7 +3649,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>The fill-done signal is driven one stage later than the response, from the stage after F4.</p>
 </div>
 <div class="paragraph">
-<p><a href="#fig-ch3-td-l0-hit">Figure 24</a> shows a request that hits: the core presents it, the 8:1 LRU arbiter grants it in the next cycle, and the response is returned four cycles later.</p>
+<p><a href="#fig-ch3-td-l0-hit">Figure 24</a> shows a request that hits: the core presents it, the 8:1 LRU arbiter grants it in cycle 1, and the response is returned in cycle 5, four cycles later. The grant frees both registers that were holding the request, the core&#8217;s F1 request register and the Neighborhood&#8217;s per-thread register, which is why both valids fall in the next cycle. <code>f4_grant</code> still names M0, TH0, the thread that was granted four cycles earlier, which is how F4 knows whose priority to update: the response is a hit, so <code>f4_update_prio</code> is asserted and M0, TH0 moves behind the other threads in the LRU order.</p>
 </div>
 <div id="fig-ch3-td-l0-hit" class="imageblock text-center">
 <div class="content">
@@ -3683,7 +3683,10 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>Fill done is deliberately driven one stage later than the response. A request that looks the cache up while the fill is being written still misses, and its miss response is the last one that this fill can cause. Sending fill done after that response guarantees that every thread has entered the sleep state before its wake-up arrives, so no wake-up is lost.</p>
 </div>
 <div class="paragraph">
-<p><a href="#fig-ch3-td-l0-miss">Figure 25</a> follows one thread through a miss and its retry. The lookup misses in F2, so the miss handler leaves <code>Ready</code>, sends the request to the L1 instruction cache in <code>Request</code> and waits in <code>Fill_Wait</code>. The response in F4 is a miss, the thread sleeps and its priority is left unchanged. When the line arrives the handler returns to <code>Ready</code> and fill done is pulsed; the thread wakes, requests again and hits, and only that second response updates the priority.</p>
+<p>Each L0 micro-cache has one miss handler, which holds one miss at a time; it is described in <a href="#sec-ch3-ll-mh">Section 3.3.8.1</a>. <a href="#fig-ch3-td-l0-miss">Figure 25</a> follows one thread through a miss and its retry. The lookup misses in F2, the handler leaves <code>Ready</code>, and the request to the L1 instruction cache is driven in F3. The response in F4 is a miss, so the thread sleeps and its priority is left unchanged; the grant has already freed both the core&#8217;s F1 request register and the Neighborhood&#8217;s per-thread register.</p>
+</div>
+<div class="paragraph">
+<p>The break in the waveform stands for the access time of the L1 instruction cache, and of the Shire Cache behind it if the L1 misses as well. That time is not fixed and is far longer than the rest of the sequence. The handler stays in <code>Fill_Wait</code> for all of it, so every other lookup that misses meanwhile is turned away, and the core leaves the thread asleep and issues nothing for it. When the line arrives the handler returns to <code>Ready</code> and fill done is pulsed; the thread wakes, requests again and hits, and only that second response updates the priority.</p>
 </div>
 <div id="fig-ch3-td-l0-miss" class="imageblock text-center">
 <div class="content">
@@ -3747,13 +3750,13 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <div class="title">Figure 26. Request capture, arbitration and response for four cores</div>
 </div>
 <div class="paragraph">
-<p>In cycle 0 the four cores present a TH0 request each, and the F1 registers hold them. The thread registers go valid in cycle 1, M0.T0 wins and <code>icache_req_ready</code> frees M0&#8217;s F1 register, which reloads with TH1 in cycle 2. M1.T0 is granted in cycle 2, and in cycle 3 M0.T1 is granted, while M2 and M3 are still holding their first request.</p>
+<p>In cycle 0 the four cores present a TH0 request each, and the F1 registers hold them. The thread registers go valid in cycle 1, M0, TH0 wins and <code>icache_req_ready</code> frees M0&#8217;s F1 register, which reloads with TH1 in cycle 2. M1, TH0 is granted in cycle 2, and in cycle 3 M0, TH1 is granted, while M2 and M3 are still holding their first request.</p>
 </div>
 <div class="paragraph">
-<p>M0 is therefore served twice before M2 and M3 are served once. That is the deferred update at work: M0.T0&#8217;s grant does not move it behind the others until its response arrives in cycle 5, and until then M0.T1 is the highest-priority bidder. The same property is what lets a thread that missed win its retry immediately, and the miss-count guard bounds how long a thread can be passed over (<a href="#sec-ch3-fe-ic-livelock">Section 3.3.8</a>).</p>
+<p>M0 is therefore served twice before M2 and M3 are served once. That is the deferred update at work: M0, TH0&#8217;s grant does not move it behind the others until its response arrives in cycle 5, and until then M0, TH1 is the highest-priority bidder. The same property is what lets a thread that missed win its retry immediately, and the miss-count guard bounds how long a thread can be passed over (<a href="#sec-ch3-fe-ic-livelock">Section 3.3.8</a>).</p>
 </div>
 <div class="paragraph">
-<p>The response for M0.T0 appears in F4 in cycle 5, four cycles after its grant, with <code>f4_grant</code> naming the thread. It hits, <code>f4_update_prio</code> is asserted and the order changes from <code>01234567</code> to <code>12345670</code>.</p>
+<p>The response for M0, TH0 appears in F4 in cycle 5, four cycles after its grant, with <code>f4_grant</code> naming the thread. It hits, <code>f4_update_prio</code> is asserted and the order changes from <code>01234567</code> to <code>12345670</code>.</p>
 </div>
 </div>
 <div class="sect3">

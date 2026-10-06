@@ -11,7 +11,7 @@
   { name: 'bid from other Minions', wave: '1......0........1.' },
   {},
   { name: 'icache_fill_done', wave: '0.......10........' },
-  { name: 'icache_req_valid (M0.T0)', wave: '0.........10......' },
+  { name: 'icache_req_valid (M0, TH0)', wave: '0.........10......' },
   { name: 'grant (8:1 LRU arbiter)', wave: 'x.........3x......', data: ['A (retry)'] }
  ],
  head: { tick: 0 },

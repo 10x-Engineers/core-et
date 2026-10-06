@@ -6,7 +6,7 @@ Writes diagram.drawio next to each input. Export the PNG the document uses with:
     drawio -x -f png -s 2 -b 10 -o diagram.png diagram.drawio
 
 Supported WaveJSON subset (enough for micro-architecture documents):
-  wave characters   p (clock), 0, 1, ., x, and data symbols = 2 3 4 5
+  wave characters   p (clock), 0, 1, ., x, | (variable-delay break), data symbols = 2 3 4 5
   lane keys         name, wave, data, node
   top-level keys    signal (with {} spacers), edge ("A~>B label", "A-|>B label"),
                     group ([{name, from, to}], lane names, draws a labelled bracket)
@@ -104,6 +104,8 @@ def convert(src, dst):
             pts.append((X0 + n * CW, lo))
             w.line(pts)
             continue
+        gaps = [k for k, ch in enumerate(wave) if ch == '|']
+        wave = wave.replace('|', '.')
         last = None
         for ch, i, ln in runs(wave):
             xa, xb = X0 + i * CW, X0 + (i + ln) * CW
@@ -122,6 +124,13 @@ def convert(src, dst):
                     "shape=hexagon;perimeter=hexagonPerimeter2;size=6;fixedSize=1;html=1;fontSize=12;"
                     f"fillColor={COL.get(ch, '#ffffff')};strokeColor=#000000;")
             last = ch
+        for k in gaps:                      # variable-delay break
+            x = X0 + k * CW + CW / 2
+            w.v(x - 7, hi - 4, 14, lo - hi + 8, "",
+                "rounded=0;html=1;fillColor=#ffffff;strokeColor=none;")
+            for dx in (-3, 3):
+                w.line([(x + dx - 3, lo + 4), (x + dx + 3, hi - 4)],
+                       "endArrow=none;html=1;strokeWidth=1.2;")
     for e in j.get('edge', []):
         m = re.match(r"([A-Z])(~>|-\|>)([A-Z])\s*(.*)", e)
         if not m or m.group(1) not in nodes or m.group(3) not in nodes:
