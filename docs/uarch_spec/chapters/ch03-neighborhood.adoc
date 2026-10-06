@@ -110,7 +110,7 @@ image::ch03/fig-fe-l0-intrf.drawio.png["Front End to I-cache interface",width=10
 
 A fetch request, that is a request from the Front End of a core for the instruction block at a thread's fetch address, travels as follows:
 
-. In the core, the 2:1 LRU arbiter selects one of the two threads, and the selected request is flopped into the F1 request register, which holds it until the Neighborhood accepts it. Each core therefore presents one request at a time.
+. In the core, the 2:1 LRU arbiter selects one of the two threads, and the selected request is flopped into the Front End's F1 request register, which holds it until the Neighborhood accepts it. Each core therefore presents one request at a time.
 . In the Neighborhood, the request is steered into the request register of the thread that made it, using the thread identifier it carries. One register exists per thread, so eight per L0 micro-cache, which lets the threads of all four cores arbitrate on equal terms.
 . The 8:1 LRU arbiter selects one of the eight captured thread requests and presents it to the L0 micro-cache. The grant is returned to the core in the same cycle, as `icache_req_ready`, and it frees the core's F1 request register: the core's 2:1 arbiter runs in that same cycle and loads the other thread's request, so the core presents it on the next cycle with no idle cycle in between.
 . The L0 micro-cache looks the request up in five stages: arbitration, instruction-TLB translation, tag lookup and PMA check, data-array read, and response.
@@ -152,7 +152,7 @@ This section describes how the Neighborhood decides which thread's request reach
 
 A fetch request is flopped twice before it enters the L0 micro-cache.
 
-*First flop, in the core.* Two threads share one fetch port of the core, so the 2:1 LRU arbiter selects one of them and its request is held in the F1 request register. That register keeps the request until the Neighborhood (the L0 micro-cache in this case) accepts it, so a core presents one request at a time, carrying the identifier of the thread that made it.
+*First flop, in the core.* Two threads share one fetch port of the core, so the 2:1 LRU arbiter selects one of them and its request is held in the Front End's F1 request register. That register keeps the request until the Neighborhood (the L0 micro-cache in this case) accepts it, so a core presents one request at a time, carrying the identifier of the thread that made it.
 
 *Second flop, in the Neighborhood.* Each micro-cache serves four cores, so it sees at most four requests in a cycle, and it holds one request register per thread, eight in all. Each request is written into the register of the thread its identifier names. At most four of the eight registers are valid at a time, because a core frees its F1 register only when its request is accepted. Eight registers exist nevertheless so that every thread bids for itself, which is what makes the arbitration fair between the two threads of a core as well as between cores.
 
@@ -164,7 +164,7 @@ The arbiter is stalled while the micro-cache cannot accept a request, which the 
 
 The 8:1 LRU arbiter holds its priority in an aging matrix: one bit for every pair of the eight threads it serves, recording which of the two was served more recently. A thread wins when it has priority over every other thread bidding in that cycle, which makes the grant one-hot. Two threads can never hold the same priority, because every pair is ordered by exactly one bit. Granting a thread clears all of its bits, that is it is placed behind every other thread, and the threads that have waited longest move up.
 
-The grant is combinational. In the same cycle it is returned to the core as `icache_req_ready`, the thread's request register is freed, so it reads invalid in the next cycle, and the core may load the request of its other thread into the F1 register. A request is therefore accepted at the earliest in its second F1 cycle, because the F1 register has to hold it for one more cycle while it is flopped into the Neighborhood's per-thread register.
+The grant is combinational. In the same cycle it is returned to the core as `icache_req_ready`, the thread's request register is freed, so it reads invalid in the next cycle, and the core may load the request of its other thread into the F1 register. A request is therefore accepted at the earliest in its second cycle in the Front End's F1 stage, because that register has to hold it for one more cycle while it is flopped into the Neighborhood's per-thread register.
 
 ===== Deferred Priority Update
 
@@ -192,18 +192,13 @@ The update is enabled by `f4_update_prio`, asserted when a response is valid in 
 
 Bus and ECC errors do not appear in this condition. Both are reported only with a hit, and a hit already updates the priority.
 
-// May be we would remove this Edge Cases sub-section in the next revision.
-===== Edge Cases
-
-* *Masked thread.* Masking removes the bid, not the request. When the mask is released the request is still in the register and bids in the next cycle.
-* *New request while the register is occupied.* Cores present no second request for a thread that already has one in flight, so the case does not arise. The register ignores it in any event.
-* *Reset.* All priority bits start at zero, which orders the threads by index until the first responses have updated the matrix.
-
 [[sec-ch3-fe-ic-timing]]
 ==== Request and Response Timing
 
-The L0 micro-cache has a five-stage pipeline:
+The L0 micro-cache looks a request up in five stages and drives fill done one stage later (<<tab-ch3-l0-stages>>).
 
+[[tab-ch3-l0-stages]]
+.L0 micro-cache pipeline stages
 [cols="1,5",options="header"]
 |===
 | Stage | Operation
@@ -212,8 +207,11 @@ The L0 micro-cache has a five-stage pipeline:
 | F1 | Instruction-TLB lookup, which translates the virtual address.
 | F2 | Tag lookup, PMA check and LRU update. A miss is detected here, and accepted if the miss handler is idle.
 | F3 | Data array read. On an accepted miss, the request to the L1 instruction cache is driven in this cycle.
-| F4 | Response to the cores.
+| F4 | Response to the cores (`f4_resp_valid`, `f4_resp_miss`, `f4_resp`).
+| F5 | Fill-done pulse to the cores (`f5_resp_fill_done`), one stage after the response. Not part of the lookup: it reports that a line or a translation has been written.
 |===
+
+These stages are the micro-cache's own, and they are numbered independently of the Front End's F0 to F7: the F1 request register of the core and the F1 stage of the micro-cache are different things.
 
 Every accepted request receives exactly one response from the last stage, for a hit and for a miss alike, so the response arrives a fixed four cycles after the grant. The response is broadcast to the four cores of the L0 micro-cache and carries no thread identifier; each core identifies its own response from the position of its request in time (<<sec-ch2-fe-track>>).
 
@@ -341,7 +339,9 @@ The L0 micro-cache pulses `f6_icache_fill_done` to all its threads whenever an L
 
 A thread sleeps only when a fill is in progress: either its own miss, the fill of some other thread that kept the handler busy, or a translation fill. As such every sleeping thread is woken when it receives the fill-done signal. The fill-done timing (<<sec-ch2-fe-miss>>) makes sure that no wake-up is lost: fill done is issued one cycle after the last response the fill can affect, and it is registered again in the Front End. A redirect, a thread disable or a pending halt clears the sleep state of the affected thread only; fill done is the only event that wakes all sleeping threads.
 
-Two properties of this protocol set up the rest of the section. Because the handler accepts a miss only while it is Ready, and because it is Ready only between one fill completing and the next miss being accepted, each fill-done round serves exactly one new miss. And because the whole set of sleeping threads is woken at once, the thread that is served in a round is whichever one reaches F2 first with a miss.
+Which thread is served in a round is decided in F2. That is the stage where the tag is compared, where a miss is therefore first indicated, and where the handler accepts it and flops its state so that the request to the L1 instruction cache goes out in F3 (<<tab-ch3-l0-stages>>). A lookup that reaches F2 any later in the round finds the handler no longer Ready.
+
+Two properties of this protocol follow, and they set up the rest of the section. Because the handler accepts a miss only while it is Ready, and because it is Ready only between one fill completing and the next miss being accepted, each fill-done round serves exactly one new miss. And because the whole set of sleeping threads is woken at once, the thread that is served in a round is whichever one reaches F2 first with a miss.
 
 [[sec-ch3-ll-scenario]]
 ===== How a Thread Can Be Left Behind
@@ -375,7 +375,11 @@ The mask does not discard anything. A bid is the thread's request-register valid
 
 With every other Minion masked, only the selected Minion's misses can reach the handler, so the starving thread's line is fetched and cannot be displaced before the thread retries. The thread then hits, which clears its counter, and the mask passes to the next Minion with a saturated thread or is removed if there is none. The mask is released by a hit, and only by a hit.
 
-<<fig-ch3-td-l0-mask>> shows the guard at work: the counter of thread A saturates on its last miss, the mask is recomputed one cycle later and leaves only the threads of that Minion bidding, so A wins the arbitration as soon as it wakes. Its response is a hit, which clears the counter and releases the mask.
+<<fig-ch3-td-l0-mask>> shows the guard at work, with the waits between rounds compressed into breaks. Every miss costs M0, TH0 a full round: the miss response puts it to sleep, fill done wakes it, it requests again and is granted, and its next response arrives four cycles after that grant.
+
+The first response shown takes the counter to 31. The counter is loaded at the end of that cycle, so `th_miss_cnt_sat` only reads one in the next, and `th_miss_mask_en` is a registered copy of the counter enable, so the mask itself changes one cycle after that: the restrictive mask is in force two cycles after the response that saturated the counter. From that point only the two threads of Minion 0 bid.
+
+Being alone does not give M0, TH0 its line, it gives it the miss handler. On the next round its lookup is the only one to reach F2, so its miss is accepted: `f0_l1_miss_req_valid` is driven in F3 and `f0_l1_miss_req` carries that thread's line address out to the L1 instruction cache. The response in F4 is still a miss and the thread sleeps again; the counter holds at 31 because it saturates. Only when that fill completes and the thread retries does it hit, and that hit clears the counter and releases the mask.
 
 [[fig-ch3-td-l0-mask]]
 .Miss-count guard: saturation, bid mask and release
@@ -411,7 +415,6 @@ These mechanisms guarantee forward progress in the fetch path under the followin
 * Every L1 miss request eventually returns a fill, and every translation request eventually completes.
 * Software does not keep a thread's exclusive mode, `WFI` or other architectural stalls asserted indefinitely. These deliberately stop the affected thread and are not starvation.
 * Error responses are not sustained. Because an error clears every thread's miss counter, a continuous stream of faulting fetches from other threads would defer the livelock guard. In practice each fault redirects the faulting thread to its trap handler, so such a stream does not persist.
-* When several cores have saturated counters, they are served in fixed order, lowest-numbered core first. The waiting time of a higher-numbered core is bounded, because each exclusive period ends when the selected thread hits.
 
 [[sec-ch3-fe-ic-limits]]
 ==== Known Limitations
@@ -421,9 +424,8 @@ The properties below follow from the design of the interface. They are not defec
 * *Response carries no thread identifier.* A core matches a response to its request by counting cycles, so the fixed response latency is part of the interface contract. A change to the depth of the L0 pipeline has to be matched in the Front End.
 * *Fill done carries no address.* Every fill wakes every sleeping thread of the micro-cache. Threads waiting for a different line arbitrate, miss again and sleep again, which costs L0 bandwidth on every fill and grows with the number of threads waiting on different lines.
 * *One outstanding miss per L0 micro-cache.* A miss that arrives while the miss handler is busy is answered with a miss response but is not recorded, so its line is not requested. That thread makes progress only after an unrelated fill wakes it and it retries.
-* *Starving cores are served in a fixed order.* When several cores have a saturated thread, the mask always selects the lowest-numbered one first. Its waiting time is bounded, because each exclusive period ends when the selected thread hits, but the order is not fair.
-* *Unattended-miss hold is released by any core request.* Which thread issues that request is not checked, so the hold can end before the thread whose miss was turned away has retried. That thread is covered by the miss-count guard rather than by the hold.
-* *Prefetching can pause for a long time after a faulting line.* The prefetcher waits for a fill done before it moves to the next line, and a faulting line produces no fill of its own. If every thread is hitting, no fill done is generated and prefetching stays paused.
+* *Starving Minions are served in a fixed order.* When several Minions have a saturated thread, the mask always selects the lowest-numbered one first. Its waiting time is bounded, because each exclusive period ends when the selected thread hits, but the order is not fair.
+* *The L1 instruction cache is blocking.* It accepts one request at a time and holds its request port closed until that request's own response, which on an L1 miss waits for the line to come back from the Shire Cache. The round-robin bound of one transaction of the other micro-cache is therefore correct as a count but stands for a full round trip out of the Neighborhood, during which the other micro-cache cannot even begin a lookup that might have hit.
 
 // ---------------------------------------------------------------------------
 [[sec-ch3-l0]]
