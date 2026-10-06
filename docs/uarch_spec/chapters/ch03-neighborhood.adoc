@@ -143,7 +143,7 @@ A fetch request, that is a request from the Front End of a core for the instruct
 | `icache_flush_data` | in | 1 | Invalidate the data stored in the L0 micro-cache.
 |===
 
-The fetch response ports are the exception to that one-core view. The Neighborhood drives one set of them per L0 micro-cache, common to the four cores it serves, so `icache_resp_valid`, `icache_resp_miss`, `icache_resp` and `icache_fill_done` reach all four at the same time. Being common, the response carries no thread identifier and nothing that says which core it belongs to.
+The fetch response ports are the exception to that one-core view. The Neighborhood drives one set of them per L0 micro-cache, common to the four cores it serves, so `icache_resp_valid`, `icache_resp_miss`, `icache_resp` and `icache_fill_done` reach all four at the same time. Being common, the response carries no thread identifier and nothing that says which core it belongs to. Each core works that out on its own: it tracks its outstanding request down the pipeline, so it knows in which cycle its response is due and which of its two threads made it, and it ignores the responses of the other three cores (<<sec-ch2-fe-track>>).
 
 [[sec-ch3-fe-ic-arb]]
 ==== Request Arbitration
@@ -217,7 +217,7 @@ Every accepted request receives exactly one response from the last stage, for a 
 
 The fill-done signal is driven one stage later than the response, from the stage after F4.
 
-<<fig-ch3-td-l0-hit>> shows a request that hits: the core presents it, the 8:1 LRU arbiter grants it in cycle 1, and the response is returned in cycle 5, four cycles later. The grant frees both registers that were holding the request, the core's F1 request register and the Neighborhood's per-thread register, which is why both valids fall in the next cycle. `f4_grant` still names M0, TH0, the thread that was granted four cycles earlier, which is how F4 knows whose priority to update: the response is a hit, so `f4_update_prio` is asserted and M0, TH0 moves behind the other threads in the LRU order.
+In the waveforms that follow, a thread is written M0, TH0, meaning thread 0 of Minion 0. <<fig-ch3-td-l0-hit>> shows a request that hits: the core presents it, the 8:1 LRU arbiter grants it in cycle 1, and the response is returned in cycle 5, four cycles later. The grant frees both registers that were holding the request, the core's F1 request register and the Neighborhood's per-thread register, which is why both valids fall in the next cycle. `f4_grant` still names M0, TH0, the thread that was granted four cycles earlier, which is how F4 knows whose priority to update: the response is a hit, so `f4_update_prio` is asserted and M0, TH0 moves behind the other threads in the LRU order.
 
 [[fig-ch3-td-l0-hit]]
 .Request and hit response at the L0 micro-cache
@@ -266,7 +266,7 @@ A response that reports a fault is delivered like any other response, and the co
 [[sec-ch3-fe-ic-path]]
 ==== Complete Path for Four Cores
 
-<<fig-ch3-td-l0-arb>> puts the pieces together: four cores requesting in the same cycle, the two flops each request passes through, the arbitration between the threads, and the five responses. Threads are numbered 2 × Minion + thread, and the LRU order lane lists them highest priority first.
+<<fig-ch3-td-l0-arb>> puts the pieces together: four cores requesting in the same cycle, the two flops each request passes through, the arbitration between the threads, and the five responses, one for each of the five threads that were granted. In the `LRU order` lane alone the threads are written as digits, numbered 2 × Minion + thread, because eight names do not fit in one cycle; the lane lists them highest priority first.
 
 [[fig-ch3-td-l0-arb]]
 .Request capture, arbitration and response for four cores
@@ -274,7 +274,9 @@ image::ch03/td-l0-arb.png["Request capture, arbitration and response for four co
 
 In cycle 0 the four cores present a TH0 request each, and the F1 registers hold them. The thread registers go valid in cycle 1, M0, TH0 wins and `icache_req_ready` frees M0's F1 register, which reloads with TH1 in cycle 2. M1, TH0 is granted in cycle 2, and in cycle 3 M0, TH1 is granted, while M2 and M3 are still holding their first request.
 
-M0 is therefore served twice before M2 and M3 are served once. That is the deferred update at work: M0, TH0's grant does not move it behind the others until its response arrives in cycle 5, and until then M0, TH1 is the highest-priority bidder. The same property is what lets a thread that missed win its retry immediately, and the miss-count guard bounds how long a thread can be passed over (<<sec-ch3-fe-ic-livelock>>).
+M0 is therefore served twice before M2 and M3 are served once, and the reason is that the aging matrix has one entry per thread, not one per Minion. Granting M0, TH0 demotes M0, TH0 and nothing else, so M0, TH1 keeps a position that is still ahead of M2 and M3 and wins the arbitration in cycle 3. The deferred update does not cause this: had the priority been updated at the grant instead of at the response, M0, TH1 would have won that cycle just the same.
+
+Per-thread entries are what make the arbitration fair, because the two threads of a core succeed and fail independently. One may hit while the other misses, and a single entry shared by both would demote the thread that missed every time its sibling was served, costing it the position it needs to win its retry after the fill. What the deferred update adds is the next step: a thread whose own response is a miss keeps its place, so it wins its retry immediately, and the miss-count guard bounds how long any thread can be passed over (<<sec-ch3-fe-ic-livelock>>).
 
 The response for M0, TH0 appears in F4 in cycle 5, four cycles after its grant, with `f4_grant` naming the thread. It hits, `f4_update_prio` is asserted and the order changes from `01234567` to `12345670`.
 
@@ -337,7 +339,7 @@ In all three cases the thread enters the sleep state (`f0_miss_pending`) and no 
 
 The L0 micro-cache pulses `f6_icache_fill_done` to all its threads whenever an L1 fill completes, whether it is a demand miss or a prefetch, and whenever a translation fill completes. On seeing the fill done every sleeping thread wakes and retries according to the arbitration priority. A thread whose line is now present hits, including any thread that missed on the line already being fetched, and a thread whose line is still absent misses again; if the handler is now idle, its miss is sent to the L1 instruction cache.
 
-A thread sleeps only when a fill is in progress: either its own miss, the fill of some other thread that kept the handler busy, or a translation fill. As such every sleeping thread is woken when it receives the fill-done signal. The fill-done timing (<<sec-ch2-fe-miss>>) makes sure that no wake-up is lost: fill done is issued one cycle after the last response the fill can affect, and it is registered again in the Front End. A redirect, a thread disable or a pending halt clears the sleep state of the affected thread only; fill done is the only event that wakes all sleeping threads.
+A thread sleeps because its own response was a miss; that is the only thing that puts it to sleep. What decides when it is woken is what the handler was doing at that moment: serving this thread's own miss, serving the fill of another thread that kept the handler busy, or completing a translation. In all three a fill is in progress, so every sleeping thread is woken when it receives the fill-done signal. The fill-done timing (<<sec-ch2-fe-miss>>) makes sure that no wake-up is lost: fill done is issued one cycle after the last response the fill can affect, and it is registered again in the Front End. A redirect, a thread disable or a pending halt clears the sleep state of the affected thread only; fill done is the only event that wakes all sleeping threads.
 
 Which thread is served in a round is decided in F2. That is the stage where the tag is compared, where a miss is therefore first indicated, and where the handler accepts it and flops its state so that the request to the L1 instruction cache goes out in F3 (<<tab-ch3-l0-stages>>). A lookup that reaches F2 any later in the round finds the handler no longer Ready.
 

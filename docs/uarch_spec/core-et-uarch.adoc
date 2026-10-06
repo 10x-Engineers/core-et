@@ -19,12 +19,17 @@
 
 ifdef::rtd[]
 [.text-center]
-Downloads: link:core-et-uarch.pdf[PDF] | link:core-et-uarch.docx[Word]
+Downloads: link:core-et-uarch.pdf[PDF] | link:core-et-uarch.html[HTML]
 
 endif::rtd[]
 [preface]
 [[document-control]]
 == Document Control
+[[document-author]]
+=== Document Author
+
+Ryan Naveed, 10xEngineers -- ryan.naveed@10xengineers.ai
+
 === Revision History
 
 // [[tab-revision-history]]
@@ -33,11 +38,34 @@ endif::rtd[]
 |===
 | Version | Date | Author | Notes
 
-| v0.1 | 2026-09-22 | Ryan Naveed a|
+| v0.1 | 2026-10-06 | Ryan Naveed a|
 * First draft of the document.
 * Chapter 1, ET-SoC-1 Overview: written.
 * Chapter 2, ET-Minion Core: Core Overview (block partitioning, hardware threads, instruction flow) and Front End written. Integer Pipeline, Data Cache and VPU contain headings only.
-* Chapter 3, Neighborhood: headings only.
+* Chapter 3, Neighborhood: Overview, Neighborhood Instruction Cache and Front End -- I-Cache Interface written. The remaining sections contain headings only.
+|===
+
+[[source-material]]
+=== Source Material and Acknowledgements
+
+The original micro-architecture documents are in `docs/uarch/` of this repository, one per module. Where a document and the RTL differ, the RTL is followed and the difference is noted in this reference, in the section where it arises.
+
+The engineers who worked on each module are listed below.
+
+[cols="2,4",options="header"]
+|===
+| Engineer | Module documents
+
+| Albert Navarro | FE/Intpipe Description
+| Francisco Torres | Minion DCache Description
+| Guillem Solé | Cooperative TensorLoad Description
+| Ildefonso Gomariz | CORE-ET Neighborhood MAS; Neighborhood I-Cache Description; Front End -- I-Cache Interface; CORE-ET Minion Shire Description; Cooperative TensorLoad Description; ET-Link Specification
+| Jordi Muñoz | Minion VPU Specification
+| Juanjo Galindo | CORE-ET Minion Shire Description; Minion Shire DLL Constraints
+| Miquel Izquierdo | ET-Link Specification
+| Sebastià Tortella | Minion Description; FE/Intpipe Description; ET-Link Specification
+| Sri Samudrala | Minion VPU Specification
+| Xavier Revés | CORE-ET Neighborhood MAS; Minion Description; Minion DCache Description; CORE-ET Minion Shire Description; Minion Shire DLL Constraints; ET-Link Specification
 |===
 
 include::chapters/ch01-et-soc-1-overview.adoc[]
@@ -46,4 +74,3 @@ include::chapters/ch02-et-minion-core.adoc[]
 
 include::chapters/ch03-neighborhood.adoc[]
 
-include::chapters/ch03b-forward-progress-draft.adoc[]

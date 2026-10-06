@@ -1,6 +1,6 @@
 # Legacy Micro-Architecture Documents (Markdown Conversion)
 
-This folder contains Markdown versions of every PDF in [`docs/u_arch/`](../u_arch/). The text is converted word for word, and all figures are kept.
+This folder contains Markdown versions of every PDF in [`docs/uarch/`](../uarch/). The text is converted word for word, and all figures are kept.
 
 - **Purpose:** these files are the searchable, diff-able source material for the new micro-architecture reference. They are a faithful transcription of the originals, with no corrections and no edits to the content.
 - **Revision:** the source PDFs describe the **first (A0) revision** of the ET-SoC-1 design. The RTL in [`rtl/`](../../rtl/) is a later revision, so these documents may disagree with the implementation. Any such discrepancy is resolved in the new document, not here.
@@ -9,7 +9,7 @@ This folder contains Markdown versions of every PDF in [`docs/u_arch/`](../u_arc
 ## Layout
 
 ```
-u_arch_md/
+uarch_md/
 ├── README.md                          ← this index
 └── <Document-Name>/
     ├── <Document-Name>.md             ← full text, tables, captions
@@ -37,7 +37,7 @@ The folder names follow the PDF file names so the two can be traced to each othe
 | [Minion Shire DLL Constraints](Minion-Shire-DLL-Constraints/Minion-Shire-DLL-Constraints.md) | `Minion Shire DLL Constraints.pdf` | 23 | — | 15 | DLL delay constraints and probe points |
 | [Minion Shire DLL Delay Control](Minion-Shire-DLL-Delay-Control/Minion-Shire-DLL-Delay-Control.md) | `Minion Shire DLL Delay Control.pdf` | 15 | — | 8 | Programmable delay cells and DLL delay estimation |
 
-The image [`docs/u_arch/cpu_subsystem/images/cpuss_diagram.png`](../u_arch/cpu_subsystem/images/cpuss_diagram.png) is not a PDF and was not converted.
+The image [`docs/uarch/cpu_subsystem/images/cpuss_diagram.png`](../uarch/cpu_subsystem/images/cpuss_diagram.png) is not a PDF and was not converted.
 
 ## Conversion method
 

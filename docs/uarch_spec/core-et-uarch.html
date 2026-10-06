@@ -442,6 +442,14 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 @media screen and (min-width: 768px) {
   #header, #content, #footnotes, #footer { max-width: 75em; }
 }
+
+/* Inline signal and module names, in the same red the PDF theme uses
+   (asciidoctor-pdf codespan.font_color = B12146). */
+:not(pre) > code {
+  color: #b12146;
+  background: none;
+  font-weight: 400;
+}
 </style>
 </head>
 <body class="book toc2 toc-left">
@@ -452,7 +460,9 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel1">
 <li><a href="#document-control">Document Control</a>
 <ul class="sectlevel2">
+<li><a href="#document-author">Document Author</a></li>
 <li><a href="#_revision_history">Revision History</a></li>
+<li><a href="#source-material">Source Material and Acknowledgements</a></li>
 </ul>
 </li>
 <li><a href="#ch-et-soc-1-overview">1. ET-SoC-1 Overview</a>
@@ -657,31 +667,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
-<li><a href="#sec-fp">4. Forward Progress in the Instruction Fetch Path (Draft for Review)</a>
-<ul class="sectlevel2">
-<li><a href="#sec-fp-purpose">4.1. Purpose</a></li>
-<li><a href="#sec-fp-points">4.2. Where a Thread Can Be Held Up</a></li>
-<li><a href="#sec-fp-why">4.3. Why Forward Progress Is Not Automatic</a>
-<ul class="sectlevel3">
-<li><a href="#sec-fp-outcomes">4.3.1. What Happens to a Lookup</a></li>
-<li><a href="#sec-fp-dropped">4.3.2. The Dropped Miss</a></li>
-<li><a href="#sec-fp-arbiter">4.3.3. Why the Arbiter Cannot Repair It</a></li>
-<li><a href="#sec-fp-capture">4.3.4. Worked Example: the Prefetch Engine Takes the Window</a></li>
-</ul>
-</li>
-<li><a href="#sec-fp-mechanisms">4.4. The Mechanisms</a>
-<ul class="sectlevel3">
-<li><a href="#sec-fp-arbiters">4.4.1. Bounded Waits at the Arbiters</a></li>
-<li><a href="#sec-fp-sleep">4.4.2. Sleep and Wake-Up</a></li>
-<li><a href="#sec-fp-prefetch">4.4.3. Keeping Prefetch Behind Every Thread</a></li>
-<li><a href="#sec-fp-guard">4.4.4. The Miss-Count Guard</a></li>
-</ul>
-</li>
-<li><a href="#sec-fp-argument">4.5. The Argument End to End</a></li>
-<li><a href="#sec-fp-assumptions">4.6. Assumptions</a></li>
-<li><a href="#sec-fp-limits">4.7. Known Limitations</a></li>
-</ul>
-</li>
 </ul>
 </div>
 </div>
@@ -689,6 +674,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sect1">
 <h2 id="document-control"><a class="anchor" href="#document-control"></a><a class="link" href="#document-control">Document Control</a></h2>
 <div class="sectionbody">
+<div class="sect2">
+<h3 id="document-author"><a class="anchor" href="#document-author"></a><a class="link" href="#document-author">Document Author</a></h3>
+<div class="paragraph">
+<p>Ryan Naveed, 10xEngineers&#8201;&#8212;&#8201;<a href="mailto:ryan.naveed@10xengineers.ai">ryan.naveed@10xengineers.ai</a></p>
+</div>
+</div>
 <div class="sect2">
 <h3 id="_revision_history"><a class="anchor" href="#_revision_history"></a><a class="link" href="#_revision_history">Revision History</a></h3>
 <table class="tableblock frame-all grid-all stretch">
@@ -709,7 +700,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <tbody>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">v0.1</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2026-09-22</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2026-10-06</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Ryan Naveed</p></td>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="ulist">
 <ul>
@@ -723,10 +714,73 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p>Chapter 2, ET-Minion Core: Core Overview (block partitioning, hardware threads, instruction flow) and Front End written. Integer Pipeline, Data Cache and VPU contain headings only.</p>
 </li>
 <li>
-<p>Chapter 3, Neighborhood: headings only.</p>
+<p>Chapter 3, Neighborhood: Overview, Neighborhood Instruction Cache and Front End&#8201;&#8212;&#8201;I-Cache Interface written. The remaining sections contain headings only.</p>
 </li>
 </ul>
 </div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect2">
+<h3 id="source-material"><a class="anchor" href="#source-material"></a><a class="link" href="#source-material">Source Material and Acknowledgements</a></h3>
+<div class="paragraph">
+<p>The original micro-architecture documents are in <code>docs/uarch/</code> of this repository, one per module. Where a document and the RTL differ, the RTL is followed and the difference is noted in this reference, in the section where it arises.</p>
+</div>
+<div class="paragraph">
+<p>The engineers who worked on each module are listed below.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 66.6667%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Engineer</th>
+<th class="tableblock halign-left valign-top">Module documents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Albert Navarro</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FE/Intpipe Description</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Francisco Torres</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minion DCache Description</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Guillem Solé</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cooperative TensorLoad Description</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Ildefonso Gomariz</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CORE-ET Neighborhood MAS; Neighborhood I-Cache Description; Front End&#8201;&#8212;&#8201;I-Cache Interface; CORE-ET Minion Shire Description; Cooperative TensorLoad Description; ET-Link Specification</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Jordi Muñoz</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minion VPU Specification</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Juanjo Galindo</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CORE-ET Minion Shire Description; Minion Shire DLL Constraints</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Miquel Izquierdo</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ET-Link Specification</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sebastià Tortella</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minion Description; FE/Intpipe Description; ET-Link Specification</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sri Samudrala</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minion VPU Specification</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Xavier Revés</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CORE-ET Neighborhood MAS; Minion Description; Minion DCache Description; CORE-ET Minion Shire Description; Minion Shire DLL Constraints; ET-Link Specification</p></td>
 </tr>
 </tbody>
 </table>
@@ -3489,7 +3543,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </tbody>
 </table>
 <div class="paragraph">
-<p>The fetch response ports are the exception to that one-core view. The Neighborhood drives one set of them per L0 micro-cache, common to the four cores it serves, so <code>icache_resp_valid</code>, <code>icache_resp_miss</code>, <code>icache_resp</code> and <code>icache_fill_done</code> reach all four at the same time. Being common, the response carries no thread identifier and nothing that says which core it belongs to.</p>
+<p>The fetch response ports are the exception to that one-core view. The Neighborhood drives one set of them per L0 micro-cache, common to the four cores it serves, so <code>icache_resp_valid</code>, <code>icache_resp_miss</code>, <code>icache_resp</code> and <code>icache_fill_done</code> reach all four at the same time. Being common, the response carries no thread identifier and nothing that says which core it belongs to. Each core works that out on its own: it tracks its outstanding request down the pipeline, so it knows in which cycle its response is due and which of its two threads made it, and it ignores the responses of the other three cores (<a href="#sec-ch2-fe-track">Section 2.2.4.2</a>).</p>
 </div>
 </div>
 <div class="sect3">
@@ -3641,7 +3695,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>The fill-done signal is driven one stage later than the response, from the stage after F4.</p>
 </div>
 <div class="paragraph">
-<p><a href="#fig-ch3-td-l0-hit">Figure 24</a> shows a request that hits: the core presents it, the 8:1 LRU arbiter grants it in cycle 1, and the response is returned in cycle 5, four cycles later. The grant frees both registers that were holding the request, the core&#8217;s F1 request register and the Neighborhood&#8217;s per-thread register, which is why both valids fall in the next cycle. <code>f4_grant</code> still names M0, TH0, the thread that was granted four cycles earlier, which is how F4 knows whose priority to update: the response is a hit, so <code>f4_update_prio</code> is asserted and M0, TH0 moves behind the other threads in the LRU order.</p>
+<p>In the waveforms that follow, a thread is written M0, TH0, meaning thread 0 of Minion 0. <a href="#fig-ch3-td-l0-hit">Figure 24</a> shows a request that hits: the core presents it, the 8:1 LRU arbiter grants it in cycle 1, and the response is returned in cycle 5, four cycles later. The grant frees both registers that were holding the request, the core&#8217;s F1 request register and the Neighborhood&#8217;s per-thread register, which is why both valids fall in the next cycle. <code>f4_grant</code> still names M0, TH0, the thread that was granted four cycles earlier, which is how F4 knows whose priority to update: the response is a hit, so <code>f4_update_prio</code> is asserted and M0, TH0 moves behind the other threads in the LRU order.</p>
 </div>
 <div id="fig-ch3-td-l0-hit" class="imageblock text-center">
 <div class="content">
@@ -3733,7 +3787,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <div class="sect3">
 <h4 id="sec-ch3-fe-ic-path"><a class="anchor" href="#sec-ch3-fe-ic-path"></a><a class="link" href="#sec-ch3-fe-ic-path">3.3.7. Complete Path for Four Cores</a></h4>
 <div class="paragraph">
-<p><a href="#fig-ch3-td-l0-arb">Figure 26</a> puts the pieces together: four cores requesting in the same cycle, the two flops each request passes through, the arbitration between the threads, and the five responses. Threads are numbered 2 × Minion + thread, and the LRU order lane lists them highest priority first.</p>
+<p><a href="#fig-ch3-td-l0-arb">Figure 26</a> puts the pieces together: four cores requesting in the same cycle, the two flops each request passes through, the arbitration between the threads, and the five responses, one for each of the five threads that were granted. In the <code>LRU order</code> lane alone the threads are written as digits, numbered 2 × Minion + thread, because eight names do not fit in one cycle; the lane lists them highest priority first.</p>
 </div>
 <div id="fig-ch3-td-l0-arb" class="imageblock text-center">
 <div class="content">
@@ -3745,7 +3799,10 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>In cycle 0 the four cores present a TH0 request each, and the F1 registers hold them. The thread registers go valid in cycle 1, M0, TH0 wins and <code>icache_req_ready</code> frees M0&#8217;s F1 register, which reloads with TH1 in cycle 2. M1, TH0 is granted in cycle 2, and in cycle 3 M0, TH1 is granted, while M2 and M3 are still holding their first request.</p>
 </div>
 <div class="paragraph">
-<p>M0 is therefore served twice before M2 and M3 are served once. That is the deferred update at work: M0, TH0&#8217;s grant does not move it behind the others until its response arrives in cycle 5, and until then M0, TH1 is the highest-priority bidder. The same property is what lets a thread that missed win its retry immediately, and the miss-count guard bounds how long a thread can be passed over (<a href="#sec-ch3-fe-ic-livelock">Section 3.3.8</a>).</p>
+<p>M0 is therefore served twice before M2 and M3 are served once, and the reason is that the aging matrix has one entry per thread, not one per Minion. Granting M0, TH0 demotes M0, TH0 and nothing else, so M0, TH1 keeps a position that is still ahead of M2 and M3 and wins the arbitration in cycle 3. The deferred update does not cause this: had the priority been updated at the grant instead of at the response, M0, TH1 would have won that cycle just the same.</p>
+</div>
+<div class="paragraph">
+<p>Per-thread entries are what make the arbitration fair, because the two threads of a core succeed and fail independently. One may hit while the other misses, and a single entry shared by both would demote the thread that missed every time its sibling was served, costing it the position it needs to win its retry after the fill. What the deferred update adds is the next step: a thread whose own response is a miss keeps its place, so it wins its retry immediately, and the miss-count guard bounds how long any thread can be passed over (<a href="#sec-ch3-fe-ic-livelock">Section 3.3.8</a>).</p>
 </div>
 <div class="paragraph">
 <p>The response for M0, TH0 appears in F4 in cycle 5, four cycles after its grant, with <code>f4_grant</code> naming the thread. It hits, <code>f4_update_prio</code> is asserted and the order changes from <code>01234567</code> to <code>12345670</code>.</p>
@@ -3891,7 +3948,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>The L0 micro-cache pulses <code>f6_icache_fill_done</code> to all its threads whenever an L1 fill completes, whether it is a demand miss or a prefetch, and whenever a translation fill completes. On seeing the fill done every sleeping thread wakes and retries according to the arbitration priority. A thread whose line is now present hits, including any thread that missed on the line already being fetched, and a thread whose line is still absent misses again; if the handler is now idle, its miss is sent to the L1 instruction cache.</p>
 </div>
 <div class="paragraph">
-<p>A thread sleeps only when a fill is in progress: either its own miss, the fill of some other thread that kept the handler busy, or a translation fill. As such every sleeping thread is woken when it receives the fill-done signal. The fill-done timing (<a href="#sec-ch2-fe-miss">Section 2.2.4.3</a>) makes sure that no wake-up is lost: fill done is issued one cycle after the last response the fill can affect, and it is registered again in the Front End. A redirect, a thread disable or a pending halt clears the sleep state of the affected thread only; fill done is the only event that wakes all sleeping threads.</p>
+<p>A thread sleeps because its own response was a miss; that is the only thing that puts it to sleep. What decides when it is woken is what the handler was doing at that moment: serving this thread&#8217;s own miss, serving the fill of another thread that kept the handler busy, or completing a translation. In all three a fill is in progress, so every sleeping thread is woken when it receives the fill-done signal. The fill-done timing (<a href="#sec-ch2-fe-miss">Section 2.2.4.3</a>) makes sure that no wake-up is lost: fill done is issued one cycle after the last response the fill can affect, and it is registered again in the Front End. A redirect, a thread disable or a pending halt clears the sleep state of the affected thread only; fill done is the only event that wakes all sleeping threads.</p>
 </div>
 <div class="paragraph">
 <p>Which thread is served in a round is decided in F2. That is the stage where the tag is compared, where a miss is therefore first indicated, and where the handler accepts it and flops its state so that the request to the L1 instruction cache goes out in F3 (<a href="#tab-ch3-l0-stages">Table 29</a>). A lookup that reaches F2 any later in the round finds the handler no longer Ready.</p>
@@ -4231,440 +4288,10 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </div>
 </div>
 </div>
-<div class="sect1">
-<h2 id="sec-fp"><a class="anchor" href="#sec-fp"></a><a class="link" href="#sec-fp">4. Forward Progress in the Instruction Fetch Path (Draft for Review)</a></h2>
-<div class="sectionbody">
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-This chapter is a rewrite of <a href="#sec-ch3-fe-ic-livelock">Section 3.3.8</a> kept alongside it for comparison. Only one of the two will survive.
-</td>
-</tr>
-</table>
-</div>
-<div class="sect2">
-<h3 id="sec-fp-purpose"><a class="anchor" href="#sec-fp-purpose"></a><a class="link" href="#sec-fp-purpose">4.1. Purpose</a></h3>
-<div class="paragraph">
-<p>Sixteen threads fetch instructions through one shared instruction cache. At every point where they meet, one of them proceeds and the others wait. This chapter states what is guaranteed about that waiting, which hardware provides each guarantee, and where a guarantee rests on a heuristic rather than on a bound.</p>
-</div>
-<div class="paragraph">
-<p>Two distinct properties are at stake, and the hardware that provides them is different:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>Starvation</strong> is one thread never being served while others are. Arbitration policy prevents it: every arbiter in the path is work-conserving and ages its clients, so no client can be passed over indefinitely.</p>
-</li>
-<li>
-<p><strong>Livelock</strong> is every thread being served and none making progress. Arbitration cannot prevent it, because the threads are being served. A separate mechanism is needed, and the Neighborhood provides one.</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>The claim this chapter supports is the following. <em>Under the assumptions of <a href="#sec-fp-assumptions">Section 4.6</a>, every enabled, unhalted thread eventually receives the instruction block it asked for.</em> The claim is deliberately weak: it is an eventuality, not a cycle count, because one step in the path has no hardware bound and is closed by a counter instead.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="sec-fp-points"><a class="anchor" href="#sec-fp-points"></a><a class="link" href="#sec-fp-points">4.2. Where a Thread Can Be Held Up</a></h3>
-<div class="paragraph">
-<p><a href="#fig-fp-path">Figure 29</a> shows the fetch path with the shared points marked. <a href="#tab-fp-points">Table 32</a> lists them with the policy that governs each.</p>
-</div>
-<div id="fig-fp-path" class="imageblock text-center">
-<div class="content">
-<img src="images/ch03/fig-fe-l0-intrf-livelock.drawio.png" alt="Shared points in the instruction fetch path" width="100%">
-</div>
-<div class="title">Figure 29. Shared points in the instruction fetch path</div>
-</div>
-<table id="tab-fp-points" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 32. Contention points and their policies</caption>
-<colgroup>
-<col style="width: 25%;">
-<col style="width: 12.5%;">
-<col style="width: 25%;">
-<col style="width: 37.5%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Shared resource</th>
-<th class="tableblock halign-left valign-top">Contenders</th>
-<th class="tableblock halign-left valign-top">Policy</th>
-<th class="tableblock halign-left valign-top">Bound on the wait</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Core fetch port (F1 request register)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2 threads of a core</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2:1 LRU arbiter, priority updated on every grant</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">One request of the other thread</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">L0 request port</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">8 threads of 4 cores</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">8:1 LRU arbiter, aging matrix, priority updated on the response</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Seven grants of other threads</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">L0 miss handler</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">8 threads and the prefetch engine</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">None. First lookup to reach F2 with the handler idle takes it</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>No hardware bound</strong>, see <a href="#sec-fp-guard">Section 4.4.4</a></p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">L1 request port</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2 L0 micro-caches</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Round-robin arbiter</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">One transaction of the other micro-cache</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Decoders and the issue slot</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2 threads of a core</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Alternating decode selection, round-robin thread scheduler, per-thread FIFOs</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Every other cycle while eligible</p></td>
-</tr>
-</tbody>
-</table>
-<div class="paragraph">
-<p>The third row is the subject of this chapter. The other four are ordinary arbitration and are described with the hardware that implements them: the core fetch port and the issue slot in <a href="#sec-ch2-fe">Section 2.2</a>, the L0 request port in <a href="#sec-ch3-fe-ic-arb">Section 3.3.3</a>, and the L1 request port in <a href="#sec-ch3-l1">Section 3.5</a>.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="sec-fp-why"><a class="anchor" href="#sec-fp-why"></a><a class="link" href="#sec-fp-why">4.3. Why Forward Progress Is Not Automatic</a></h3>
-<div class="sect3">
-<h4 id="sec-fp-outcomes"><a class="anchor" href="#sec-fp-outcomes"></a><a class="link" href="#sec-fp-outcomes">4.3.1. What Happens to a Lookup</a></h4>
-<div class="paragraph">
-<p>A lookup that reaches F2 has five possible outcomes. <a href="#fig-fp-flow">Figure 30</a> shows them in the order the hardware evaluates them.</p>
-</div>
-<div id="fig-fp-flow" class="imageblock text-center">
-<div class="content">
-<img src="images/ch03/fig-ll-miss-flow.png" alt="Outcomes of a lookup in F2" width="85%">
-</div>
-<div class="title">Figure 30. Outcomes of a lookup in F2</div>
-</div>
-<div class="paragraph">
-<p>Four of the five leave the thread in a defined, progressing state: it has its block, it has a fault to act on, or a line or a translation has been requested on its behalf and a fill is on its way.</p>
-</div>
-<div class="paragraph">
-<p>The fifth does not.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="sec-fp-dropped"><a class="anchor" href="#sec-fp-dropped"></a><a class="link" href="#sec-fp-dropped">4.3.2. The Dropped Miss</a></h4>
-<div class="paragraph">
-<p>A miss is recorded only if the miss handler is idle when the lookup reaches F2. The condition is explicit in the RTL: <code>f2_miss</code> is qualified with <code>f0_miss_state == Ready</code>. There is no pending-miss buffer and no retry queue behind it.</p>
-</div>
-<div class="paragraph">
-<p>A lookup that misses while the handler is busy is therefore <strong>discarded</strong>. The thread is not told. It receives an ordinary miss response, it sets its sleep bit, and it waits for a fill that was never requested for it. It is released by the next fill done, which is a broadcast carrying no address, so it wakes whether or not the fill had anything to do with it.</p>
-</div>
-<div class="paragraph">
-<p>Three consequences follow, and together they are the whole problem:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p><strong>Each fill-done round services exactly one new miss.</strong> The handler is idle only between a fill completing and the next miss being accepted. Every lookup that arrives later in that round is discarded.</p>
-</li>
-<li>
-<p><strong>A discarded miss costs a full round.</strong> The thread&#8217;s next opportunity is the next fill done, which is one L1 transaction away, and an L1 miss adds the L2 round trip on top because the L1 is blocking.</p>
-</li>
-<li>
-<p><strong>The thread&#8217;s arbitration priority does not change.</strong> <code>f4_update_prio</code> is asserted only for a hit or a fault, so a thread that only ever misses never moves in the aging matrix.</p>
-</li>
-</ol>
-</div>
-</div>
-<div class="sect3">
-<h4 id="sec-fp-arbiter"><a class="anchor" href="#sec-fp-arbiter"></a><a class="link" href="#sec-fp-arbiter">4.3.3. Why the Arbiter Cannot Repair It</a></h4>
-<div class="paragraph">
-<p>The third consequence is worth dwelling on, because it is the reason a separate mechanism exists at all.</p>
-</div>
-<div class="paragraph">
-<p>The 8:1 LRU arbiter is working correctly throughout. The starving thread is granted in every round and answered in every round. What it is denied is not the port but the <strong>miss handler</strong>, and the arbiter has no visibility of that resource.</p>
-</div>
-<div class="paragraph">
-<p>Raising the thread&#8217;s priority would not help either. Priority decides who enters the pipeline first, and the thread that enters first is not necessarily the thread that finds the handler idle: a lookup that hits leaves the handler untouched, so the handler goes to the first <strong>missing</strong> lookup of the round, whoever that is.</p>
-</div>
-<div class="paragraph">
-<p>Among threads that only miss, the aging matrix is frozen. None of them updates its priority, so their relative order never changes. A thread that starts behind two chronic missers stays behind them for as long as all three keep missing.</p>
-</div>
-<div class="paragraph">
-<p>In the ordinary case this still resolves. The thread that does take the handler gets its line, retries first in the next round because its priority is unchanged, hits, and only then moves to the back, which lets the next thread through. Eight rounds serve eight threads. That natural bound holds for demand traffic alone, and it is worth stating plainly because it explains why the guard almost never fires.</p>
-</div>
-<div class="paragraph">
-<p>It fails when a contender takes the handler repeatedly <strong>without ever demoting</strong>. Two such contenders exist: a thread whose fill is discarded before it can use it, which a flush or a cache-bypass configuration can cause, and the code prefetch engine, which is not a thread at all and has no entry in the aging matrix.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="sec-fp-capture"><a class="anchor" href="#sec-fp-capture"></a><a class="link" href="#sec-fp-capture">4.3.4. Worked Example: the Prefetch Engine Takes the Window</a></h4>
-<div class="paragraph">
-<p>The prefetch engine shares the miss handler with demand fetches and issues in any cycle in which no core presents a request, <code>f0_prefetch_req_ready = ~f0_req_valid</code>. The cycles immediately after a fill completes are exactly such cycles: the threads have not been woken yet, so nothing is competing for the pipeline.</p>
-</div>
-<div class="paragraph">
-<p><a href="#fig-fp-capture">Figure 31</a> follows one round.</p>
-</div>
-<div id="fig-fp-capture" class="imageblock text-center">
-<div class="content">
-<img src="images/ch03/td-ll-capture.png" alt="The prefetch engine takes the miss handler before the woken threads reach F2" width="100%">
-</div>
-<div class="title">Figure 31. The prefetch engine takes the miss handler before the woken threads reach F2</div>
-</div>
-<table class="tableblock frame-all grid-all stretch">
-<colgroup>
-<col style="width: 14.2857%;">
-<col style="width: 85.7143%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Cycle</th>
-<th class="tableblock halign-left valign-top">Event</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">0</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A fill returns. The miss handler leaves <code>Fill_Wait</code>.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Handler is <code>Ready</code>. No core has presented a request, so <code>f0_prefetch_req_ready</code> is high and the prefetch request enters the pipeline.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Fill done is pulsed to the cores. The prefetch request is in F1.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The prefetch lookup reaches F2, is forced to miss, finds the handler idle and <strong>takes it</strong>. The threads have only just woken.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">4, 5</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The cores present their requests and the 8:1 arbiter grants them. The handler is already busy.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">7, 8</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The threads' lookups reach F2 and are discarded.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">9, 10</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Each thread receives a miss response, sleeps, and its miss counter increments. No priority is updated, so the next round starts in exactly the same order.</p></td>
-</tr>
-</tbody>
-</table>
-<div class="paragraph">
-<p>The engine wins by three cycles, and it wins them before the round starts: it was already in the pipeline when the threads woke. Nothing in the arbitration can recover those cycles, and nothing in the aging matrix records that it happened.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="sec-fp-mechanisms"><a class="anchor" href="#sec-fp-mechanisms"></a><a class="link" href="#sec-fp-mechanisms">4.4. The Mechanisms</a></h3>
-<div class="sect3">
-<h4 id="sec-fp-arbiters"><a class="anchor" href="#sec-fp-arbiters"></a><a class="link" href="#sec-fp-arbiters">4.4.1. Bounded Waits at the Arbiters</a></h4>
-<div class="paragraph">
-<p>Three arbiters bound three of the five waits in <a href="#tab-fp-points">Table 32</a>, and all three bounds are structural rather than statistical.</p>
-</div>
-<div class="paragraph">
-<p>The <strong>core fetch port</strong> uses a 2:1 LRU arbiter whose priority is updated on every grant, so with two clients the grants alternate strictly. A waiting thread is granted after at most one request of its sibling.</p>
-</div>
-<div class="paragraph">
-<p>The <strong>L0 request port</strong> uses an 8:1 LRU arbiter over an aging matrix with one bit per pair of threads. Because every pair is ordered by exactly one bit, two threads can never hold equal priority and the grant is one-hot, which the RTL asserts. A thread that bids continuously is granted after at most seven grants of other threads.</p>
-</div>
-<div class="paragraph">
-<p>The <strong>L1 request port</strong> uses a round-robin arbiter between the two micro-caches. The count is one, but the time it stands for is not small: the L1 accepts one transaction at a time and holds its request port closed until that transaction&#8217;s response, which on an L1 miss means the whole L2 round trip (<a href="#sec-ch3-l1">Section 3.5</a>). The bound is correct; it is simply expensive.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="sec-fp-sleep"><a class="anchor" href="#sec-fp-sleep"></a><a class="link" href="#sec-fp-sleep">4.4.2. Sleep and Wake-Up</a></h4>
-<div class="paragraph">
-<p>A thread that is told to wait must be certain of being woken. Two properties provide that certainty.</p>
-</div>
-<div class="paragraph">
-<p><strong>Fill done is a broadcast.</strong> It carries no address and is driven to all eight threads of the micro-cache, so a thread is woken by any fill, not only by its own. A thread whose miss was discarded is therefore released even though nothing was requested for it.</p>
-</div>
-<div class="paragraph">
-<p><strong>Fill done is ordered after the last response the fill can affect.</strong> It is driven one pipeline stage later than the response and registered again in the Front End. A lookup that passes the array while the fill is being written still misses, and its miss response is the last one this fill can produce. Sending fill done after that response guarantees every thread has set its sleep bit before its wake-up arrives, so no wake-up can be lost.</p>
-</div>
-<div class="paragraph">
-<p>The cost of the broadcast is that every fill wakes every sleeping thread, including the ones waiting for a different line. They re-arbitrate, miss again and sleep again. That is wasted L0 bandwidth, and it grows with the number of threads waiting on distinct lines.</p>
-</div>
-<div class="paragraph">
-<p>A redirect, a thread disable or a halt clears the sleep bit of that thread alone and does so immediately, without waiting for a fill. Fill done remains the only event that wakes all of them.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="sec-fp-prefetch"><a class="anchor" href="#sec-fp-prefetch"></a><a class="link" href="#sec-fp-prefetch">4.4.3. Keeping Prefetch Behind Every Thread</a></h4>
-<div class="paragraph">
-<p>The prefetch engine cannot starve, but it can starve others, so three independent rules hold it below every thread.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p><strong>It issues only in cycles with no core request.</strong> A demand fetch always wins the pipeline over a prefetch in the same cycle.</p>
-</li>
-<li>
-<p><strong>It pauses after a fill it was waiting for.</strong> On fill done it enters <code>PreReq_Pause</code> and counts eight cycles with a three-bit counter before it may request again, which is enough for the woken threads to be granted and to reach F2 ahead of it.</p>
-</li>
-<li>
-<p><strong>It is held off after a demand miss has been discarded.</strong> A separate tracker watches for a demand lookup that neither hit nor had its miss accepted. When it sees one it blocks the engine until the next fill done, and then until a core request has entered the micro-cache or sixteen cycles have passed.</p>
-</li>
-</ol>
-</div>
-<div class="paragraph">
-<p>Rules 2 and 3 are not redundant. The pause is a fixed eight cycles and a woken thread may have to wait behind up to seven other retries, so its lookup can arrive after the pause has expired; the hold covers that case by waiting for an actual core request rather than a fixed count. Conversely the hold only arms when a miss has already been discarded, so the pause is what prevents the first one.</p>
-</div>
-<div class="paragraph">
-<p>The scenario of <a href="#sec-fp-capture">Section 4.3.4</a> is the gap between them. The pause is entered from <code>FillDone_Wait</code>, and an engine sitting in <code>Request</code> waiting for an idle cycle never passes through that state, so no pause is started. The hold then ends the sequence after one round, because the discarded miss at cycle 7 arms it.</p>
-</div>
-</div>
-<div class="sect3">
-<h4 id="sec-fp-guard"><a class="anchor" href="#sec-fp-guard"></a><a class="link" href="#sec-fp-guard">4.4.4. The Miss-Count Guard</a></h4>
-<div class="paragraph">
-<p>Everything above is a policy. The guard is the backstop that makes the claim of <a href="#sec-fp-purpose">Section 4.1</a> hold without reference to any policy.</p>
-</div>
-<div class="paragraph">
-<p>Each thread has a five-bit counter of <strong>consecutive miss responses to its own requests</strong>. It is cleared on a hit, and cleared on any response that reports a fault or an error. The counter advances only when that thread&#8217;s own response returns, so a thread that is not being granted does not accumulate.</p>
-</div>
-<div class="paragraph">
-<p>When any counter saturates at 31, a mask removes every other Minion from the arbitration and leaves only the two threads of one Minion bidding: the lowest-numbered Minion that has a saturated thread. Both of its threads are allowed, because a core holds one request at a time and the sibling&#8217;s request may have to be accepted before the starving thread&#8217;s can be presented at all.</p>
-</div>
-<div class="paragraph">
-<p>With every other Minion masked, the starving thread is alone in the idle window, so its miss must be accepted. It then hits, its counter clears, the mask is released, and it passes to the next Minion with a saturated thread if there is one.</p>
-</div>
-<div class="paragraph">
-<p><a href="#fig-fp-guard">Figure 32</a> shows the sequence.</p>
-</div>
-<div id="fig-fp-guard" class="imageblock text-center">
-<div class="content">
-<img src="images/ch03/td-l0-mask.png" alt="Counter saturation, bid mask and release" width="100%">
-</div>
-<div class="title">Figure 32. Counter saturation, bid mask and release</div>
-</div>
-<div class="paragraph">
-<p>Two design decisions in this mechanism are worth noting, because both are deliberate and neither is obvious.</p>
-</div>
-<div class="paragraph">
-<p><strong>The guard masks bids rather than raising priority.</strong> Priority decides who enters the pipeline first, which as <a href="#sec-fp-arbiter">Section 4.3.3</a> showed is not the same as who finds the handler idle. Removing the competitors is the only action that makes the outcome certain.</p>
-</div>
-<div class="paragraph">
-<p><strong>Every counter is cleared on an error.</strong> A faulting address never hits, so a thread trapped on one would saturate and hold exclusive access that is only ever released by a hit. Clearing the counters lets the fault be taken normally. If the pattern that caused the pressure persists, the counters saturate again and the guard fires again.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="sec-fp-argument"><a class="anchor" href="#sec-fp-argument"></a><a class="link" href="#sec-fp-argument">4.5. The Argument End to End</a></h3>
-<div class="paragraph">
-<p><a href="#tab-fp-argument">Table 33</a> composes the bounds along one thread&#8217;s path from wanting an instruction to issuing it.</p>
-</div>
-<table id="tab-fp-argument" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 33. Bound at each step, and what it rests on</caption>
-<colgroup>
-<col style="width: 37.5%;">
-<col style="width: 37.5%;">
-<col style="width: 25%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Step</th>
-<th class="tableblock halign-left valign-top">Bound</th>
-<th class="tableblock halign-left valign-top">Provided by</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Thread to core fetch port</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">One request of the sibling thread</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">2:1 LRU arbiter</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Core to L0 request port</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Seven grants of other threads</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">8:1 LRU arbiter</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Lookup to miss accepted</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>None from arbitration.</strong> At most 31 consecutive miss responses before the thread&#8217;s Minion is given exclusive access</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Miss-count guard</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Miss accepted to fill</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">One L1 transaction, plus the L2 round trip on an L1 miss</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Blocking L1, memory hierarchy</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Fill to wake-up</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Same cycle as the fill-done broadcast, which cannot be lost</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Fill-done ordering</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Thread to issue</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Every other cycle while eligible</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Round-robin thread scheduler</p></td>
-</tr>
-</tbody>
-</table>
-<div class="paragraph">
-<p>Every step except the third has a bound in hardware that holds whatever the other threads are doing. The third step has no such bound, which is the single structural fact worth carrying away from this chapter: <strong>the miss handler is the one shared resource in the fetch path with no arbitration of its own, and the miss-count guard exists precisely to supply what arbitration cannot.</strong></p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="sec-fp-assumptions"><a class="anchor" href="#sec-fp-assumptions"></a><a class="link" href="#sec-fp-assumptions">4.6. Assumptions</a></h3>
-<div class="paragraph">
-<p>The claim holds under the following conditions. Each is a real obligation on the rest of the system, not a formality.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Every request to the L1 instruction cache eventually returns a fill, and every translation request eventually completes. Nothing in the fetch path times out or retries on its own.</p>
-</li>
-<li>
-<p>Software does not hold a thread in exclusive mode, <code>WFI</code> or another architectural stall indefinitely. These stop the affected thread deliberately and are not starvation.</p>
-</li>
-<li>
-<p>Faulting fetches are not sustained. Because an error clears every thread&#8217;s miss counter, a continuous stream of faults from other threads would defer the guard indefinitely. In practice each fault redirects its thread to a trap handler, so the stream does not persist.</p>
-</li>
-<li>
-<p>Instruction-cache flushes are not sustained. A flush invalidates a line that is being filled, so a thread can be served and still not hit. The guard gives a thread exclusive access but cannot make a flushed line stay resident.</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="sec-fp-limits"><a class="anchor" href="#sec-fp-limits"></a><a class="link" href="#sec-fp-limits">4.7. Known Limitations</a></h3>
-<div class="paragraph">
-<p>These follow from the design. They are not defects, but they bound what may be assumed and they constrain how the interface may be changed.</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>The wake-up is address-less.</strong> Every fill wakes every sleeping thread of the micro-cache, so threads waiting on other lines re-arbitrate, miss and sleep again on every fill. The cost grows with the number of distinct lines being waited on.</p>
-</li>
-<li>
-<p><strong>One outstanding miss per micro-cache.</strong> A miss that arrives while the handler is busy is answered but not recorded, so that thread makes progress only after an unrelated fill wakes it and it retries.</p>
-</li>
-<li>
-<p><strong>Starving Minions are served in a fixed order.</strong> When several Minions have a saturated thread the mask always selects the lowest-numbered one. Each exclusive period ends when its thread hits, so the wait of a higher-numbered Minion is bounded, but the order is not fair.</p>
-</li>
-<li>
-<p><strong>The unattended-miss hold is released by any core request.</strong> Which thread issues it is not checked, so the hold can end before the thread whose miss was discarded has retried. That thread is covered by the guard rather than by the hold.</p>
-</li>
-<li>
-<p><strong>The guard is expensive to reach.</strong> Thirty-one consecutive miss responses, each a full L0 round trip and most of them a full L1 or L2 round trip, elapse before the mask is applied.</p>
-</li>
-<li>
-<p><strong>Prefetching can stall for a long time after a faulting line.</strong> The engine waits for a fill done before moving to the next line, and a faulting line produces no fill of its own. If every thread is hitting, no fill done is generated and the engine stays parked.</p>
-</li>
-</ul>
-</div>
-</div>
-</div>
-</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-10-06 11:13:34 +0500
+Last updated 2026-10-06 16:56:03 +0500
 </div>
 </div>
 </body>
