@@ -2,7 +2,7 @@
 
 Micro-architecture reference for the open-sourced CORE-ET RTL in [`rtl/`](../../rtl/).
 
-Where this reference and the legacy documents in [`docs/uarch/`](../uarch/) (Markdown copies in [`docs/uarch_md/`](../uarch_md/)) disagree, the RTL is the source of truth and the difference is recorded.
+Where this reference and the legacy documents in [`docs/uarch/`](../uarch/) (Markdown copies in [`docs/uarch_md/`](../uarch_md/)) disagree, the RTL is the source of truth.
 
 **Status**
 

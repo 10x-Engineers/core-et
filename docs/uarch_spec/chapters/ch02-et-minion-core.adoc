@@ -406,7 +406,7 @@ image::ch02/fig-fe-thread-buffer-flow.png["Thread buffer operation",width=100%,a
 
 [[fig-ch2-fe-tb-detail]]
 .Thread buffer pipeline
-image::ch02/fig-fe-pipeline-detail.png["Thread buffer pipeline",width=100%,align=center]
+image::ch02/fig-fe-pipeline-detail.drawio.png["Thread buffer pipeline",width=100%,align=center]
 
 [[sec-ch2-fe-entries]]
 ===== Buffer Entries

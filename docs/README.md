@@ -7,7 +7,7 @@ Two kinds of material live here, and the difference matters:
 - **`uarch_spec/`** is the document being written. It is the deliverable.
 - **`arch/`, `uarch/` and `uarch_md/`** are the legacy Esperanto documents. They are reference material only.
 
-Where a legacy document and the RTL disagree, **the RTL is the source of truth** and the difference is noted where it arises.
+Where a legacy document and the RTL disagree, **the RTL is the source of truth**.
 
 ## Folders
 

@@ -19,7 +19,7 @@ The **CPU Subsystem** integrates one ET-Neighborhood with the following system-l
 
 <img src="docs/uarch/cpu_subsystem/images/cpuss_diagram.png"/>
 
-For the full architecture specification and programming model see the [docs folder](https://github.com/openhwgroup/core-et/tree/erbium/docs). For an example of how this CPU Subsystem integrates into an MCU SoC see [Erbium Technical Reference Manual](https://erbium.readthedocs.io/en/latest/cpu_subsystem/).
+For the full architecture specification and programming model see the [docs folder](docs/). For an example of how this CPU Subsystem integrates into an MCU SoC see [Erbium Technical Reference Manual](https://erbium.readthedocs.io/en/latest/cpu_subsystem/).
 
 ---
 

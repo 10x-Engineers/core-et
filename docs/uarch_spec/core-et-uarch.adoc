@@ -42,13 +42,13 @@ Ryan Naveed, 10xEngineers -- ryan.naveed@10xengineers.ai
 * First draft of the document.
 * Chapter 1, ET-SoC-1 Overview: written.
 * Chapter 2, ET-Minion Core: Core Overview (block partitioning, hardware threads, instruction flow) and Front End written. Integer Pipeline, Data Cache and VPU contain headings only.
-* Chapter 3, Neighborhood: Overview, Neighborhood Instruction Cache and Front End -- I-Cache Interface written. The remaining sections contain headings only.
+* Chapter 3, Neighborhood: the Overview and the Front End -- I-Cache Interface are written. The remaining sections contain headings only.
 |===
 
 [[source-material]]
 === Source Material and Acknowledgements
 
-The original micro-architecture documents are in `docs/uarch/` of this repository, one per module. Where a document and the RTL differ, the RTL is followed and the difference is noted in this reference, in the section where it arises.
+The original micro-architecture documents are in `docs/uarch/` of this repository, one per module. Where a document and the RTL differ, the RTL is followed.
 
 The engineers who worked on each module are listed below.
 
