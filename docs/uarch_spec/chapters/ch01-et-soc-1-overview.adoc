@@ -76,7 +76,7 @@ The core consists of four top-level blocks, shown in <<fig-ch1-et-minion>>:
 
 [[fig-ch1-et-minion]]
 .ET-Minion core
-image::ch01/fig-et-minion.png[ET-Minion core,width=70%,align=center]
+image::ch01/fig-et-minion.drawio.png[ET-Minion core,width=70%,align=center]
 
 [[sec-ch1-neighborhood]]
 ==== Neighborhood

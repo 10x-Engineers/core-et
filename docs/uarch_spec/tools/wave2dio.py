@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Convert a WaveJSON timing diagram (.json5) into an editable draw.io file.
 
-Usage:  python3 wave2dio.py diagram.json5 [more.json5 ...]
+Shared by every chapter, so it lives in tools/ rather than beside any one chapter's
+diagrams. Run it from docs/uarch_spec:
+    python3 tools/wave2dio.py images/ch03/src/td-l0-hit.json5
 Writes diagram.drawio next to each input. Export the PNG the document uses with:
-    drawio -x -f png -s 2 -b 10 -o diagram.png diagram.drawio
+    drawio -x -f png -s 2 -b 10 -o images/ch03/td-l0-hit.png images/ch03/src/td-l0-hit.drawio
 
 Supported WaveJSON subset (enough for micro-architecture documents):
   wave characters   p (clock), 0, 1, ., x, | (variable-delay break), data symbols = 2 3 4 5

@@ -135,7 +135,7 @@ The Front End also starts and stops threads through their enable inputs and rese
 
 [[fig-ch2-fe-top]]
 .Front End block diagram
-image::ch02/fig-fe-top-blocks.png["Front End block diagram",width=75%,align=center]
+image::ch02/fig-fe-top-blocks.drawio.png["Front End block diagram",width=75%,align=center]
 
 // ---------------------------------------------------------------------------
 [[sec-ch2-fe-if]]
@@ -313,7 +313,7 @@ Fetching and extracting are independent: a thread keeps extracting instructions 
 
 [[fig-ch2-fe-pipeline]]
 .Front End pipeline
-image::ch02/fig-fe-pipeline.png["Front End pipeline",width=100%,align=center]
+image::ch02/fig-fe-pipeline.drawio.png["Front End pipeline",width=100%,align=center]
 
 F0 Stage:: The F0 stage receives instruction-block requests from both thread buffers and decides which one gets access to the L0 micro-cache using a 2:1 LRU arbiter. The selected request is registered and sent to the L0 micro-cache through the Neighborhood interface. This stage also handles the enabling and disabling of threads and redirect requests from the integer pipeline, for example the new address after a mispredicted branch.
 F1–F5 Stage:: The selected request is held in F1 until the L0 micro-cache accepts it, which happens at the earliest in the second F1 cycle. The thread then waits for the response. The L0 micro-cache always responds to an accepted request, whether it is a hit or a miss, with a fixed five-cycle latency: counting the cycle in which it accepts the request as the first cycle, the response is returned in the fifth cycle, in F5 (<<fig-ch2-fe-td-hit>>).
@@ -340,7 +340,7 @@ Each L0 micro-cache serves the eight threads of four ET-Minion cores. <<fig-ch2-
 
 [[fig-ch2-fe-l0-path]]
 .Front End to L0 micro-cache request and response path
-image::ch02/fig-fe-l0-path.png["Front End to L0 micro-cache request and response path",width=100%,align=center]
+image::ch02/fig-fe-l0-path.drawio.png["Front End to L0 micro-cache request and response path",width=100%,align=center]
 
 [[sec-ch2-fe-arb]]
 ===== Request Arbitration and Acceptance
@@ -402,7 +402,7 @@ The section then shows the instruction side: how the read pointer extracts one i
 
 [[fig-ch2-fe-tb]]
 .Thread buffer operation
-image::ch02/fig-fe-thread-buffer-flow.png["Thread buffer operation",width=100%,align=center]
+image::ch02/fig-fe-thread-buffer-flow.drawio.png["Thread buffer operation",width=100%,align=center]
 
 [[fig-ch2-fe-tb-detail]]
 .Thread buffer pipeline
@@ -422,7 +422,7 @@ The read port wraps around: halfword 15 of one entry is followed by halfword 0 o
 
 [[fig-ch2-fe-buf-org]]
 .Thread-buffer entries and read pointer
-image::ch02/fig-fe-buffer.png["Thread-buffer entries and read pointer",width=55%,align=center]
+image::ch02/fig-fe-buffer.drawio.png["Thread-buffer entries and read pointer",width=55%,align=center]
 
 [[tab-ch2-fe-buf-state]]
 .Thread-buffer entry state
@@ -610,7 +610,7 @@ The section also explains how the VPU decode is used once the instruction reache
 
 [[fig-ch2-fe-fifo]]
 .Decoders, instruction FIFOs and thread scheduler
-image::ch02/fig-fe-fifo-sched.png["Decoders, instruction FIFOs and thread scheduler",width=100%,align=center]
+image::ch02/fig-fe-fifo-sched.drawio.png["Decoders, instruction FIFOs and thread scheduler",width=100%,align=center]
 
 Both decoders are combinational look-up tables over the 32-bit instruction:
 
