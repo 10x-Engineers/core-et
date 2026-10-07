@@ -40,7 +40,7 @@ Ryan Naveed, 10xEngineers -- ryan.naveed@10xengineers.ai
 
 | v0.1 | 2026-10-06 | Ryan Naveed a|
 * First draft of the document.
-* Chapter 1, ET-SoC-1 Overview: written.
+* Chapter 1, ET-SoC-1 Overview: written, except the Memory Map, which contains a heading only.
 * Chapter 2, ET-Minion Core: Core Overview (block partitioning, hardware threads, instruction flow) and Front End written. Integer Pipeline, Data Cache and VPU contain headings only.
 * Chapter 3, Neighborhood: the Overview and the Front End -- I-Cache Interface are written. The remaining sections contain headings only.
 |===

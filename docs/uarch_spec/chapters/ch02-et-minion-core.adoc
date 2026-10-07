@@ -336,7 +336,7 @@ This section describes the fetch protocol between the Front End and the L0 micro
 
 . How a redirect cancels requests already in flight, including one still waiting in the F1 register.
 
-Each L0 micro-cache serves the eight threads of four ET-Minion cores. <<fig-ch2-fe-l0-path>> shows the request and response path of one core. The Neighborhood side of the interface is described in <<sec-ch3-fe-ic>>.
+Each L0 micro-cache serves the eight threads of four ET-Minion cores. <<fig-ch2-fe-l0-path>> shows the request and response path of one core. The Neighborhood side of the interface, drawn in grey, is described in <<sec-ch3-fe-ic>> and in the sections that follow it.
 
 [[fig-ch2-fe-l0-path]]
 .Front End to L0 micro-cache request and response path

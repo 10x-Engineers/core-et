@@ -227,6 +227,9 @@ The I/O Shire contains the ET-Maxions and the Service Processor (<<sec-ch1-maxio
 ** GPIO, timers and watchdog
 * *Debug network.* Provides debug access through JTAG and a USB 2.0 device port.
 
+[[sec-ch1-memmap]]
+=== Memory Map
+
 [[sec-ch1-card]]
 === ET-SoC-1 Accelerator Card
 

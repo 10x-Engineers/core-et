@@ -8,7 +8,7 @@ Where this reference and the legacy documents in [`docs/uarch/`](../uarch/) (Mar
 
 | # | Chapter | State |
 |---|---|---|
-| 1 | ET-SoC-1 Overview | Written. Describes the ET-SoC-1 chip; the RTL in this repository is one Neighborhood behind an AXI port, so the scope of this chapter is under review |
+| 1 | ET-SoC-1 Overview | Written, except Memory Map, which is a heading only. Describes the ET-SoC-1 chip; the RTL in this repository is one Neighborhood behind an AXI port, so the scope of this chapter is under review |
 | 2 | ET-Minion Core | Core Overview and Front End written; Integer Pipeline, Data Cache and VPU are headings only |
 | 3 | Neighborhood | Overview, Neighborhood Instruction Cache and Front End – I-Cache Interface written; L0 Micro-Cache, L1 Instruction Cache, Page-Table Walker, Memory Request and Response Path, Tensor Support and Synchronization are headings only |
 

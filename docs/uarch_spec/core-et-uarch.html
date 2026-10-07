@@ -490,7 +490,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#sec-ch1-ioshire">1.4.4. I/O Shire</a></li>
 </ul>
 </li>
-<li><a href="#sec-ch1-card">1.5. ET-SoC-1 Accelerator Card</a></li>
+<li><a href="#sec-ch1-memmap">1.5. Memory Map</a></li>
+<li><a href="#sec-ch1-card">1.6. ET-SoC-1 Accelerator Card</a></li>
 </ul>
 </li>
 <li><a href="#ch-et-minion-core">2. ET-Minion Core</a>
@@ -708,7 +709,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p>First draft of the document.</p>
 </li>
 <li>
-<p>Chapter 1, ET-SoC-1 Overview: written.</p>
+<p>Chapter 1, ET-SoC-1 Overview: written, except the Memory Map, which contains a heading only.</p>
 </li>
 <li>
 <p>Chapter 2, ET-Minion Core: Core Overview (block partitioning, hardware threads, instruction flow) and Front End written. Integer Pipeline, Data Cache and VPU contain headings only.</p>
@@ -1279,7 +1280,11 @@ The Memory Shires also support global atomic operations.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="sec-ch1-card"><a class="anchor" href="#sec-ch1-card"></a><a class="link" href="#sec-ch1-card">1.5. ET-SoC-1 Accelerator Card</a></h3>
+<h3 id="sec-ch1-memmap"><a class="anchor" href="#sec-ch1-memmap"></a><a class="link" href="#sec-ch1-memmap">1.5. Memory Map</a></h3>
+
+</div>
+<div class="sect2">
+<h3 id="sec-ch1-card"><a class="anchor" href="#sec-ch1-card"></a><a class="link" href="#sec-ch1-card">1.6. ET-SoC-1 Accelerator Card</a></h3>
 <div class="paragraph">
 <p>ET-SoC-1 operates as an accelerator attached to a host system over PCI Express. It is mounted on a PCIe add-in card (<a href="#fig-ch1-pcie-card">Figure 7</a>) with the following features:</p>
 </div>
@@ -2184,7 +2189,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </ol>
 </div>
 <div class="paragraph">
-<p>Each L0 micro-cache serves the eight threads of four ET-Minion cores. <a href="#fig-ch2-fe-l0-path">Figure 11</a> shows the request and response path of one core. The Neighborhood side of the interface is described in <a href="#sec-ch3-fe-ic">Section 3.3</a>.</p>
+<p>Each L0 micro-cache serves the eight threads of four ET-Minion cores. <a href="#fig-ch2-fe-l0-path">Figure 11</a> shows the request and response path of one core. The Neighborhood side of the interface, drawn in grey, is described in <a href="#sec-ch3-fe-ic">Section 3.3</a> and in the sections that follow it.</p>
 </div>
 <div id="fig-ch2-fe-l0-path" class="imageblock text-center">
 <div class="content">
@@ -4291,7 +4296,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-10-06 17:27:53 +0500
+Last updated 2026-10-07 14:25:44 +0500
 </div>
 </div>
 </body>
