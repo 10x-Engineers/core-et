@@ -1,0 +1,9 @@
+vbuild
+*.log
+simv
+simv.daidir
+csrc
+novas*
+vcdplus.vpd
+ucli.key
+verdiLog
