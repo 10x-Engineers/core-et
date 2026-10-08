@@ -1,4 +1,7 @@
-# PDF theme for the CORE-ET micro-architecture reference.
+# PDF theme for the CORE-ET micro-architecture.
+title-page:
+  align: center
+
 extends: default
 image:
   caption:

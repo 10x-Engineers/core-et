@@ -1,4 +1,4 @@
-= CORE-ET CPU Subsystem Micro-Architecture Reference
+= CORE-ET CPU Subsystem Micro-Architecture
 :doctype: book
 :toc: left
 :toclevels: 3

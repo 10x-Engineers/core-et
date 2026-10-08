@@ -1,8 +1,8 @@
-# CORE-ET Micro-Architecture Reference
+# CORE-ET Micro-Architecture Document
 
-Micro-architecture reference for the open-sourced CORE-ET RTL in [`rtl/`](../../rtl/).
+Micro-architecture document for the open-sourced CORE-ET RTL in [`rtl/`](../../rtl/).
 
-Where this reference and the legacy documents in [`docs/uarch/`](../uarch/) (Markdown copies in [`docs/uarch_md/`](../uarch_md/)) disagree, the RTL is the source of truth.
+Where this document and the legacy documents in [`docs/uarch/`](../uarch/) (Markdown copies in [`docs/uarch_md/`](../uarch_md/)) disagree, the RTL is the source of truth.
 
 **Status**
 
