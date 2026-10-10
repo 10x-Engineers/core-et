@@ -28,17 +28,19 @@ endif::rtd[]
 [[document-author]]
 === Document Author
 
-Ryan Naveed, 10xEngineers -- ryan.naveed@10xengineers.ai
+Ryan Naveed, 10xEngineers -- ryan.naveed@10xengineers.ai +
+Dr. Kamran Malik, 10xEngineers -- kamran.malik@10xengineers.ai
 
 === Revision History
 
 // [[tab-revision-history]]
 // .Revision history
-[cols="14%,18%,18%,60%",options="header"]
+[cols="12%,15%,23%,60%",options="header"]
 |===
 | Version | Date | Author | Notes
 
-| v0.1 | 2026-10-06 | Ryan Naveed a|
+| v0.1 | 2026-10-06 | Ryan Naveed , +
+Dr. Kamran Malik a|
 * First draft of the document.
 * Chapter 1, ET-SoC-1 Overview: written, except the Memory Map, which contains a heading only.
 * Chapter 2, ET-Minion Core: Core Overview (block partitioning, hardware threads, instruction flow) and Front End written. Integer Pipeline, Data Cache and VPU contain headings only.
