@@ -1,0 +1,117 @@
+# Copyright (c) 2026 Ainekko
+# SPDX-License-Identifier: Apache-2.0
+#
+# Cadence Xcelium flow for the icache_micro_cache standalone testbenches.
+# Use with:  make -f Makefile.xcelium TB=<testbench> <target>
+#
+# TB is required and names the testbench module (the .sv suffix is optional):
+#   icache_micro_cache_tb         prefetch FSM lost-request directed test
+#   icache_micro_cache_simple_tb  two minion misses then a prefetch
+#
+# Targets
+#   run        compile, elaborate and run in batch, writes waves.shm and <tb>.vcd
+#   run_gui    same, but opens SimVision with the probes loaded and waits at time 0
+#   run_cov    batch run with all coverage types enabled
+#   cov_report HTML coverage report in cov_html/
+#   cov_gui    open the coverage database in IMC
+#   comp       xmvlog only, for a quick syntax check
+#   elab       xmelab of the testbench after comp
+#   esim       elaborate the DUT alone, no testbench
+#   clean
+#
+# Waves: probes.tcl opens waves.shm and probes the whole testbench for
+# SimVision. icache_micro_cache_dump also writes <tb>.vcd, so the same run can
+# be inspected in GTKWave.
+#
+# ET_USE_ASIC_MEMS is deliberately left undefined so the generic behavioural
+# models under rtl/libs/rf_latches are used for the micro tag and micro data
+# arrays. Assertions stay enabled; xrun supports the SVA in shire_assert.vh.
+
+REPOROOT ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../../..)
+RTLROOT  ?= $(REPOROOT)/rtl
+export REPOROOT RTLROOT
+
+DESIGN   := icache_micro_cache
+TEST_DIR := $(REPOROOT)/dv/standalone/$(DESIGN)
+
+ifeq ($(filter clean,$(MAKECMDGOALS)),)
+ifeq ($(strip $(TB)),)
+$(error TB is not set. Use: make -f Makefile.xcelium TB=icache_micro_cache_simple_tb run)
+endif
+endif
+override TB := $(basename $(notdir $(TB)))
+export TB
+
+DUMP_TOP := $(DESIGN)_dump
+LOGDIR   := logs
+COVDIR   := cov_work
+WAVES    := waves.shm
+
+# neigh_top_rtl.f brings in libs (rf_latch_1r_1w_par, rf_latch_1r_1w_dec),
+# neigh_channel (-y over shire/neigh/icache), esr and minion (tlb_top).
+# The .f files reference $RTLROOT, which xrun expands from the environment.
+FLIST    := -f $(RTLROOT)/shire/neigh/neigh_top_rtl.f \
+            -f $(RTLROOT)/shire/neigh/neigh_top_vcs_defines.f
+INCDIRS  := +incdir+$(RTLROOT)/inc +incdir+$(REPOROOT)
+LIBEXT   := +libext+.v+.sv
+
+TB_SRCS  := $(TEST_DIR)/$(TB).sv $(TEST_DIR)/$(DUMP_TOP).sv
+TOPS     := -top $(TB) -top $(DUMP_TOP)
+
+# +define+TB_TOP tells the dump module which testbench to $dumpvars
+RUN_BASE  = xrun -clean -sv -64bit $(FLIST) $(INCDIRS) $(LIBEXT) \
+            -timescale 1ns/1ps +define+TB_TOP=$(TB) $(DEFINES) \
+            $(TB_SRCS) $(TOPS) -access +rwc \
+            -input $(TEST_DIR)/probes.tcl \
+            -l $(LOGDIR)/$(TB).log
+
+# Coverage flags: all coverage types (line, branch, toggle, expression, assertion)
+COV_FLAGS = -coverage all \
+            -covworkdir $(COVDIR) \
+            -covtest $(TB)
+
+comp:
+	mkdir -p $(LOGDIR)
+	xmvlog -sv -64bit $(FLIST) $(INCDIRS) $(LIBEXT) \
+		+define+TB_TOP=$(TB) $(DEFINES) $(TB_SRCS) \
+		-l $(LOGDIR)/xmvlog_$(TB).log
+
+elab:
+	xmelab -64bit -access +rwc -timescale 1ns/1ps $(TB) $(DUMP_TOP) \
+		-l $(LOGDIR)/xmelab_$(TB).log
+
+# Batch: probes.tcl sets up the SHM, -run starts the simulation, -exit leaves
+# once $finish is reached.
+run:
+	mkdir -p $(LOGDIR)
+	$(RUN_BASE) -run -exit
+
+run_cov:
+	mkdir -p $(LOGDIR) $(COVDIR)
+	$(RUN_BASE) $(COV_FLAGS) -run -exit
+
+# SimVision with the probes already in place. Type "run" in the console or
+# press the run button; the wave window is opened by probes.tcl.
+run_gui:
+	mkdir -p $(LOGDIR)
+	$(RUN_BASE) -gui
+
+# Generate HTML coverage report using xrun (avoids IMC version mismatch issues).
+# Open cov_html/index.html in a browser after running this.
+cov_report:
+	xrun -covreport -covworkdir $(COVDIR) -covtest $(TB) -covreportdir cov_html
+
+cov_gui:
+	imc -load $(COVDIR)/scope/$(TB)
+
+# Elaborate the DUT on its own, a quick check that the RTL and filelists agree
+esim:
+	mkdir -p $(LOGDIR)
+	xrun -clean -sv -64bit $(FLIST) $(INCDIRS) $(LIBEXT) -timescale 1ns/1ps \
+		$(DEFINES) -top $(DESIGN) -elaborate -l $(LOGDIR)/esim.log
+
+.PHONY: comp elab run run_cov run_gui cov_report cov_gui esim clean
+
+clean:
+	rm -rf xcelium.d xmvlog* xmelab* simvision* xrun.history xrun.key $(WAVES) .simvision \
+	       worklib INCA_libs $(LOGDIR) $(COVDIR) cov_html xrun.log *.vcd *.shm
