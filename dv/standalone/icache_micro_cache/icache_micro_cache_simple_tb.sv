@@ -4,28 +4,41 @@
 // vim: se syn=systemverilog:
 
 // //////////////////////////////////////////////////////////////////////////////
-// Simple directed test for the L0 micro-cache.
+// Simple directed test for the L0 micro-cache with a behavioural minion model.
+//
+// Minion contract, as implemented by the frontend
+// -----------------------------------------------
+//   A minion drives one fetch request and receives its response on f4,
+//   RESP_LATENCY cycles later. On a hit it is done. On a miss it goes to sleep
+//   and wakes up on f5_resp_fill_done, then retries the same line. When several
+//   minions wake together the lowest id goes first, so minion 0 retries the
+//   cycle after fill done and minion 1 the cycle after that.
 //
 // Scenario
 // --------
-//   cycle 0   minion 0 fetches line 0
-//   cycle 1   minion 1 fetches line 1
-//   cycle 2-3 idle
-//   cycle 4   esr_prefetch_start pulse for lines 8 to 8+PREFETCH_EXTRA_LINES
+//   t0      minion 0 and minion 1 both want line 0 and line 1 respectively;
+//           minion 0 wins the port, minion 1 follows one cycle later
+//   t0+4    minion 0 miss response, it sleeps; the L1 request for line 0 is out
+//   t0+5    minion 1 miss response, it sleeps; the miss handler was busy so this
+//           miss is dropped (nomh FSM -> FillDone_Wait)
+//   +2 idle esr_prefetch_start for lines 8 to 8+PREFETCH_EXTRA_LINES
+//   +L1     fill for line 0 arrives L1_LATENCY cycles after the request,
+//           f5_resp_fill_done wakes both minions
+//           minion 0 retries first and hits after 4 cycles
+//           minion 1 retries next, misses, and this time its L1 request goes out
+//   +L1     fill for line 1, fill done, minion 1 retries and hits
 //
-// Expected
-// --------
-//   Both minion requests miss, because the micro-cache is empty after reset.
-//   The miss handler is single entry: minion 0 allocates it and sends the L1
-//   request, minion 1 finds it busy and its miss is dropped, which moves the
-//   "miss not attended to" FSM to FillDone_Wait.
-//   The L1 model returns the fill for the minion 0 request L1_LATENCY cycles
-//   after accepting it, and the micro-cache raises f5_resp_fill_done.
-//   Exactly two f4 responses appear, in order, both with f4_resp_miss set.
-//   The prefetch burst must finish: esr_prefetch_done falls when the FSM
-//   reaches Request and rises again once the burst is served.
+// Checks
+// ------
+//   response history   minion 0: miss, hit        minion 1: miss, miss, hit
+//   retry order        minion 0 before minion 1 after the first fill done
+//   latencies          every response RESP_LATENCY after its request,
+//                      every fill L1_LATENCY after the L1 request
+//   L1 traffic         first two L1 requests are line 0 then line 1
+//   prefetch           esr_prefetch_done falls and rises again (+no_prefetch
+//                      skips the start pulse and this check)
 //
-// Run with:  make TB=icache_micro_cache_simple_tb
+// Run with:  make TB=icache_micro_cache_simple_tb [PLUSARGS=+no_prefetch]
 // //////////////////////////////////////////////////////////////////////////////
 
 `define CLK_HALF_PERIOD 0.5 // timescale units, usually ns
@@ -43,10 +56,16 @@ module icache_micro_cache_simple_tb ();
   localparam int unsigned NR_MINIONS   = 8;
   localparam int unsigned NR_MINIONS_L = $clog2(NR_MINIONS);
 
+  // Minions taking part in the test, ids 0 .. NR_ACTIVE-1, minion m fetches line m
+  localparam int unsigned NR_ACTIVE    = 2;
+
+  // Cycles from a fetch request on f0 to its response on f4
+  localparam int unsigned RESP_LATENCY = 4;
+
   // Cycles from an accepted L1 miss request to the fill response delivered
   // back to the micro-cache
-  localparam int unsigned L1_LATENCY  = 10;
-  localparam int unsigned PTW_LATENCY = 8;
+  localparam int unsigned L1_LATENCY   = 10;
+  localparam int unsigned PTW_LATENCY  = 8;
 
   // Idle cycles between the second minion request and the prefetch start
   localparam int unsigned IDLE_BEFORE_PREFETCH = 2;
@@ -58,13 +77,12 @@ module icache_micro_cache_simple_tb ();
   localparam int unsigned PREFETCH_FIRST_LINE  = 8;
   localparam int unsigned PREFETCH_EXTRA_LINES = 3; // lines 8, 9, 10, 11
 
-  // Pipeline depth from f0 to f4, used to bound the wait for the responses
-  localparam int unsigned RESP_TIMEOUT      = 64;
-  // Patience for the L1 fill, well above L1_LATENCY plus the pipeline depth
-  localparam int unsigned FILL_TIMEOUT      = L1_LATENCY + 32;
-  localparam int unsigned DONE_TIMEOUT      = 2_000;
-  localparam int unsigned DONE_FALL_TIMEOUT = 64;
-  localparam int unsigned TIMEOUT_CYCLES    = 100_000;
+  // Bounds
+  localparam int unsigned MAX_RESPS      = 16;    // responses recorded per minion
+  localparam int unsigned MAX_WAKEUPS    = 8;     // a minion sleeping more often than this is stuck
+  localparam int unsigned MINION_TIMEOUT = 1_000; // cycles for both minions to reach Done
+  localparam int unsigned DONE_TIMEOUT   = 2_000; // cycles for the prefetch burst to finish
+  localparam int unsigned TIMEOUT_CYCLES = 100_000;
 
   // SRAM region, from AD_SRAM_REGION in shire_defines.vh: paddr[39:12] == 0x0200C.
   // The PMA unit reports SRAM as cacheable and never faults on it, so no
@@ -80,6 +98,11 @@ module icache_micro_cache_simple_tb ();
   always #(`CLK_HALF_PERIOD) clock = ~clock;
 
   logic reset = 1'b1;
+
+  // Elapsed cycles between two time stamps
+  function automatic int unsigned cycles_between (input time t0, input time t1);
+    cycles_between = int'((t1 - t0) / (2 * `CLK_HALF_PERIOD));
+  endfunction
 
   // //////////////////////////////////////////////////////////////////////////////
   // DUT connections
@@ -181,13 +204,25 @@ module icache_micro_cache_simple_tb ();
   );
 
   // //////////////////////////////////////////////////////////////////////////////
+  // Address helpers
+  // Bare translation makes the physical address identical to the virtual one,
+  // so every test address lands inside the SRAM region.
+  // //////////////////////////////////////////////////////////////////////////////
+  function automatic logic [`VA_SIZE_EXT-1:0] line_addr (input int unsigned n);
+    line_addr = `VA_SIZE_EXT'(SRAM_BASE) + (`VA_SIZE_EXT'(n) << 6);
+  endfunction
+
+  function automatic logic [`PA_RANGE] line_paddr (input int unsigned n);
+    line_paddr = ($bits(f0_l1_miss_req_addr))'(line_addr(n));
+  endfunction
+
+  // //////////////////////////////////////////////////////////////////////////////
   // L1 responder
   // early_valid runs exactly one cycle ahead of valid, which is how icache_top
   // drives the pair. The miss handler is single entry, so at most one request
-  // is outstanding.
+  // is outstanding. A request sampled on edge n raises resp_valid for the cycle
+  // sampled on edge n + L1_LATENCY.
   // //////////////////////////////////////////////////////////////////////////////
-  // L1_LATENCY stages: a request sampled on edge n raises resp_valid for the
-  // cycle sampled on edge n + L1_LATENCY.
   logic [L1_LATENCY-1:0] l1_pipe;
   logic [`PA_RANGE]      l1_addr_q;
 
@@ -201,8 +236,7 @@ module icache_micro_cache_simple_tb ();
       l1_pipe <= l1_pipe >> 1;
       if (f0_l1_miss_req_valid && f0_l1_miss_req_ready) begin
         l1_pipe[L1_LATENCY-1] <= 1'b1;
-        l1_addr_q           <= f0_l1_miss_req_addr;
-        $display("INFO  %0t L1 miss request for PA 0x%0h", $time, f0_l1_miss_req_addr);
+        l1_addr_q             <= f0_l1_miss_req_addr;
       end
     end
   end
@@ -212,37 +246,44 @@ module icache_micro_cache_simple_tb ();
   assign f0_l1_miss_resp_ecc_err     = 1'b0;
   assign f0_l1_miss_resp_l2_err      = 1'b0;
 
-  // Fill bookkeeping for the checks: when the L1 request was accepted, when
-  // the fill came back, and how many fills the micro-cache acknowledged.
-  time         l1_req_time  = 0;
-  time         l1_resp_time = 0;
-  int unsigned l1_req_count = 0;
-  int unsigned fill_count   = 0;
-  int unsigned fill_done_count = 0;
-
-  always_ff @(posedge clock) begin
-    if (!reset) begin
-      if (f0_l1_miss_req_valid && f0_l1_miss_req_ready) begin
-        l1_req_time  <= $time;
-        l1_req_count <= l1_req_count + 1;
-      end
-      if (f0_l1_miss_resp_valid) begin
-        l1_resp_time <= $time;
-        fill_count   <= fill_count + 1;
-        $display("INFO  %0t L1 fill response for PA 0x%0h delivered to the micro-cache",
-                 $time, l1_addr_q);
-      end
-      if (f5_resp_fill_done) begin
-        fill_done_count <= fill_done_count + 1;
-        $display("INFO  %0t f5_resp_fill_done, minions may retry", $time);
-      end
-    end
-  end
-
   // Address derived payload, so a fill can be told apart from stale array state
   always_comb begin
     for (int unsigned w = 0; w < (`ICACHE_BLOCK_BITS/64); w++)
       f0_l1_miss_resp_data[w*64 +: 64] = {l1_addr_q[31:0], w[15:0], 16'hFACE};
+  end
+
+  // L1 bookkeeping: every request address in order, and the latency of every
+  // fill measured against the request it answers.
+  logic [`PA_RANGE] l1_req_addr_hist [0:MAX_RESPS-1];
+  int unsigned      l1_req_count    = 0;
+  int unsigned      fill_count      = 0;
+  int unsigned      fill_done_count = 0;
+  time              l1_req_time     = 0;
+
+  always_ff @(posedge clock) begin
+    if (!reset) begin
+      if (f0_l1_miss_req_valid && f0_l1_miss_req_ready) begin
+        l1_req_time <= $time;
+        if (l1_req_count < MAX_RESPS) l1_req_addr_hist[l1_req_count] <= f0_l1_miss_req_addr;
+        l1_req_count <= l1_req_count + 1;
+        $display("INFO  %0t L1 miss request #%0d for PA 0x%0h", $time, l1_req_count, f0_l1_miss_req_addr);
+      end
+      if (f0_l1_miss_resp_valid) begin
+        fill_count <= fill_count + 1;
+        if (cycles_between(l1_req_time, $time) == L1_LATENCY)
+          $display("PASS  %0t L1 fill for PA 0x%0h delivered %0d cycles after the request",
+                   $time, l1_addr_q, L1_LATENCY);
+        else begin
+          errors++;
+          $display("ERROR %0t L1 fill for PA 0x%0h delivered after %0d cycles, expected %0d",
+                   $time, l1_addr_q, cycles_between(l1_req_time, $time), L1_LATENCY);
+        end
+      end
+      if (f5_resp_fill_done) begin
+        fill_done_count <= fill_done_count + 1;
+        $display("INFO  %0t f5_resp_fill_done #%0d, sleeping minions wake up", $time, fill_done_count);
+      end
+    end
   end
 
   // //////////////////////////////////////////////////////////////////////////////
@@ -285,8 +326,6 @@ module icache_micro_cache_simple_tb ();
 
   // //////////////////////////////////////////////////////////////////////////////
   // Static configuration
-  // Bare translation keeps the physical address equal to the virtual address, so
-  // the test addresses land in the SRAM region without a page table.
   // //////////////////////////////////////////////////////////////////////////////
   initial begin
     esr_mprot           = '0;
@@ -310,45 +349,153 @@ module icache_micro_cache_simple_tb ();
 
     esr_prefetch_conf  = '0;
     esr_prefetch_start = 1'b0;
-    f0_req_valid       = 1'b0;
-    f0_req             = '0;
-    f0_req_min_id      = '0;
 
     $timeformat(-9, 0, " ns", 12);
   end
 
   // //////////////////////////////////////////////////////////////////////////////
-  // Stimulus helpers
+  // Minion model
+  // One state machine per active minion. The request port is shared, so a
+  // fixed priority arbiter grants the lowest id among the minions that want to
+  // request in a cycle. That is what makes minion 0 retry before minion 1 when
+  // both wake on the same fill done.
   // //////////////////////////////////////////////////////////////////////////////
-  function automatic logic [`VA_SIZE_EXT-1:0] line_addr (input int unsigned n);
-    line_addr = `VA_SIZE_EXT'(SRAM_BASE) + (`VA_SIZE_EXT'(n) << 6);
-  endfunction
+  typedef enum logic [2:0] {
+    Minion_Idle,      // waiting for the test to kick it
+    Minion_Request,   // wants the port, requests when granted
+    Minion_Wait_Resp, // request in the pipeline, response due RESP_LATENCY later
+    Minion_Sleep,     // got a miss, wakes on f5_resp_fill_done
+    Minion_Done       // got a hit
+  } minion_state_t;
 
-  task automatic do_reset ();
-    begin
-      reset        = 1'b1;
-      f0_req_valid = 1'b0;
-      repeat (8) @(posedge clock);
-      reset = 1'b0;
-      repeat (8) @(posedge clock);
+  minion_state_t         m_state      [0:NR_ACTIVE-1];
+  logic                  m_kick       [0:NR_ACTIVE-1]; // set by the main sequence
+  int unsigned           m_line       [0:NR_ACTIVE-1];
+  time                   m_req_time   [0:NR_ACTIVE-1];
+  int unsigned           m_resp_count [0:NR_ACTIVE-1];
+  bit                    m_resp_miss  [0:NR_ACTIVE-1][0:MAX_RESPS-1];
+  int unsigned           m_wakeups    [0:NR_ACTIVE-1];
+
+  logic [NR_ACTIVE-1:0]  m_wants, m_grant;
+
+  // Requests in flight, oldest first. The response port carries no minion id,
+  // but the pipeline is in order and prefetch responses are suppressed in f3,
+  // so the oldest outstanding minion request owns the next f4 response.
+  int unsigned inflight_id [0:MAX_RESPS-1];
+  int unsigned inflight_head = 0;
+  int unsigned inflight_tail = 0;
+
+  // Order in which minions re-requested after a wake-up
+  int unsigned retry_order [0:MAX_RESPS-1];
+  int unsigned retry_count = 0;
+  int unsigned issued_count = 0;
+
+  // Fixed priority arbiter, lowest id wins
+  always_comb begin
+    for (int unsigned m = 0; m < NR_ACTIVE; m++)
+      m_wants[m] = (m_state[m] == Minion_Request);
+    m_grant = '0;
+    for (int unsigned m = 0; m < NR_ACTIVE; m++)
+      if (m_wants[m] && (m_grant == '0)) m_grant[m] = 1'b1;
+  end
+
+  // Request port driven by the granted minion
+  always_comb begin
+    f0_req_valid  = |m_grant;
+    f0_req        = '0;
+    f0_req_min_id = '0;
+    for (int unsigned m = 0; m < NR_ACTIVE; m++) begin
+      if (m_grant[m]) begin
+        f0_req.thread_id     = '0;
+        f0_req.vm_status.prv = 2'b11; // machine mode
+        f0_req.addr          = ($bits(f0_req.addr))'(line_addr(m_line[m]));
+        f0_req_min_id        = m[NR_MINIONS_L-1:0];
+      end
     end
-  endtask
+  end
 
-  // Single cycle fetch request from one minion
-  task automatic minion_req (input int unsigned line_n, input int unsigned min_id);
-    begin
-      f0_req                = '0;
-      f0_req.thread_id      = '0;
-      f0_req.vm_status.prv  = 2'b11; // machine mode
-      f0_req.addr           = ($bits(f0_req.addr))'(line_addr(line_n));
-      f0_req_min_id         = min_id[NR_MINIONS_L-1:0];
-      f0_req_valid          = 1'b1;
-      $display("INFO  %0t minion %0d requests line %0d (VA 0x%0h)", $time, min_id, line_n, f0_req.addr);
-      @(posedge clock);
-      f0_req_valid          = 1'b0;
+  always_ff @(posedge clock) begin
+    int unsigned id;
+    string       retry_tag;
+    if (reset) begin
+      for (int unsigned m = 0; m < NR_ACTIVE; m++) begin
+        m_state[m]      <= Minion_Idle;
+        m_line[m]       <= m;
+        m_resp_count[m] <= 0;
+        m_wakeups[m]    <= 0;
+        m_req_time[m]   <= 0;
+      end
+      inflight_head <= 0;
+      inflight_tail <= 0;
+      retry_count   <= 0;
+      issued_count  <= 0;
+    end else begin
+      // Response delivery, attributed to the oldest request in flight
+      if (f4_resp_valid) begin
+        id = inflight_id[inflight_head % MAX_RESPS];
+        inflight_head <= inflight_head + 1;
+        if (m_resp_count[id] < MAX_RESPS) m_resp_miss[id][m_resp_count[id]] <= f4_resp_miss;
+        m_resp_count[id] <= m_resp_count[id] + 1;
+        if (cycles_between(m_req_time[id], $time) != RESP_LATENCY) begin
+          errors++;
+          $display("ERROR %0t minion %0d response arrived %0d cycles after the request, expected %0d",
+                   $time, id, cycles_between(m_req_time[id], $time), RESP_LATENCY);
+        end
+        if (f4_resp_miss) begin
+          m_state[id] <= Minion_Sleep;
+          $display("INFO  %0t minion %0d response #%0d: MISS after %0d cycles, going to sleep",
+                   $time, id, m_resp_count[id], cycles_between(m_req_time[id], $time));
+        end else begin
+          m_state[id] <= Minion_Done;
+          $display("INFO  %0t minion %0d response #%0d: HIT after %0d cycles, done",
+                   $time, id, m_resp_count[id], cycles_between(m_req_time[id], $time));
+        end
+      end
+
+      for (int unsigned m = 0; m < NR_ACTIVE; m++) begin
+        case (m_state[m])
+          Minion_Idle:
+            if (m_kick[m]) m_state[m] <= Minion_Request;
+
+          Minion_Request:
+            if (m_grant[m]) begin
+              inflight_id[inflight_tail % MAX_RESPS] <= m;
+              inflight_tail <= inflight_tail + 1;
+              issued_count  <= issued_count + 1;
+              m_req_time[m] <= $time;
+              m_state[m]    <= Minion_Wait_Resp;
+              if (m_wakeups[m] > 0) begin
+                if (retry_count < MAX_RESPS) retry_order[retry_count] <= m;
+                retry_count <= retry_count + 1;
+              end
+              retry_tag = (m_wakeups[m] > 0) ? ", retry" : "";
+              $display("INFO  %0t minion %0d requests line %0d (VA 0x%0h)%s",
+                       $time, m, m_line[m], f0_req.addr, retry_tag);
+            end
+
+          Minion_Wait_Resp: ; // handled by the response block above
+
+          Minion_Sleep:
+            if (f5_resp_fill_done) begin
+              m_wakeups[m] <= m_wakeups[m] + 1;
+              m_state[m]   <= Minion_Request;
+              $display("INFO  %0t minion %0d wakes up on fill done", $time, m);
+              if (m_wakeups[m] + 1 > MAX_WAKEUPS) begin
+                errors++;
+                $display("ERROR %0t minion %0d woke up %0d times without a hit", $time, m, m_wakeups[m] + 1);
+                m_state[m] <= Minion_Done;
+              end
+            end
+
+          default: ;
+        endcase
+      end
     end
-  endtask
+  end
 
+  // //////////////////////////////////////////////////////////////////////////////
+  // Prefetch stimulus and monitor
+  // //////////////////////////////////////////////////////////////////////////////
   task automatic prefetch_start (input int unsigned line_n, input int unsigned num_lines);
     begin
       esr_prefetch_conf            = '0;
@@ -363,148 +510,152 @@ module icache_micro_cache_simple_tb ();
     end
   endtask
 
-  // //////////////////////////////////////////////////////////////////////////////
-  // Response monitor
-  // The response port carries no minion id, but the pipeline is in order and
-  // only the minion requests produce a response (prefetch responses are
-  // suppressed in f3), so the n-th response belongs to the n-th request.
-  // //////////////////////////////////////////////////////////////////////////////
-  int unsigned resp_count = 0;
-  bit          resp_miss [0:1];
+  // esr_prefetch_done resets to 1 and a start pulse holds it at 1 for one more
+  // cycle, so a burst is only complete once done has been seen low (the FSM
+  // reached Request) and high again afterwards. Both edges are latched here so
+  // the check does not depend on when it is called.
+  bit prefetch_done_fell = 1'b0;
+  bit prefetch_done_rose = 1'b0;
 
   always_ff @(posedge clock) begin
-    if (!reset && f4_resp_valid) begin
-      $display("INFO  %0t f4 response #%0d: miss=%0b cacheable=%0b page_fault=%0b access_fault=%0b",
-               $time, resp_count, f4_resp_miss, f4_resp.cacheable, f4_resp.page_fault, f4_resp.access_fault);
-      if (resp_count < 2) resp_miss[resp_count] <= f4_resp_miss;
-      resp_count <= resp_count + 1;
+    if (!reset) begin
+      if (!esr_prefetch_done) prefetch_done_fell <= 1'b1;
+      if (prefetch_done_fell && esr_prefetch_done) prefetch_done_rose <= 1'b1;
+      if (dut.f0_prefetch_miss_nomh_state != dut.f0_prefetch_miss_nomh_state_next)
+        $display("INFO  %0t nomh FSM %s -> %s", $time,
+                 dut.f0_prefetch_miss_nomh_state.name(), dut.f0_prefetch_miss_nomh_state_next.name());
+      if (dut.f0_prefetch_state != dut.f0_prefetch_state_next)
+        $display("INFO  %0t prefetch FSM %s -> %s", $time,
+                 dut.f0_prefetch_state.name(), dut.f0_prefetch_state_next.name());
     end
-  end
-
-  // Monitor the dropped miss. The miss handler is single entry, so the second
-  // miss is not attended to and the nomh FSM records it.
-  always_ff @(posedge clock) begin
-    if (!reset && (dut.f0_prefetch_miss_nomh_state != dut.f0_prefetch_miss_nomh_state_next))
-      $display("INFO  %0t nomh FSM %s -> %s", $time,
-               dut.f0_prefetch_miss_nomh_state.name(), dut.f0_prefetch_miss_nomh_state_next.name());
-    if (!reset && (dut.f0_prefetch_state != dut.f0_prefetch_state_next))
-      $display("INFO  %0t prefetch FSM %s -> %s", $time,
-               dut.f0_prefetch_state.name(), dut.f0_prefetch_state_next.name());
   end
 
   // //////////////////////////////////////////////////////////////////////////////
   // Checks
   // //////////////////////////////////////////////////////////////////////////////
-  task automatic check_both_missed ();
-    int unsigned guard;
-    begin
-      guard = 0;
-      while ((resp_count < 2) && (guard < RESP_TIMEOUT)) begin
-        @(posedge clock);
-        guard++;
-      end
-      if (resp_count != 2) begin
-        errors++;
-        $display("ERROR %0t expected 2 responses, saw %0d within %0d cycles", $time, resp_count, RESP_TIMEOUT);
-        return;
-      end
-      for (int unsigned m = 0; m < 2; m++) begin
-        if (resp_miss[m])
-          $display("PASS  %0t minion %0d missed", $time, m);
-        else begin
-          errors++;
-          $display("ERROR %0t minion %0d hit, expected a miss on an empty micro-cache", $time, m);
-        end
-      end
-    end
-  endtask
+  function automatic string hist_str (input int unsigned m);
+    hist_str = "";
+    for (int unsigned k = 0; (k < m_resp_count[m]) && (k < MAX_RESPS); k++)
+      hist_str = {hist_str, (k > 0) ? ", " : "", m_resp_miss[m][k] ? "miss" : "hit"};
+  endfunction
 
-  // The accepted minion miss must be answered by L1 after L1_LATENCY cycles and
-  // the micro-cache must announce the fill with f5_resp_fill_done.
-  task automatic check_fill_response ();
-    int unsigned guard;
-    int unsigned observed;
+  // Expected response history per minion, as a miss/hit pattern
+  task automatic check_history (input int unsigned m, input bit expected [], input string expected_str);
+    bit ok;
     begin
-      guard = 0;
-      while ((fill_done_count == 0) && (guard < FILL_TIMEOUT)) begin
-        @(posedge clock);
-        guard++;
-      end
-      if (fill_count == 0) begin
-        errors++;
-        $display("ERROR %0t no L1 fill response within %0d cycles, L1 requests seen: %0d",
-                 $time, FILL_TIMEOUT, l1_req_count);
-        return;
-      end
-      observed = (l1_resp_time - l1_req_time) / (2 * `CLK_HALF_PERIOD);
-      if (observed == L1_LATENCY)
-        $display("PASS  %0t L1 fill delivered %0d cycles after the request", $time, observed);
+      ok = (m_resp_count[m] == expected.size());
+      for (int unsigned k = 0; ok && (k < expected.size()); k++)
+        ok = (m_resp_miss[m][k] == expected[k]);
+      if (ok)
+        $display("PASS  %0t minion %0d responses: %s", $time, m, hist_str(m));
       else begin
         errors++;
-        $display("ERROR %0t L1 fill delivered after %0d cycles, expected %0d", $time, observed, L1_LATENCY);
+        $display("ERROR %0t minion %0d responses: %s, expected %s", $time, m, hist_str(m), expected_str);
       end
-      if (fill_done_count == 0) begin
-        errors++;
-        $display("ERROR %0t f5_resp_fill_done never rose after the fill", $time);
-      end else
-        $display("PASS  %0t fill acknowledged with f5_resp_fill_done", $time);
     end
   endtask
 
-  // esr_prefetch_done resets to 1 and a start pulse holds it at 1 for one more
-  // cycle, so the burst is only acknowledged once the FSM has driven it low from
-  // Request and then high again when the burst is served.
+  task automatic check_minion_flow ();
+    int unsigned guard;
+    bit all_done;
+    begin
+      guard = 0;
+      all_done = 1'b0;
+      while (!all_done && (guard < MINION_TIMEOUT)) begin
+        @(posedge clock);
+        guard++;
+        all_done = 1'b1;
+        for (int unsigned m = 0; m < NR_ACTIVE; m++)
+          all_done &= (m_state[m] == Minion_Done);
+      end
+      if (!all_done) begin
+        errors++;
+        for (int unsigned m = 0; m < NR_ACTIVE; m++)
+          $display("ERROR %0t minion %0d is in %s after %0d cycles, responses: %s",
+                   $time, m, m_state[m].name(), MINION_TIMEOUT, hist_str(m));
+        return;
+      end
+
+      // Response histories
+      check_history(0, '{1'b1, 1'b0},       "miss, hit");
+      check_history(1, '{1'b1, 1'b1, 1'b0}, "miss, miss, hit");
+
+      // Retry order after the first fill done: minion 0, then minion 1
+      if ((retry_count >= 2) && (retry_order[0] == 0) && (retry_order[1] == 1))
+        $display("PASS  %0t minion 0 retried before minion 1 after the first fill done", $time);
+      else begin
+        errors++;
+        $display("ERROR %0t retry order wrong, %0d retries, first two: %0d, %0d",
+                 $time, retry_count, retry_order[0], retry_order[1]);
+      end
+
+      // L1 traffic: line 0 on behalf of minion 0, then line 1 for minion 1
+      if ((l1_req_count >= 2) && (l1_req_addr_hist[0] == line_paddr(0)) && (l1_req_addr_hist[1] == line_paddr(1)))
+        $display("PASS  %0t L1 requests went out for line 0 then line 1", $time);
+      else begin
+        errors++;
+        $display("ERROR %0t L1 requests: %0d seen, first two PA 0x%0h, 0x%0h, expected 0x%0h, 0x%0h",
+                 $time, l1_req_count, l1_req_addr_hist[0], l1_req_addr_hist[1], line_paddr(0), line_paddr(1));
+      end
+      if (fill_count != l1_req_count) begin
+        errors++;
+        $display("ERROR %0t %0d L1 requests but %0d fills", $time, l1_req_count, fill_count);
+      end
+    end
+  endtask
+
   task automatic check_prefetch_done ();
     int unsigned guard;
     begin
       guard = 0;
-      while (esr_prefetch_done && (guard < DONE_FALL_TIMEOUT)) begin
+      while (!prefetch_done_rose && (guard < DONE_TIMEOUT)) begin
         @(posedge clock);
         guard++;
       end
-      if (esr_prefetch_done) begin
+      if (prefetch_done_rose)
+        $display("PASS  %0t prefetch burst completed, esr_prefetch_done rose again", $time);
+      else if (!prefetch_done_fell) begin
         errors++;
         $display("ERROR %0t esr_prefetch_done never fell, the FSM never reached Request (state %s)",
                  $time, dut.f0_prefetch_state.name());
-        return;
+      end else begin
+        errors++;
+        $display("ERROR %0t esr_prefetch_done still low %0d cycles after start, prefetch FSM is parked in %s",
+                 $time, DONE_TIMEOUT, dut.f0_prefetch_state.name());
       end
-      $display("INFO  %0t esr_prefetch_done fell, prefetch FSM in %s", $time, dut.f0_prefetch_state.name());
-
-      guard = 0;
-      while (guard < DONE_TIMEOUT) begin
-        @(posedge clock);
-        guard++;
-        if (esr_prefetch_done) begin
-          $display("PASS  %0t esr_prefetch_done rose again after %0d cycles", $time, guard);
-          return;
-        end
-      end
-      errors++;
-      $display("ERROR %0t esr_prefetch_done still low %0d cycles after start, prefetch FSM is parked in %s",
-               $time, DONE_TIMEOUT, dut.f0_prefetch_state.name());
     end
   endtask
 
   // //////////////////////////////////////////////////////////////////////////////
   // Main
   // //////////////////////////////////////////////////////////////////////////////
+  bit use_prefetch;
+
   initial begin
-    $display("\nstarting icache_micro_cache simple test: two minion misses then a prefetch");
+    use_prefetch = !$test$plusargs("no_prefetch");
+    for (int unsigned m = 0; m < NR_ACTIVE; m++) m_kick[m] = 1'b0;
 
-    do_reset();
+    if (use_prefetch)
+      $display("\nstarting icache_micro_cache simple test: two minion misses then a prefetch");
+    else
+      $display("\nstarting icache_micro_cache simple test: two minion misses, no prefetch");
 
-    // Two back to back requests from two minions, both to lines that are not
-    // in the micro-cache.
-    minion_req(0, 0);
-    minion_req(1, 1);
+    reset = 1'b1;
+    repeat (8) @(posedge clock);
+    reset = 1'b0;
+    repeat (8) @(posedge clock);
 
-    // Idle gap, then the prefetch burst
-    repeat (IDLE_BEFORE_PREFETCH) @(posedge clock);
-    prefetch_start(PREFETCH_FIRST_LINE, PREFETCH_EXTRA_LINES);
+    // Both minions want the port at once; the arbiter serialises them
+    for (int unsigned m = 0; m < NR_ACTIVE; m++) m_kick[m] = 1'b1;
+    while (issued_count < NR_ACTIVE) @(posedge clock);
 
-    check_both_missed();
-    check_fill_response();
-    check_prefetch_done();
+    if (use_prefetch) begin
+      repeat (IDLE_BEFORE_PREFETCH) @(posedge clock);
+      prefetch_start(PREFETCH_FIRST_LINE, PREFETCH_EXTRA_LINES);
+    end
+
+    check_minion_flow();
+    if (use_prefetch) check_prefetch_done();
 
     repeat (50) @(posedge clock);
 

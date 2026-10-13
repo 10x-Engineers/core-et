@@ -6,6 +6,7 @@
 # Every target takes TB=<testbench module> (the .sv suffix is optional):
 #   icache_micro_cache_tb         prefetch FSM lost-request directed test
 #   icache_micro_cache_simple_tb  two minion misses then a prefetch
+#   neigh_shared_icache_tb        shared icache: two minions miss, sleep and retry
 #
 # Open-source flow (default):
 #   make TB=<tb>           build with Verilator and run, writes <tb>.vcd
@@ -57,8 +58,11 @@ GTKW      := $(TEST_DIR)/$(TB).gtkw
 # neigh_top_rtl.f brings in libs (rf_latch_1r_1w_par, rf_latch_1r_1w_dec),
 # neigh_channel (-y over shire/neigh/icache), esr and minion (tlb_top).
 # The .f files reference $RTLROOT, which both VCS and Verilator expand.
+# neigh_channel_hm_behav.f adds the behavioural models of the hard macros
+# (icache_tag_data_array, icache_lru_state_array) that icache_top needs.
 FILE_LIST := -f $(RTLROOT)/shire/neigh/neigh_top_rtl.f \
              -f $(RTLROOT)/shire/neigh/neigh_top_vcs_defines.f \
+             -f $(RTLROOT)/shire/neigh/neigh_channel_hm_behav.f \
              +incdir+$(RTLROOT)/inc +incdir+$(REPOROOT) +libext+.v+.sv
 
 TB_SRCS   := $(TEST_DIR)/$(TB_TOP).sv

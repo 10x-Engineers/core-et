@@ -7,6 +7,7 @@
 # TB is required and names the testbench module (the .sv suffix is optional):
 #   icache_micro_cache_tb         prefetch FSM lost-request directed test
 #   icache_micro_cache_simple_tb  two minion misses then a prefetch
+#   neigh_shared_icache_tb        shared icache: two minions miss, sleep and retry
 #
 # Targets
 #   run        compile, elaborate and run in batch, writes waves.shm and <tb>.vcd
@@ -50,16 +51,26 @@ WAVES    := waves.shm
 # neigh_top_rtl.f brings in libs (rf_latch_1r_1w_par, rf_latch_1r_1w_dec),
 # neigh_channel (-y over shire/neigh/icache), esr and minion (tlb_top).
 # The .f files reference $RTLROOT, which xrun expands from the environment.
+# neigh_channel_hm_behav.f adds the behavioural hard macro models that
+# icache_top needs (icache_tag_data_array, icache_lru_state_array).
 FLIST    := -f $(RTLROOT)/shire/neigh/neigh_top_rtl.f \
-            -f $(RTLROOT)/shire/neigh/neigh_top_vcs_defines.f
+            -f $(RTLROOT)/shire/neigh/neigh_top_vcs_defines.f \
+            -f $(RTLROOT)/shire/neigh/neigh_channel_hm_behav.f
 INCDIRS  := +incdir+$(RTLROOT)/inc +incdir+$(REPOROOT)
 LIBEXT   := +libext+.v+.sv
 
 TB_SRCS  := $(TEST_DIR)/$(TB).sv $(TEST_DIR)/$(DUMP_TOP).sv
 TOPS     := -top $(TB) -top $(DUMP_TOP)
 
+# NORECI: xmvlog reports "input source text recursion" when a macro appears
+# inside its own arguments, which debug_defines.vh does on purpose:
+# NEIGH_DM_APB_ADDR_WIDTH is `MAX(a, b) where a and b are themselves `MAX(...).
+# That is nested use, not recursion. IEEE 1800 permits it and the expansion is
+# correct, so the warning is silenced rather than the header rewritten.
+NOWARN   := -nowarn NORECI
+
 # +define+TB_TOP tells the dump module which testbench to $dumpvars
-RUN_BASE  = xrun -clean -sv -64bit $(FLIST) $(INCDIRS) $(LIBEXT) \
+RUN_BASE  = xrun -clean -sv -64bit $(NOWARN) $(FLIST) $(INCDIRS) $(LIBEXT) \
             -timescale 1ns/1ps +define+TB_TOP=$(TB) $(DEFINES) \
             $(TB_SRCS) $(TOPS) -access +rwc \
             -input $(TEST_DIR)/probes.tcl \
@@ -72,7 +83,7 @@ COV_FLAGS = -coverage all \
 
 comp:
 	mkdir -p $(LOGDIR)
-	xmvlog -sv -64bit $(FLIST) $(INCDIRS) $(LIBEXT) \
+	xmvlog -sv -64bit $(NOWARN) $(FLIST) $(INCDIRS) $(LIBEXT) \
 		+define+TB_TOP=$(TB) $(DEFINES) $(TB_SRCS) \
 		-l $(LOGDIR)/xmvlog_$(TB).log
 
@@ -107,7 +118,7 @@ cov_gui:
 # Elaborate the DUT on its own, a quick check that the RTL and filelists agree
 esim:
 	mkdir -p $(LOGDIR)
-	xrun -clean -sv -64bit $(FLIST) $(INCDIRS) $(LIBEXT) -timescale 1ns/1ps \
+	xrun -clean -sv -64bit $(NOWARN) $(FLIST) $(INCDIRS) $(LIBEXT) -timescale 1ns/1ps \
 		$(DEFINES) -top $(DESIGN) -elaborate -l $(LOGDIR)/esim.log
 
 .PHONY: comp elab run run_cov run_gui cov_report cov_gui esim clean
