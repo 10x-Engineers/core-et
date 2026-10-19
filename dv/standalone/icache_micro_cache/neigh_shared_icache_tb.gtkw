@@ -1,0 +1,171 @@
+[*]
+[*] GTKWave save file for neigh_shared_icache_tb: two minions miss, sleep and retry
+[*] Loaded automatically by: make TB=neigh_shared_icache_tb waves
+[*]
+[timestart] 0
+[size] 1600 1000
+[pos] -1 -1
+*-18.0 20000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.neigh_shared_icache_tb.
+[treeopen] TOP.neigh_shared_icache_tb.dut.
+[sst_width] 320
+[signals_width] 420
+[sst_expanded] 1
+[sst_vpaned_height] 300
+@200
+-Clock and reset
+@28
+TOP.neigh_shared_icache_tb.clock
+@28
+TOP.neigh_shared_icache_tb.reset
+@200
+-Minion model
+@24
+TOP.neigh_shared_icache_tb.m_state[0][2:0]
+@24
+TOP.neigh_shared_icache_tb.m_state[1][2:0]
+@28
+TOP.neigh_shared_icache_tb.m_kick[0]
+@28
+TOP.neigh_shared_icache_tb.m_kick[1]
+@28
+TOP.neigh_shared_icache_tb.grant_count[31:0]
+@28
+TOP.neigh_shared_icache_tb.retry_count[31:0]
+@200
+-Minion request port
+@22
+TOP.neigh_shared_icache_tb.f0_req_valid[7:0]
+@22
+TOP.neigh_shared_icache_tb.f0_req_ready[7:0]
+@28
+TOP.neigh_shared_icache_tb.f0_req[0].addr[48:0]
+@28
+TOP.neigh_shared_icache_tb.f0_req[1].addr[48:0]
+@200
+-Shared icache arbiter (requestor 0)
+@22
+TOP.neigh_shared_icache_tb.dut.f1_req_valid[0][1:0]
+@22
+TOP.neigh_shared_icache_tb.dut.f1_req_valid[1][1:0]
+@22
+TOP.neigh_shared_icache_tb.dut.f1_req_bid[0][1:0]
+@22
+TOP.neigh_shared_icache_tb.dut.f1_req_bid[1][1:0]
+@22
+TOP.neigh_shared_icache_tb.dut.REQ_ARB[0].f1_grant[7:0]
+@22
+TOP.neigh_shared_icache_tb.dut.REQ_ARB[0].f4_grant[7:0]
+@22
+TOP.neigh_shared_icache_tb.dut.f1_req_arb_valid[1:0]
+@22
+TOP.neigh_shared_icache_tb.dut.f1_req_arb_ready[1:0]
+@200
+-Response port
+@22
+TOP.neigh_shared_icache_tb.f4_resp_valid[1:0]
+@22
+TOP.neigh_shared_icache_tb.f4_resp_miss[1:0]
+@22
+TOP.neigh_shared_icache_tb.f5_resp_fill_done[1:0]
+@28
+TOP.neigh_shared_icache_tb.f4_resp[0].cacheable
+@28
+TOP.neigh_shared_icache_tb.f4_resp[0].data[255:0]
+@200
+-Prefetch
+@28
+TOP.neigh_shared_icache_tb.esr_prefetch_start
+@28
+TOP.neigh_shared_icache_tb.esr_prefetch_done
+@28
+TOP.neigh_shared_icache_tb.prefetch_done_fell
+@28
+TOP.neigh_shared_icache_tb.prefetch_done_rose
+@24
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_state[2:0]
+@24
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_miss_nomh_state[1:0]
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req_valid
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req_ready
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req_access
+@24
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_lines[5:0]
+@200
+-L0 micro-cache (requestor 0)
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_valid
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_hit
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_miss
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_miss_state[1:0]
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_miss_nomh_state[1:0]
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_state[2:0]
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_l1_miss_req_valid
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_l1_miss_req_addr[39:0]
+@28
+TOP.neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_l1_miss_resp_valid
+@200
+-L1 icache_top
+@28
+TOP.neigh_shared_icache_tb.dut.icache.f0_l1_miss_req_valid
+@28
+TOP.neigh_shared_icache_tb.dut.icache.f1_hit
+@28
+TOP.neigh_shared_icache_tb.dut.icache.f1_miss
+@28
+TOP.neigh_shared_icache_tb.dut.icache.f0_miss_state[1:0]
+@28
+TOP.neigh_shared_icache_tb.dut.icache.f0_paddr[39:0]
+@28
+TOP.neigh_shared_icache_tb.dut.icache.f0_l1_miss_resp_valid
+@200
+-L2 port
+@28
+TOP.neigh_shared_icache_tb.f0_l2_miss_req_valid
+@28
+TOP.neigh_shared_icache_tb.f0_l2_miss_req_ready
+@28
+TOP.neigh_shared_icache_tb.f0_l2_miss_req.address[39:0]
+@28
+TOP.neigh_shared_icache_tb.f0_l2_miss_req.opcode[4:0]
+@28
+TOP.neigh_shared_icache_tb.f0_l2_miss_resp_valid
+@28
+TOP.neigh_shared_icache_tb.f0_l2_miss_resp.opcode[1:0]
+@28
+TOP.neigh_shared_icache_tb.f0_l2_miss_resp.dest[3:0]
+@28
+TOP.neigh_shared_icache_tb.f0_l2_miss_resp.data[511:0]
+@200
+-L1 data SRAM model
+@28
+TOP.neigh_shared_icache_tb.icache_f2_sram_req_valid
+@28
+TOP.neigh_shared_icache_tb.icache_f2_sram_req_ready
+@28
+TOP.neigh_shared_icache_tb.icache_f2_sram_req_write
+@28
+TOP.neigh_shared_icache_tb.icache_f2_sram_req_addr[8:0]
+@28
+TOP.neigh_shared_icache_tb.s1_valid
+@28
+TOP.neigh_shared_icache_tb.s1_write
+@28
+TOP.neigh_shared_icache_tb.s1_waiting
+@28
+TOP.neigh_shared_icache_tb.fill_seen
+@28
+TOP.neigh_shared_icache_tb.icache_f0_sram_resp_valid
+@28
+TOP.neigh_shared_icache_tb.icache_f0_sram_resp_dout[575:0]

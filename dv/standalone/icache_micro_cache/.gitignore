@@ -1,0 +1,5 @@
+# Verilator build and run outputs
+obj_dir
+*.log
+*.vcd
+*.fst
