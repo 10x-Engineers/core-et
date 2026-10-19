@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Cadence Xcelium flow for the icache_micro_cache standalone testbenches.
-# Use with:  make -f Makefile.xcelium TB=<testbench> <target>
+# Use with:  make -f Makefile.xcelium TB=<testbench> [target]   (default target: run)
 #
 # TB is required and names the testbench module (the .sv suffix is optional):
 #   icache_micro_cache_tb         prefetch FSM lost-request directed test
@@ -15,8 +15,8 @@
 #   run_cov    batch run with all coverage types enabled
 #   cov_report HTML coverage report in cov_html/
 #   cov_gui    open the coverage database in IMC
-#   comp       xmvlog only, for a quick syntax check
-#   elab       xmelab of the testbench after comp
+#   comp       compile only, for a quick syntax check
+#   elab       compile and elaborate, no simulation
 #   esim       elaborate the DUT alone, no testbench
 #   clean
 #
@@ -50,12 +50,17 @@ WAVES    := waves.shm
 
 # neigh_top_rtl.f brings in libs (rf_latch_1r_1w_par, rf_latch_1r_1w_dec),
 # neigh_channel (-y over shire/neigh/icache), esr and minion (tlb_top).
-# The .f files reference $RTLROOT, which xrun expands from the environment.
 # neigh_channel_hm_behav.f adds the behavioural hard macro models that
 # icache_top needs (icache_tag_data_array, icache_lru_state_array).
-FLIST    := -f $(RTLROOT)/shire/neigh/neigh_top_rtl.f \
-            -f $(RTLROOT)/shire/neigh/neigh_top_vcs_defines.f \
-            -f $(RTLROOT)/shire/neigh/neigh_channel_hm_behav.f
+#
+# These filelists nest, and five of them include libs_rtl.f. xmvlog stops
+# with *F,REARGF on a repeated -f, so they are flattened into one list with
+# every entry kept once. The list is rebuilt on every run.
+TOP_FLISTS := $(RTLROOT)/shire/neigh/neigh_top_rtl.f \
+              $(RTLROOT)/shire/neigh/neigh_top_vcs_defines.f \
+              $(RTLROOT)/shire/neigh/neigh_channel_hm_behav.f
+FLAT_FLIST := $(LOGDIR)/flat_rtl.f
+FLIST      := -f $(FLAT_FLIST)
 INCDIRS  := +incdir+$(RTLROOT)/inc +incdir+$(REPOROOT)
 LIBEXT   := +libext+.v+.sv
 
@@ -81,30 +86,34 @@ COV_FLAGS = -coverage all \
             -covworkdir $(COVDIR) \
             -covtest $(TB)
 
-comp:
-	mkdir -p $(LOGDIR)
-	xmvlog -sv -64bit $(NOWARN) $(FLIST) $(INCDIRS) $(LIBEXT) \
-		+define+TB_TOP=$(TB) $(DEFINES) $(TB_SRCS) \
-		-l $(LOGDIR)/xmvlog_$(TB).log
+# Default target, so a bare "make -f Makefile.xcelium TB=<tb>" runs the test
+all: run
 
-elab:
-	xmelab -64bit -access +rwc -timescale 1ns/1ps $(TB) $(DUMP_TOP) \
-		-l $(LOGDIR)/xmelab_$(TB).log
+$(FLAT_FLIST): FORCE
+	mkdir -p $(LOGDIR)
+	$(TEST_DIR)/flatten_flist.sh $(TOP_FLISTS) > $@
+
+# Compile only. xmvlog cannot resolve the -y library directories in the
+# filelist, so the split steps also go through xrun.
+comp: $(FLAT_FLIST)
+	$(RUN_BASE) -compile
+
+# Compile and elaborate, no simulation
+elab: $(FLAT_FLIST)
+	$(RUN_BASE) -elaborate
 
 # Batch: probes.tcl sets up the SHM, -run starts the simulation, -exit leaves
 # once $finish is reached.
-run:
-	mkdir -p $(LOGDIR)
+run: $(FLAT_FLIST)
 	$(RUN_BASE) -run -exit
 
-run_cov:
-	mkdir -p $(LOGDIR) $(COVDIR)
+run_cov: $(FLAT_FLIST)
+	mkdir -p $(COVDIR)
 	$(RUN_BASE) $(COV_FLAGS) -run -exit
 
 # SimVision with the probes already in place. Type "run" in the console or
 # press the run button; the wave window is opened by probes.tcl.
-run_gui:
-	mkdir -p $(LOGDIR)
+run_gui: $(FLAT_FLIST)
 	$(RUN_BASE) -gui
 
 # Generate HTML coverage report using xrun (avoids IMC version mismatch issues).
@@ -116,12 +125,13 @@ cov_gui:
 	imc -load $(COVDIR)/scope/$(TB)
 
 # Elaborate the DUT on its own, a quick check that the RTL and filelists agree
-esim:
-	mkdir -p $(LOGDIR)
+esim: $(FLAT_FLIST)
 	xrun -clean -sv -64bit $(NOWARN) $(FLIST) $(INCDIRS) $(LIBEXT) -timescale 1ns/1ps \
 		$(DEFINES) -top $(DESIGN) -elaborate -l $(LOGDIR)/esim.log
 
-.PHONY: comp elab run run_cov run_gui cov_report cov_gui esim clean
+.PHONY: all comp elab run run_cov run_gui cov_report cov_gui esim clean FORCE
+
+FORCE:
 
 clean:
 	rm -rf xcelium.d xmvlog* xmelab* simvision* xrun.history xrun.key $(WAVES) .simvision \

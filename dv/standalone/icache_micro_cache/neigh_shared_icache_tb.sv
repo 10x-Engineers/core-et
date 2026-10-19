@@ -252,7 +252,7 @@ module neigh_shared_icache_tb ();
   assign f0_l2_miss_req_ready        = 1'b1;
   assign f0_l2_miss_req_disable_next = 1'b0;
 
-  always_ff @(posedge clock) begin
+  always @(posedge clock) begin
     if (reset) begin
       l2_pipe   <= '0;
       l2_addr_q <= '0;
@@ -336,7 +336,7 @@ module neigh_shared_icache_tb ();
   assign s1_leave   = s1_valid && !s1_waiting;
   assign icache_f2_sram_req_ready = !s1_valid || s1_leave;
 
-  always_ff @(posedge clock) begin
+  always @(posedge clock) begin
     if (reset) begin
       s1_valid    <= 1'b0;
       s1_write    <= 1'b0;
@@ -387,7 +387,7 @@ module neigh_shared_icache_tb ();
   assign ptw_resp_valid = '0;
   assign ptw_resp_data  = '0;
 
-  always_ff @(posedge clock)
+  always @(posedge clock)
     for (int unsigned r = 0; r < NR_REQUESTORS; r++)
       if (!reset && ptw_req_valid[r]) begin
         errors++;
@@ -476,7 +476,7 @@ module neigh_shared_icache_tb ();
     end
   end
 
-  always_ff @(posedge clock) begin
+  always @(posedge clock) begin
     int unsigned id;
     int unsigned r;
     string       tag;
@@ -536,7 +536,8 @@ module neigh_shared_icache_tb ();
             if (m_kick[m]) m_state[m] <= Minion_Request;
 
           Minion_Request: begin
-            tag = (m_wakeups[m] > 0) ? ", retry" : "";
+            if (m_wakeups[m] > 0) tag = ", retry";
+            else                  tag = "";
             $display("INFO  %0t minion %0d requests line %0d (VA 0x%0h)%s", $time, m, m_line[m], f0_req[m].addr, tag);
             m_state[m] <= Minion_Wait_Grant;
           end
@@ -599,7 +600,7 @@ module neigh_shared_icache_tb ();
   bit prefetch_done_fell = 1'b0;
   bit prefetch_done_rose = 1'b0;
 
-  always_ff @(posedge clock) begin
+  always @(posedge clock) begin
     if (!reset) begin
       if (!esr_prefetch_done) prefetch_done_fell <= 1'b1;
       if (prefetch_done_fell && esr_prefetch_done) prefetch_done_rose <= 1'b1;
@@ -609,7 +610,7 @@ module neigh_shared_icache_tb ();
   // //////////////////////////////////////////////////////////////////////////////
   // Internal state monitor, L1 miss FSM and L0 micro-cache FSMs
   // //////////////////////////////////////////////////////////////////////////////
-  always_ff @(posedge clock) begin
+  always @(posedge clock) begin
     if (!reset) begin
       if (dut.icache.UCACHE[0].micro_cache.f0_prefetch_state != dut.icache.UCACHE[0].micro_cache.f0_prefetch_state_next)
         $display("INFO  %0t L0 prefetch FSM %s -> %s", $time,
@@ -633,16 +634,22 @@ module neigh_shared_icache_tb ();
   // //////////////////////////////////////////////////////////////////////////////
   function automatic string hist_str (input int unsigned m);
     hist_str = "";
-    for (int unsigned k = 0; (k < m_resp_count[m]) && (k < MAX_RESPS); k++)
-      hist_str = {hist_str, (k > 0) ? ", " : "", m_resp_miss[m][k] ? "miss" : "hit"};
+    for (int unsigned k = 0; (k < m_resp_count[m]) && (k < MAX_RESPS); k++) begin
+      if (k > 0) hist_str = {hist_str, ", "};
+      if (m_resp_miss[m][k]) hist_str = {hist_str, "miss"};
+      else                   hist_str = {hist_str, "hit"};
+    end
   endfunction
 
-  task automatic check_history (input int unsigned m, input bit expected [], input string expected_str);
+  // Expected history: n responses, bit k of miss_pattern set when response k
+  // is a miss
+  task automatic check_history (input int unsigned m, input int unsigned n,
+                                input logic [MAX_RESPS-1:0] miss_pattern, input string expected_str);
     bit ok;
     begin
-      ok = (m_resp_count[m] == expected.size());
-      for (int unsigned k = 0; ok && (k < expected.size()); k++)
-        ok = (m_resp_miss[m][k] == expected[k]);
+      ok = (m_resp_count[m] == n);
+      for (int unsigned k = 0; ok && (k < n); k++)
+        ok = (m_resp_miss[m][k] == miss_pattern[k]);
       if (ok)
         $display("PASS  %0t minion %0d responses: %s", $time, m, hist_str(m));
       else begin
@@ -688,8 +695,8 @@ module neigh_shared_icache_tb ();
                  $time, retry_count, retry_order[0], retry_order[1]);
       end
 
-      check_history(0, '{1'b1, 1'b0},       "miss, hit");
-      check_history(1, '{1'b1, 1'b1, 1'b0}, "miss, miss, hit");
+      check_history(0, 2, 'b001, "miss, hit");
+      check_history(1, 3, 'b011, "miss, miss, hit");
 
       // L2 traffic: one line read per minion, line 0 before line 1. Prefetch
       // reads may be interleaved, so only order and multiplicity are checked.

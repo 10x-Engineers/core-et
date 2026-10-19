@@ -228,7 +228,7 @@ module icache_micro_cache_simple_tb ();
 
   assign f0_l1_miss_req_ready = 1'b1;
 
-  always_ff @(posedge clock) begin
+  always @(posedge clock) begin
     if (reset) begin
       l1_pipe   <= '0;
       l1_addr_q <= '0;
@@ -260,7 +260,7 @@ module icache_micro_cache_simple_tb ();
   int unsigned      fill_done_count = 0;
   time              l1_req_time     = 0;
 
-  always_ff @(posedge clock) begin
+  always @(posedge clock) begin
     if (!reset) begin
       if (f0_l1_miss_req_valid && f0_l1_miss_req_ready) begin
         l1_req_time <= $time;
@@ -296,7 +296,7 @@ module icache_micro_cache_simple_tb ();
 
   assign ptw_req_ready = 1'b1;
 
-  always_ff @(posedge clock) begin
+  always @(posedge clock) begin
     if (reset) begin
       ptw_pipe  <= '0;
       ptw_req_q <= '0;
@@ -414,7 +414,7 @@ module icache_micro_cache_simple_tb ();
     end
   end
 
-  always_ff @(posedge clock) begin
+  always @(posedge clock) begin
     int unsigned id;
     string       retry_tag;
     if (reset) begin
@@ -468,7 +468,8 @@ module icache_micro_cache_simple_tb ();
                 if (retry_count < MAX_RESPS) retry_order[retry_count] <= m;
                 retry_count <= retry_count + 1;
               end
-              retry_tag = (m_wakeups[m] > 0) ? ", retry" : "";
+              if (m_wakeups[m] > 0) retry_tag = ", retry";
+              else                  retry_tag = "";
               $display("INFO  %0t minion %0d requests line %0d (VA 0x%0h)%s",
                        $time, m, m_line[m], f0_req.addr, retry_tag);
             end
@@ -517,7 +518,7 @@ module icache_micro_cache_simple_tb ();
   bit prefetch_done_fell = 1'b0;
   bit prefetch_done_rose = 1'b0;
 
-  always_ff @(posedge clock) begin
+  always @(posedge clock) begin
     if (!reset) begin
       if (!esr_prefetch_done) prefetch_done_fell <= 1'b1;
       if (prefetch_done_fell && esr_prefetch_done) prefetch_done_rose <= 1'b1;
@@ -535,17 +536,23 @@ module icache_micro_cache_simple_tb ();
   // //////////////////////////////////////////////////////////////////////////////
   function automatic string hist_str (input int unsigned m);
     hist_str = "";
-    for (int unsigned k = 0; (k < m_resp_count[m]) && (k < MAX_RESPS); k++)
-      hist_str = {hist_str, (k > 0) ? ", " : "", m_resp_miss[m][k] ? "miss" : "hit"};
+    for (int unsigned k = 0; (k < m_resp_count[m]) && (k < MAX_RESPS); k++) begin
+      if (k > 0) hist_str = {hist_str, ", "};
+      if (m_resp_miss[m][k]) hist_str = {hist_str, "miss"};
+      else                   hist_str = {hist_str, "hit"};
+    end
   endfunction
 
   // Expected response history per minion, as a miss/hit pattern
-  task automatic check_history (input int unsigned m, input bit expected [], input string expected_str);
+  // Expected history: n responses, bit k of miss_pattern set when response k
+  // is a miss
+  task automatic check_history (input int unsigned m, input int unsigned n,
+                                input logic [MAX_RESPS-1:0] miss_pattern, input string expected_str);
     bit ok;
     begin
-      ok = (m_resp_count[m] == expected.size());
-      for (int unsigned k = 0; ok && (k < expected.size()); k++)
-        ok = (m_resp_miss[m][k] == expected[k]);
+      ok = (m_resp_count[m] == n);
+      for (int unsigned k = 0; ok && (k < n); k++)
+        ok = (m_resp_miss[m][k] == miss_pattern[k]);
       if (ok)
         $display("PASS  %0t minion %0d responses: %s", $time, m, hist_str(m));
       else begin
@@ -577,8 +584,8 @@ module icache_micro_cache_simple_tb ();
       end
 
       // Response histories
-      check_history(0, '{1'b1, 1'b0},       "miss, hit");
-      check_history(1, '{1'b1, 1'b1, 1'b0}, "miss, miss, hit");
+      check_history(0, 2, 'b001, "miss, hit");
+      check_history(1, 3, 'b011, "miss, miss, hit");
 
       // Retry order after the first fill done: minion 0, then minion 1
       if ((retry_count >= 2) && (retry_order[0] == 0) && (retry_order[1] == 1))

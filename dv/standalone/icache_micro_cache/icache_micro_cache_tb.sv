@@ -405,7 +405,7 @@ module icache_micro_cache_tb ();
                           && (dut.f0_prefetch_state_next == icache_prefetch_state_Check_Hit)
                           && !dut.f0_prefetch_req_access;
 
-  int unsigned lost_req_errors = 0;
+  int unsigned lost_req_errors; // 2-state, starts at 0; no initializer on an always_ff target
 
   always_ff @(posedge clock) begin
     if (prefetch_req_lost) begin
