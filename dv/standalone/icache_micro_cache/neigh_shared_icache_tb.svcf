@@ -1,0 +1,186 @@
+# Copyright (c) 2026 Ainekko
+# SPDX-License-Identifier: Apache-2.0
+#
+# SimVision command file for neigh_shared_icache_tb: two minions miss, sleep
+# and retry, then a prefetch burst.
+#
+# Groups follow neigh_shared_icache_tb.gtkw, plus two that GTKWave does not
+# have: "Prefetch Check_Hit debug" (the F0..F3 pipeline flags the prefetch FSM
+# waits on in Check_Hit) and "Testbench status" (scoreboard counters).
+#
+# Loaded by Makefile.xcelium:
+#   make -f Makefile.xcelium TB=neigh_shared_icache_tb run_gui   live simulation
+#   make -f Makefile.xcelium TB=neigh_shared_icache_tb waves     saved waves.shm
+#
+# By hand: simvision waves.shm -input neigh_shared_icache_tb.svcf
+# The same file works in both modes: signals are taken from the live
+# simulator when there is one, otherwise from the waves database.
+
+set nsi_db waves
+if {[lsearch -exact [database find] simulator] >= 0} {
+  set nsi_db simulator
+}
+
+set nsi_tb neigh_shared_icache_tb
+set nsi_uc $nsi_tb.dut.icache.UCACHE\[0\].micro_cache
+
+window new WaveWindow -name {neigh_shared_icache_tb}
+waveform using {neigh_shared_icache_tb}
+
+# Adds one group to the waveform window. sigs is a flat list of
+# {path radix} pairs. In a path, @tb is the testbench and @uc the requestor 0
+# micro-cache. A radix of "-" keeps the SimVision default, which shows
+# enum names for the FSM states.
+proc nsi_group {name sigs {collapsed 0}} {
+  global nsi_db nsi_tb nsi_uc
+  set map [list @uc $nsi_uc @tb $nsi_tb]
+
+  catch {group delete [list $name]}
+  group new -name $name -overlay 0
+  group using $name
+  group set -overlay 0
+  group clear 0 end
+  foreach {sig radix} $sigs {
+    group insert "${nsi_db}::[string map $map $sig]"
+  }
+
+  set gid [waveform add -groups [list $name]]
+  foreach item [waveform hierarchy contents $gid] {sig radix} $sigs {
+    if {$radix ne "-"} {waveform format $item -radix $radix}
+  }
+  if {$collapsed} {waveform hierarchy collapse $gid}
+}
+
+nsi_group {Clock and reset} {
+  @tb.clock                                  -
+  @tb.reset                                  -
+}
+
+nsi_group {Minion model} {
+  @tb.m_state[0]                             -
+  @tb.m_state[1]                             -
+  @tb.m_kick[0]                              -
+  @tb.m_kick[1]                              -
+  @tb.grant_count                            %d
+  @tb.retry_count                            %d
+  @tb.fill_done_count                        %d
+}
+
+nsi_group {Minion request port} {
+  @tb.f0_req_valid                           %b
+  @tb.f0_req_ready                           %b
+  @tb.f0_req[0].addr                         %x
+  @tb.f0_req[1].addr                         %x
+}
+
+nsi_group {Shared icache arbiter (requestor 0)} {
+  @tb.dut.f1_req_valid[0]                    %b
+  @tb.dut.f1_req_valid[1]                    %b
+  @tb.dut.f1_req_bid[0]                      %b
+  @tb.dut.f1_req_bid[1]                      %b
+  @tb.dut.REQ_ARB[0].f1_grant                %b
+  @tb.dut.REQ_ARB[0].f4_grant                %b
+  @tb.dut.f1_req_arb_valid                   %b
+  @tb.dut.f1_req_arb_ready                   %b
+}
+
+nsi_group {Response port} {
+  @tb.f4_resp_valid                          %b
+  @tb.f4_resp_miss                           %b
+  @tb.f5_resp_fill_done                      %b
+  @tb.f4_resp[0].cacheable                   -
+  @tb.f4_resp[0].data                        %x
+}
+
+nsi_group {Prefetch} {
+  @tb.esr_prefetch_conf                      %x
+  @tb.esr_prefetch_start                     -
+  @tb.esr_prefetch_done                      -
+  @tb.prefetch_done_fell                     -
+  @tb.prefetch_done_rose                     -
+  @uc.f0_prefetch_state                      -
+  @uc.f0_prefetch_state_next                 -
+  @uc.f0_prefetch_miss_nomh_state            -
+  @uc.f0_prefetch_req_valid                  -
+  @uc.f0_prefetch_req_ready                  -
+  @uc.f0_prefetch_req_access                 -
+  @uc.f0_prefetch_load_new_req               -
+  @uc.f0_prefetch_req.addr                   %x
+  @uc.f0_prefetch_lines                      %d
+}
+
+# Check_Hit leaves only when f2_valid & f2_is_prefetch. These are the flags
+# a prefetch access carries down the pipe, and what can hold it back at F0.
+nsi_group {Prefetch Check_Hit debug} {
+  @uc.f0_req_valid                           -
+  @uc.f0_req_pipe_valid                      -
+  @uc.f1_valid                               -
+  @uc.f1_is_prefetch                         -
+  @uc.f2_valid                               -
+  @uc.f2_is_prefetch                         -
+  @uc.f2_hit                                 -
+  @uc.f2_miss                                -
+  @uc.f2_page_fault                          -
+  @uc.f2_access_fault                        -
+  @uc.f2_paddr                               %x
+  @uc.f3_valid                               -
+  @uc.f3_is_prefetch                         -
+  @uc.f0_miss_is_prefetch                    -
+  @uc.f0_prefetch_done_next                  -
+  @uc.f0_prefetch_prereq_cnt                 %d
+  @uc.f0_prefetch_miss_nomh_cnt              %d
+}
+
+nsi_group {L0 micro-cache (requestor 0)} {
+  @uc.f2_valid                               -
+  @uc.f2_hit                                 -
+  @uc.f2_miss                                -
+  @uc.f0_miss_state                          -
+  @uc.f0_l1_miss_req_valid                   -
+  @uc.f0_l1_miss_req_addr                    %x
+  @uc.f0_l1_miss_resp_valid                  -
+}
+
+nsi_group {L1 icache_top} {
+  @tb.dut.icache.f0_l1_miss_req_valid        -
+  @tb.dut.icache.f1_hit                      -
+  @tb.dut.icache.f1_miss                     -
+  @tb.dut.icache.f0_miss_state               -
+  @tb.dut.icache.f0_paddr                    %x
+  @tb.dut.icache.f0_l1_miss_resp_valid       -
+}
+
+nsi_group {L2 port} {
+  @tb.f0_l2_miss_req_valid                   -
+  @tb.f0_l2_miss_req_ready                   -
+  @tb.f0_l2_miss_req.address                 %x
+  @tb.f0_l2_miss_req.opcode                  -
+  @tb.f0_l2_miss_resp_valid                  -
+  @tb.f0_l2_miss_resp_ready                  -
+  @tb.f0_l2_miss_resp.opcode                 -
+  @tb.f0_l2_miss_resp.dest                   %x
+  @tb.f0_l2_miss_resp.data                   %x
+}
+
+nsi_group {L1 data SRAM model} {
+  @tb.icache_f2_sram_req_valid               -
+  @tb.icache_f2_sram_req_ready               -
+  @tb.icache_f2_sram_req_write               -
+  @tb.icache_f2_sram_req_addr                %x
+  @tb.s1_valid                               -
+  @tb.s1_write                               -
+  @tb.s1_waiting                             -
+  @tb.fill_seen                              -
+  @tb.icache_f0_sram_resp_valid              -
+  @tb.icache_f0_sram_resp_dout               %x
+} 1
+
+nsi_group {Testbench status} {
+  @tb.cycle_count                            %d
+  @tb.l2_req_count                           %d
+  @tb.l2_resp_count                          %d
+  @tb.errors                                 %d
+}
+
+# The traffic is over by ~90 ns; the prefetch then runs until the timeout
+waveform xview limits 0ns 200ns

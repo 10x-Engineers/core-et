@@ -1,0 +1,703 @@
+
+#
+# Mnemonic Maps
+#
+mmap new  -reuse -name {Boolean as Logic} -radix %b -contents {{%c=FALSE -edgepriority 1 -shape low}
+{%c=TRUE -edgepriority 1 -shape high}}
+mmap new  -reuse -name {Example Map} -radix %x -contents {{%b=11???? -bgcolor orange -label REG:%x -linecolor yellow -shape bus}
+{%x=1F -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=2C -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=* -label %x -linecolor gray -shape bus}}
+
+array unset createdGroup
+array set createdGroup {}
+#
+# Groups
+#
+if {[catch {group get -using [list {Clock and reset}]}]} {
+set createdGroup([list {Clock and reset}]) 1
+catch {group new -name {Clock and reset} -overlay 0}
+}
+if {[catch {group get -using [list {Minion model}]}]} {
+set createdGroup([list {Minion model}]) 1
+catch {group new -name {Minion model} -overlay 0}
+}
+if {[catch {group get -using [list {Minion request port}]}]} {
+set createdGroup([list {Minion request port}]) 1
+catch {group new -name {Minion request port} -overlay 0}
+}
+if {[catch {group get -using [list {Shared icache arbiter (requestor 0)}]}]} {
+set createdGroup([list {Shared icache arbiter (requestor 0)}]) 1
+catch {group new -name {Shared icache arbiter (requestor 0)} -overlay 0}
+}
+if {[catch {group get -using [list {Response port}]}]} {
+set createdGroup([list {Response port}]) 1
+catch {group new -name {Response port} -overlay 0}
+}
+if {[catch {group get -using [list {Prefetch}]}]} {
+set createdGroup([list {Prefetch}]) 1
+catch {group new -name Prefetch -overlay 0}
+}
+if {[catch {group get -using [list {Prefetch Check_Hit debug}]}]} {
+set createdGroup([list {Prefetch Check_Hit debug}]) 1
+catch {group new -name {Prefetch Check_Hit debug} -overlay 0}
+}
+if {[catch {group get -using [list {L0 micro-cache (requestor 0)}]}]} {
+set createdGroup([list {L0 micro-cache (requestor 0)}]) 1
+catch {group new -name {L0 micro-cache (requestor 0)} -overlay 0}
+}
+if {[catch {group get -using [list {L1 icache_top}]}]} {
+set createdGroup([list {L1 icache_top}]) 1
+catch {group new -name {L1 icache_top} -overlay 0}
+}
+if {[catch {group get -using [list {L2 port}]}]} {
+set createdGroup([list {L2 port}]) 1
+catch {group new -name {L2 port} -overlay 0}
+}
+if {[catch {group get -using [list {L1 data SRAM model}]}]} {
+set createdGroup([list {L1 data SRAM model}]) 1
+catch {group new -name {L1 data SRAM model} -overlay 0}
+}
+if {[catch {group get -using [list {Testbench status}]}]} {
+set createdGroup([list {Testbench status}]) 1
+catch {group new -name {Testbench status} -overlay 0}
+}
+if {[info exists createdGroup([list {Clock and reset}])]} {
+group using {Clock and reset}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.clock}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.reset}]} ]
+}
+
+if {[info exists createdGroup([list {Minion model}])]} {
+group using {Minion model}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.m_state[0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.m_state[1]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.m_kick[0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.m_kick[1]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.grant_count}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.retry_count}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.fill_done_count}]} ]
+}
+
+if {[info exists createdGroup([list {Minion request port}])]} {
+group using {Minion request port}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.f0_req_valid[7:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_req_ready[7:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_req[0].addr}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_req[1].addr}]} ]
+}
+
+if {[info exists createdGroup([list {Shared icache arbiter (requestor 0)}])]} {
+group using {Shared icache arbiter (requestor 0)}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.dut.f1_req_valid[1]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.f1_req_bid[0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.f1_req_bid[1]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.f1_req_valid[0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.f1_req_ready[7:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.REQ_ARB[0].f1_grant[7:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.REQ_ARB[0].f4_grant[7:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.f1_req_arb_valid[1:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.f1_req_arb_ready[1:0]}]} ]
+}
+
+if {[info exists createdGroup([list {Response port}])]} {
+group using {Response port}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.f4_resp_valid[1:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f4_resp_miss[1:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f5_resp_fill_done[1:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f4_resp[0].cacheable}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f4_resp[0].data}]} ]
+}
+
+if {[info exists createdGroup([list {Prefetch}])]} {
+group using Prefetch
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.esr_prefetch_conf}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.esr_prefetch_start}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.esr_prefetch_done}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.prefetch_done_fell}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.prefetch_done_rose}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_state[2:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_state_next[2:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_miss_nomh_state[1:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req_ready}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req_access}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_load_new_req}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req.addr}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_lines[5:0]}]} ]
+}
+
+if {[info exists createdGroup([list {Prefetch Check_Hit debug}])]} {
+group using {Prefetch Check_Hit debug}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_req_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_req_pipe_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f1_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f1_is_prefetch}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_is_prefetch}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_hit}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_miss}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_page_fault}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_access_fault}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_paddr[39:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f3_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f3_is_prefetch}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_miss_is_prefetch}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_done_next}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_prereq_cnt[2:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_miss_nomh_cnt[3:0]}]} ]
+}
+
+if {[info exists createdGroup([list {L0 micro-cache (requestor 0)}])]} {
+group using {L0 micro-cache (requestor 0)}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_hit}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_miss}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_miss_state[1:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_l1_miss_req_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_l1_miss_req_addr[39:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_l1_miss_resp_valid}]} ]
+}
+
+if {[info exists createdGroup([list {L1 icache_top}])]} {
+group using {L1 icache_top}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.f0_l1_miss_req_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.f1_hit}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.f1_miss}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.f0_miss_state[1:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.f0_paddr[39:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.dut.icache.f0_l1_miss_resp_valid}]} ]
+}
+
+if {[info exists createdGroup([list {L2 port}])]} {
+group using {L2 port}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.f0_l2_miss_req_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_l2_miss_req_ready}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_l2_miss_req.address}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_l2_miss_req.opcode}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_l2_miss_resp_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_l2_miss_resp_ready}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_l2_miss_resp.opcode}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_l2_miss_resp.dest}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.f0_l2_miss_resp.data}]} ]
+}
+
+if {[info exists createdGroup([list {L1 data SRAM model}])]} {
+group using {L1 data SRAM model}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.icache_f2_sram_req_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.icache_f2_sram_req_ready}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.icache_f2_sram_req_write}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.icache_f2_sram_req_addr[8:0]}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.s1_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.s1_write}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.s1_waiting}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.fill_seen}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.icache_f0_sram_resp_valid}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.icache_f0_sram_resp_dout[575:0]}]} ]
+}
+
+if {[info exists createdGroup([list {Testbench status}])]} {
+group using {Testbench status}
+group set -overlay 0
+group set -comment {}
+group clear 0 end
+group insert \
+    [subst  {[format {neigh_shared_icache_tb.cycle_count}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.l2_req_count}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.l2_resp_count}]} ] \
+    [subst  {[format {neigh_shared_icache_tb.errors}]} ]
+}
+
+
+set groupId0 [waveform add -groups {{Clock and reset}}]
+
+
+set groupId0 [waveform add -groups {{Minion model}}]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.m_state[0]}]} {}
+    {[format {neigh_shared_icache_tb.m_state[1]}]} {}
+    {[format {neigh_shared_icache_tb.m_kick[0]}]} {}
+    {[format {neigh_shared_icache_tb.m_kick[1]}]} {}
+    {[format {neigh_shared_icache_tb.grant_count}]} {-radix %d}
+    {[format {neigh_shared_icache_tb.retry_count}]} {-radix %d}
+    {[format {neigh_shared_icache_tb.fill_done_count}]} {-radix %d}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups {{Minion request port}}]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.f0_req_valid[7:0]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.f0_req_ready[7:0]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.f0_req[0].addr}]} {-radix %x}
+    {[format {neigh_shared_icache_tb.f0_req[1].addr}]} {-radix %x}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups {{Shared icache arbiter (requestor 0)}}]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.dut.f1_req_valid[1]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.dut.f1_req_bid[0]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.dut.f1_req_bid[1]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.dut.f1_req_valid[0]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.dut.f1_req_ready[7:0]}]} {}
+    {[format {neigh_shared_icache_tb.dut.REQ_ARB[0].f1_grant[7:0]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.dut.REQ_ARB[0].f4_grant[7:0]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.dut.f1_req_arb_valid[1:0]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.dut.f1_req_arb_ready[1:0]}]} {-radix %b}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+    {
+        set id $gpID0
+        waveform hierarchy expand $id
+    }
+    {}
+    {}
+    {
+        set id $gpID0
+        waveform hierarchy collapse $id
+    }
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups {{Response port}}]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.f4_resp_valid[1:0]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.f4_resp_miss[1:0]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.f5_resp_fill_done[1:0]}]} {-radix %b}
+    {[format {neigh_shared_icache_tb.f4_resp[0].cacheable}]} {}
+    {[format {neigh_shared_icache_tb.f4_resp[0].data}]} {-radix %x}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups Prefetch]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.esr_prefetch_conf}]} {-radix %x}
+    {[format {neigh_shared_icache_tb.esr_prefetch_start}]} {}
+    {[format {neigh_shared_icache_tb.esr_prefetch_done}]} {}
+    {[format {neigh_shared_icache_tb.prefetch_done_fell}]} {}
+    {[format {neigh_shared_icache_tb.prefetch_done_rose}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_state[2:0]}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_state_next[2:0]}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_miss_nomh_state[1:0]}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req_valid}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req_ready}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req_access}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_load_new_req}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_req.addr}]} {-radix %x}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_lines[5:0]}]} {-radix %d}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups {{Prefetch Check_Hit debug}}]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_req_valid}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_req_pipe_valid}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f1_valid}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f1_is_prefetch}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_valid}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_is_prefetch}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_hit}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_miss}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_page_fault}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_access_fault}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_paddr[39:0]}]} {-radix %x}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f3_valid}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f3_is_prefetch}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_miss_is_prefetch}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_done_next}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_prereq_cnt[2:0]}]} {-radix %d}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_prefetch_miss_nomh_cnt[3:0]}]} {-radix %d}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups {{L0 micro-cache (requestor 0)}}]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_valid}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_hit}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f2_miss}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_miss_state[1:0]}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_l1_miss_req_valid}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_l1_miss_req_addr[39:0]}]} {-radix %x}
+    {[format {neigh_shared_icache_tb.dut.icache.UCACHE[0].micro_cache.f0_l1_miss_resp_valid}]} {}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups {{L1 icache_top}}]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.dut.icache.f0_l1_miss_req_valid}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.f1_hit}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.f1_miss}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.f0_miss_state[1:0]}]} {}
+    {[format {neigh_shared_icache_tb.dut.icache.f0_paddr[39:0]}]} {-radix %x}
+    {[format {neigh_shared_icache_tb.dut.icache.f0_l1_miss_resp_valid}]} {}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups {{L2 port}}]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.f0_l2_miss_req_valid}]} {}
+    {[format {neigh_shared_icache_tb.f0_l2_miss_req_ready}]} {}
+    {[format {neigh_shared_icache_tb.f0_l2_miss_req.address}]} {-radix %x}
+    {[format {neigh_shared_icache_tb.f0_l2_miss_req.opcode}]} {}
+    {[format {neigh_shared_icache_tb.f0_l2_miss_resp_valid}]} {}
+    {[format {neigh_shared_icache_tb.f0_l2_miss_resp_ready}]} {}
+    {[format {neigh_shared_icache_tb.f0_l2_miss_resp.opcode}]} {}
+    {[format {neigh_shared_icache_tb.f0_l2_miss_resp.dest}]} {-radix %x}
+    {[format {neigh_shared_icache_tb.f0_l2_miss_resp.data}]} {-radix %x}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+
+set groupId0 [waveform add -groups {{L1 data SRAM model}}]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.icache_f2_sram_req_valid}]} {}
+    {[format {neigh_shared_icache_tb.icache_f2_sram_req_ready}]} {}
+    {[format {neigh_shared_icache_tb.icache_f2_sram_req_write}]} {}
+    {[format {neigh_shared_icache_tb.icache_f2_sram_req_addr[8:0]}]} {-radix %x}
+    {[format {neigh_shared_icache_tb.s1_valid}]} {}
+    {[format {neigh_shared_icache_tb.s1_write}]} {}
+    {[format {neigh_shared_icache_tb.s1_waiting}]} {}
+    {[format {neigh_shared_icache_tb.fill_seen}]} {}
+    {[format {neigh_shared_icache_tb.icache_f0_sram_resp_valid}]} {}
+    {[format {neigh_shared_icache_tb.icache_f0_sram_resp_dout[575:0]}]} {-radix %x}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+waveform hierarchy collapse $groupId0
+
+
+set groupId0 [waveform add -groups {{Testbench status}}]
+set gpGlist0 [waveform hierarchy contents $groupId0]
+set gpID0 [lindex $gpGlist0 0]
+foreach {name attrs} [subst  {
+    {[format {neigh_shared_icache_tb.cycle_count}]} {-radix %d}
+    {[format {neigh_shared_icache_tb.l2_req_count}]} {-radix %d}
+    {[format {neigh_shared_icache_tb.l2_resp_count}]} {-radix %d}
+    {[format {neigh_shared_icache_tb.errors}]} {-radix %d}
+}] childcmds {
+    {}
+    {}
+    {}
+    {}
+} {
+    set expected [ join [waveform signals -format path $gpID0] ]
+    if {[string equal $name $expected] || $name == "cdivider"} {
+        if {$attrs != ""} {
+            eval waveform format $gpID0 $attrs
+        }
+        if { $childcmds != ""} {
+            eval $childcmds
+        }
+    }
+    set gpGlist0 [lrange $gpGlist0 1 end]
+    set gpID0 [lindex $gpGlist0 0]
+}
+
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_ready[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_ready[7]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_ready[6]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_ready[5]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_ready[4]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_ready[3]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_ready[2]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_ready[1]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_ready[0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_valid[7:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{[format {neigh_shared_icache_tb.dut.f1_req_valid_next[7:0]}]}
+	} ]]
+
+waveform xview limits 9954ps 34954ps

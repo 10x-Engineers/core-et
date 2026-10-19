@@ -12,6 +12,7 @@
 # Targets
 #   run        compile, elaborate and run in batch, writes waves.shm and <tb>.vcd
 #   run_gui    same, but opens SimVision with the probes loaded and waits at time 0
+#   waves      open the waves.shm of the last run in SimVision
 #   run_cov    batch run with all coverage types enabled
 #   cov_report HTML coverage report in cov_html/
 #   cov_gui    open the coverage database in IMC
@@ -22,7 +23,9 @@
 #
 # Waves: probes.tcl opens waves.shm and probes the whole testbench for
 # SimVision. icache_micro_cache_dump also writes <tb>.vcd, so the same run can
-# be inspected in GTKWave.
+# be inspected in GTKWave. When <tb>.svcf exists, run_gui and waves load it
+# into SimVision. It holds the grouped signal list, the SimVision counterpart
+# of <tb>.gtkw.
 #
 # ET_USE_ASIC_MEMS is deliberately left undefined so the generic behavioural
 # models under rtl/libs/rf_latches are used for the micro tag and micro data
@@ -47,6 +50,8 @@ DUMP_TOP := $(DESIGN)_dump
 LOGDIR   := logs
 COVDIR   := cov_work
 WAVES    := waves.shm
+SVCF     := $(wildcard $(TEST_DIR)/$(TB).svcf)
+SVARGS   := $(if $(SVCF),-input $(SVCF))
 
 # neigh_top_rtl.f brings in libs (rf_latch_1r_1w_par, rf_latch_1r_1w_dec),
 # neigh_channel (-y over shire/neigh/icache), esr and minion (tlb_top).
@@ -64,14 +69,18 @@ FLIST      := -f $(FLAT_FLIST)
 INCDIRS  := +incdir+$(RTLROOT)/inc +incdir+$(REPOROOT)
 LIBEXT   := +libext+.v+.sv
 
-TB_SRCS  := $(TEST_DIR)/$(TB).sv $(TEST_DIR)/$(DUMP_TOP).sv
+# xmvlog 23.03 cannot parse some of the shared RTL headers as written: nested
+# `MAX widths in debug_defines.vh and maxshire_defines.vh, and the type(expr)
+# operator in the LATCH and LATCH_P2 macros. MACRO_FIX is compiled first. It
+# pulls in soc_defines.vh and redefines those macros in a form xmvlog accepts,
+# leaving rtl/inc untouched. See the file header for the details.
+MACRO_FIX := $(TEST_DIR)/xcelium_macro_fix.svh
+
+TB_SRCS  := $(MACRO_FIX) $(TEST_DIR)/$(TB).sv $(TEST_DIR)/$(DUMP_TOP).sv
 TOPS     := -top $(TB) -top $(DUMP_TOP)
 
-# NORECI: xmvlog reports "input source text recursion" when a macro appears
-# inside its own arguments, which debug_defines.vh does on purpose:
-# NEIGH_DM_APB_ADDR_WIDTH is `MAX(a, b) where a and b are themselves `MAX(...).
-# That is nested use, not recursion. IEEE 1800 permits it and the expansion is
-# correct, so the warning is silenced rather than the header rewritten.
+# NORECI: cpu_clint_types.vh includes soc.vh again from inside soc.vh. The
+# include guard stops it there, so the recursion warning is noise.
 NOWARN   := -nowarn NORECI
 
 # +define+TB_TOP tells the dump module which testbench to $dumpvars
@@ -112,9 +121,13 @@ run_cov: $(FLAT_FLIST)
 	$(RUN_BASE) $(COV_FLAGS) -run -exit
 
 # SimVision with the probes already in place. Type "run" in the console or
-# press the run button; the wave window is opened by probes.tcl.
+# press the run button. The grouped wave window comes from <tb>.svcf.
 run_gui: $(FLAT_FLIST)
-	$(RUN_BASE) -gui
+	$(RUN_BASE) -gui $(if $(SVCF),-simvisargs "$(SVARGS)")
+
+# Post-processing: the waves of the last run, no simulator attached
+waves:
+	simvision -64bit $(WAVES) $(SVARGS)
 
 # Generate HTML coverage report using xrun (avoids IMC version mismatch issues).
 # Open cov_html/index.html in a browser after running this.
@@ -127,9 +140,9 @@ cov_gui:
 # Elaborate the DUT on its own, a quick check that the RTL and filelists agree
 esim: $(FLAT_FLIST)
 	xrun -clean -sv -64bit $(NOWARN) $(FLIST) $(INCDIRS) $(LIBEXT) -timescale 1ns/1ps \
-		$(DEFINES) -top $(DESIGN) -elaborate -l $(LOGDIR)/esim.log
+		$(DEFINES) $(MACRO_FIX) -top $(DESIGN) -elaborate -l $(LOGDIR)/esim.log
 
-.PHONY: all comp elab run run_cov run_gui cov_report cov_gui esim clean FORCE
+.PHONY: all comp elab run run_cov run_gui waves cov_report cov_gui esim clean FORCE
 
 FORCE:
 

@@ -12,5 +12,7 @@ set tb $::env(TB)
 
 database -open waves -into waves.shm -default -event
 # Whole testbench hierarchy, DUT internals included, so the prefetch, nomh and
-# miss FSM states are available without re-running
-probe -create $tb -depth all -all -shm -database waves
+# miss FSM states are available without re-running. -all leaves out unpacked
+# arrays; -memories adds them (m_state, m_kick and the other per-minion arrays
+# of the testbench model)
+probe -create $tb -depth all -all -memories -shm -database waves
