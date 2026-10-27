@@ -1,0 +1,6 @@
+0 Idle
+1 Request
+2 Check_Hit
+3 Fill_Wait
+4 FillDone_Wait
+5 PreReq_Pause
