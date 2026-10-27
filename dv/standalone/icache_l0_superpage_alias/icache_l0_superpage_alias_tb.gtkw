@@ -1,0 +1,69 @@
+[*] GTKWave save file for icache_l0_superpage_alias_tb.vcd
+[*] Open with: make wave
+[timestart] 0
+@200
+-Testbench
+@28
+TOP.icache_l0_superpage_alias_tb.clock
+@24
+TOP.icache_l0_superpage_alias_tb.cyc[31:0]
+TOP.icache_l0_superpage_alias_tb.tb_step[31:0]
+@22
+TOP.icache_l0_superpage_alias_tb.tb_expected_pa[39:0]
+@200
+-Step 0: invalidate and flush
+@22
+TOP.icache_l0_superpage_alias_tb.tlb_invalidate[7:0]
+TOP.icache_l0_superpage_alias_tb.f0_flush_data[7:0]
+@200
+-Minion 0 request
+@22
+TOP.icache_l0_superpage_alias_tb.f0_req_valid[7:0]
+@28
+TOP.icache_l0_superpage_alias_tb.f0_req[0].thread_id
+@22
+TOP.icache_l0_superpage_alias_tb.f0_req[0].addr[48:0]
+@200
+-Micro-cache F2 (requestor 0)
+@28
+TOP.icache_l0_superpage_alias_tb.dut.icache.UCACHE[0].micro_cache.f2_valid
+TOP.icache_l0_superpage_alias_tb.dut.icache.UCACHE[0].micro_cache.f2_req.thread_id
+@22
+TOP.icache_l0_superpage_alias_tb.dut.icache.UCACHE[0].micro_cache.f2_req.addr[48:0]
+@28
+TOP.icache_l0_superpage_alias_tb.dut.icache.UCACHE[0].micro_cache.f2_tlb_resp_data.miss
+@22
+TOP.icache_l0_superpage_alias_tb.dut.icache.UCACHE[0].micro_cache.f2_tlb_resp_data.ppn[39:12]
+TOP.icache_l0_superpage_alias_tb.dut.icache.UCACHE[0].micro_cache.f2_paddr[39:0]
+@28
+TOP.icache_l0_superpage_alias_tb.dut.icache.UCACHE[0].micro_cache.f2_hit
+@200
+-Response to Minion 0
+@22
+TOP.icache_l0_superpage_alias_tb.f4_resp_valid[1:0]
+TOP.icache_l0_superpage_alias_tb.f4_resp_miss[1:0]
+TOP.icache_l0_superpage_alias_tb.f4_resp[0].data[255:0]
+TOP.icache_l0_superpage_alias_tb.f5_resp_fill_done[1:0]
+@200
+-Page-table walker
+@24
+TOP.icache_l0_superpage_alias_tb.ptw0.ptw.state[2:0]
+TOP.icache_l0_superpage_alias_tb.ptw0.ptw.level_count[1:0]
+@28
+TOP.icache_l0_superpage_alias_tb.pt_req_valid
+@22
+TOP.icache_l0_superpage_alias_tb.pt_req.address[39:0]
+@28
+TOP.icache_l0_superpage_alias_tb.ptw0.ptw.resp_valid
+@22
+TOP.icache_l0_superpage_alias_tb.ptw0.ptw.resp_data.ppn[43:0]
+@200
+-L2 code reads
+@28
+TOP.icache_l0_superpage_alias_tb.l2_req_valid
+@22
+TOP.icache_l0_superpage_alias_tb.l2_req.address[39:0]
+@28
+TOP.icache_l0_superpage_alias_tb.l2_rsp_valid
+[pattern_trace] 1
+[pattern_trace] 0
