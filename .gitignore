@@ -92,3 +92,6 @@ simv_daidir/
 
 # Ignore libreoffice lock files
 .~lock.*.ods#
+
+# Vscode directories
+.vscode/
