@@ -613,15 +613,17 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#sec-ch3-l0">3.4. L0 Micro-Cache</a>
 <ul class="sectlevel3">
 <li><a href="#sec-ch3-l0-overview">3.4.1. Overview</a></li>
-<li><a href="#sec-ch3-l0-blocks">3.4.2. Internal Blocks</a></li>
-<li><a href="#sec-ch3-l0-pipeline">3.4.3. Pipeline Stages</a></li>
-<li><a href="#sec-ch3-l0-tlb">3.4.4. Instruction TLB</a></li>
-<li><a href="#sec-ch3-l0-tags-data">3.4.5. Micro-Tag and Micro-Data Arrays</a></li>
-<li><a href="#sec-ch3-l0-pma">3.4.6. PMA Check</a></li>
-<li><a href="#sec-ch3-l0-lru">3.4.7. Replacement</a></li>
+<li><a href="#sec-ch3-l0-if">3.4.2. Interface</a></li>
+<li><a href="#sec-ch3-l0-org">3.4.3. Cache Organization and Address Decode</a></li>
+<li><a href="#sec-ch3-l0-pipeline">3.4.4. Pipeline Stages</a></li>
+<li><a href="#sec-ch3-l0-tlb">3.4.5. Instruction TLB</a></li>
+<li><a href="#sec-ch3-l0-tags-data">3.4.6. Micro-Tag and Micro-Data Arrays</a></li>
+<li><a href="#sec-ch3-l0-pma">3.4.7. PMA Check</a></li>
 <li><a href="#sec-ch3-l0-miss">3.4.8. Miss Handling</a></li>
-<li><a href="#sec-ch3-l0-bypass">3.4.9. L1 Bypass</a></li>
-<li><a href="#sec-ch3-l0-prefetch">3.4.10. Software Prefetch</a></li>
+<li><a href="#sec-ch3-l0-flush">3.4.9. Flush</a></li>
+<li><a href="#sec-ch3-l0-bypass">3.4.10. Bypass Mode</a></li>
+<li><a href="#sec-ch3-l0-prefetch">3.4.11. Code Prefetcher</a></li>
+<li><a href="#sec-ch3-l0-dbg">3.4.12. Debug Access</a></li>
 </ul>
 </li>
 <li><a href="#sec-ch3-l1">3.5. L1 Instruction Cache</a>
@@ -995,7 +997,7 @@ Eight counters count ET-Minion events and four count Neighborhood events.</p>
 <li>
 <p><strong>Pair-128</strong>: 128 bits from each of two cores, forming half a cache line</p>
 <div class="paragraph">
-<p>Each core holds its request until every core of the group has presented one, so operations of different modes cannot mix.</p>
+<p>Each core holds its request until every core of the group presents one, so operations of different modes cannot mix.</p>
 </div>
 </li>
 </ul>
@@ -1466,10 +1468,10 @@ It delivers one decoded instruction per cycle to ID, from either thread. The cor
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p><strong>Fetch is double-buffered:</strong> each thread has a thread buffer with two 256-bit entries, each holding half a cache line, so the next block can be requested while the current one is being consumed.</p>
+<p><strong>Fetch is double-buffered:</strong> each thread has a thread buffer with two 256-bit entries, each holding half a cache line, so the next block can be requested while instructions are extracted from the current one.</p>
 </li>
 <li>
-<p><strong>Each thread has at most one fetch request in flight:</strong> the L0 micro-cache answers every accepted request, hit or miss, after a fixed latency, so a thread recognizes its own by timing alone, without a thread identifier. On a miss the thread sleeps until the L0 micro-cache reports that a fill has completed, and then retries.</p>
+<p><strong>Each thread has at most one fetch request in flight:</strong> the L0 micro-cache answers every accepted request, hit or miss, after a fixed latency, so a thread recognizes its own by timing alone, without a thread identifier. On a miss the thread sleeps until the L0 micro-cache reports that a fill is complete, and then retries.</p>
 </li>
 <li>
 <p><strong>Instructions are decoded before they are queued:</strong> one integer decoder and one VPU decoder, shared by both threads, decode in F7, and each thread has a two-entry instruction FIFO that holds decoded instructions until ID accepts them. This moves decode out of the ID stage and lets a thread keep fetching while ID serves the other thread.</p>
@@ -1691,7 +1693,7 @@ It delivers one decoded instruction per cycle to ID, from either thread. The cor
 <td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_fill_done</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The L0 micro-cache has completed a line or translation fill.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A line or translation fill in the L0 micro-cache is complete.</p></td>
 </tr>
 <tr>
 <th class="tableblock halign-left valign-top" colspan="5"><p class="tableblock">Redirect and stall from the integer pipeline</p></th>
@@ -2151,7 +2153,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </dd>
 <dt class="hdlist1">F1–F5 Stage</dt>
 <dd>
-<p>The selected request is held in F1 until the L0 micro-cache accepts it, which happens at the earliest in the second F1 cycle. The thread then waits for the response. The L0 micro-cache always responds to an accepted request, whether it is a hit or a miss, with a fixed five-cycle latency: counting the cycle in which it accepts the request as the first cycle, the response is returned in the fifth cycle, in F5 (<a href="#fig-ch2-fe-td-hit">Figure 12</a>).</p>
+<p>The selected request is held in F1 until the L0 micro-cache accepts it, which happens at the earliest in the second F1 cycle. The thread then waits for the response. The L0 micro-cache always responds to an accepted request, whether it is a hit or a miss, four cycles after the grant, in F5 (<a href="#fig-ch2-fe-td-hit">Figure 12</a>).</p>
 </dd>
 <dt class="hdlist1">F6 Stage</dt>
 <dd>
@@ -2252,7 +2254,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>In <a href="#fig-ch2-fe-td-miss">Figure 13</a> the miss response arrives in cycle 7 and the thread sleeps from cycle 9. Fill done arrives in cycle 11, is registered, and the thread retries in cycle 12.</p>
 </div>
 <div class="paragraph">
-<p>Fill done is issued one cycle after the response slot. A request that looks up the L0 micro-cache while a fill is being written still misses, and its response is the last miss that the fill can cause. Issuing fill done one cycle after that response, and registering it again in the Front End, ensures that every thread has entered the sleep state before the wake-up arrives. A wake-up that arrived first would be lost, and the thread would wait for an unrelated fill.</p>
+<p>Fill done is issued one cycle after the response slot. A request that looks up the L0 micro-cache in the cycle in which a fill writes the array still misses, and its response is the last miss that the fill can cause. Issuing fill done one cycle after that response, and registering it again in the Front End, ensures that every thread is in the sleep state before the wake-up arrives. If the wake-up arrives first, it is lost, and the thread waits for an unrelated fill.</p>
 </div>
 </div>
 <div class="sect4">
@@ -2261,7 +2263,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>A redirect invalidates the thread&#8217;s tokens in F2 to F5 and suppresses the F6 write, so the responses of in-flight requests are discarded.</p>
 </div>
 <div class="paragraph">
-<p>A request still waiting in the F1 I-cache request register cannot be withdrawn: the register is shared and the Neighborhood already holds a copy. The thread records the cancellation and does not advance the token when the request is accepted. The I-cache lookup is performed and its response is discarded. The thread&#8217;s new request is issued only after the cancelled request has been accepted.</p>
+<p>A request still waiting in the F1 I-cache request register cannot be withdrawn: the register is shared and the Neighborhood already holds a copy. The thread records the cancellation and does not advance the token when the request is accepted. The I-cache lookup is performed and its response is discarded. The thread&#8217;s new request is issued only after the Neighborhood accepts the cancelled request.</p>
 </div>
 <div id="fig-ch2-fe-td-kill" class="imageblock text-center">
 <div class="content">
@@ -2571,7 +2573,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <div class="sect3">
 <h4 id="sec-ch2-fe-inval"><a class="anchor" href="#sec-ch2-fe-inval"></a><a class="link" href="#sec-ch2-fe-inval">2.2.6. Entry Invalidation, Redirect and Thread Start</a></h4>
 <div class="paragraph">
-<p>This section describes the events that discard buffered instructions or restart fetch. <a href="#sec-ch2-fe-release">Section 2.2.6.1</a> lists when a buffer entry is released: normally when its last instruction has been extracted, but also on a redirect, a thread disable or entry to debug mode. <a href="#sec-ch2-fe-redirect">Section 2.2.6.2</a> describes a redirect from the integer pipeline: what triggers it, what it clears in each stage, and how long the thread takes to deliver its first target instruction. <a href="#sec-ch2-fe-enable">Section 2.2.6.3</a> describes how thread enable and disable events are derived from the enable input, how fetch starts at the reset vector, and what state a thread has after reset.</p>
+<p>This section describes the events that discard buffered instructions or restart fetch. <a href="#sec-ch2-fe-release">Section 2.2.6.1</a> lists when a buffer entry is released: normally after its last instruction is extracted, but also on a redirect, a thread disable or entry to debug mode. <a href="#sec-ch2-fe-redirect">Section 2.2.6.2</a> describes a redirect from the integer pipeline: what triggers it, what it clears in each stage, and how long the thread takes to deliver its first target instruction. <a href="#sec-ch2-fe-enable">Section 2.2.6.3</a> describes how thread enable and disable events are derived from the enable input, how fetch starts at the reset vector, and what state a thread has after reset.</p>
 </div>
 <div class="sect4">
 <h5 id="sec-ch2-fe-release"><a class="anchor" href="#sec-ch2-fe-release"></a><a class="link" href="#sec-ch2-fe-release">2.2.6.1. Entry Invalidation</a></h5>
@@ -2838,7 +2840,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </dd>
 <dt class="hdlist1">Ready</dt>
 <dd>
-<p>The thread&#8217;s FIFO is not empty or is being written in the current cycle, and the thread is not being redirected. Including the write allows an instruction to pass from F7 to ID in consecutive cycles.</p>
+<p>The thread&#8217;s FIFO is not empty or receives a write in the current cycle, and no redirect is in progress for the thread. Including the write allows an instruction to pass from F7 to ID in consecutive cycles.</p>
 </dd>
 </dl>
 </div>
@@ -3495,7 +3497,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_req_ready</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The 8:1 arbiter has granted the request. Returned in the grant cycle, it frees the core&#8217;s F1 request register, so the core can load its other thread&#8217;s request in the same cycle and present it on the next.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The 8:1 arbiter grants the request. Returned in the grant cycle, it frees the core&#8217;s F1 request register, so the core can load its other thread&#8217;s request in the same cycle and present it on the next.</p></td>
 </tr>
 <tr>
 <th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Fetch response</p></th>
@@ -3522,7 +3524,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_fill_done</code></p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A line or translation fill has completed in the L0 micro-cache.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A line or translation fill in the L0 micro-cache is complete.</p></td>
 </tr>
 <tr>
 <th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Address translation and maintenance</p></th>
@@ -3574,7 +3576,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <div class="sect4">
 <h5 id="_priority_matrix"><a class="anchor" href="#_priority_matrix"></a><a class="link" href="#_priority_matrix">3.3.3.1. Priority Matrix</a></h5>
 <div class="paragraph">
-<p>The 8:1 LRU arbiter holds its priority in an aging matrix: one bit for every pair of the eight threads it serves, recording which of the two was served more recently. A thread wins when it has priority over every other thread bidding in that cycle, which makes the grant one-hot. Two threads can never hold the same priority, because every pair is ordered by exactly one bit. Granting a thread clears all of its bits, that is it is placed behind every other thread, and the threads that have waited longest move up.</p>
+<p>The 8:1 LRU arbiter holds its priority in an aging matrix: one bit for every pair of the eight threads it serves, recording which of the two was served more recently. A thread wins when it has priority over every other thread bidding in that cycle, which makes the grant one-hot. Two threads can never hold the same priority, because every pair is ordered by exactly one bit. Granting a thread clears all of its bits, that is it is placed behind every other thread, and the threads with the longest wait move up.</p>
 </div>
 <div class="paragraph">
 <p>The grant is combinational. In the same cycle it is returned to the core as <code>icache_req_ready</code>, the thread&#8217;s request register is freed, so it reads invalid in the next cycle, and the core may load the request of its other thread into the F1 register. A request is therefore accepted at the earliest in its second cycle in the Front End&#8217;s F1 stage, because that register has to hold it for one more cycle while it is flopped into the Neighborhood&#8217;s per-thread register.</p>
@@ -3686,7 +3688,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">F5</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Fill-done pulse to the cores (<code>f5_resp_fill_done</code>), one stage after the response. Not part of the lookup: it reports that a line or a translation has been written.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill-done pulse to the cores (<code>f5_resp_fill_done</code>), one stage after the response. Not part of the lookup: it reports that a line or translation fill is complete.</p></td>
 </tr>
 </tbody>
 </table>
@@ -3700,7 +3702,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>The fill-done signal is driven one stage later than the response, from the stage after F4.</p>
 </div>
 <div class="paragraph">
-<p>In the waveforms that follow, a thread is written M0, TH0, meaning thread 0 of Minion 0. <a href="#fig-ch3-td-l0-hit">Figure 24</a> shows a request that hits: the core presents it, the 8:1 LRU arbiter grants it in cycle 1, and the response is returned in cycle 5, four cycles later. The grant frees both registers that were holding the request, the core&#8217;s F1 request register and the Neighborhood&#8217;s per-thread register, which is why both valids fall in the next cycle. <code>f4_grant</code> still names M0, TH0, the thread that was granted four cycles earlier, which is how F4 knows whose priority to update: the response is a hit, so <code>f4_update_prio</code> is asserted and M0, TH0 moves behind the other threads in the LRU order.</p>
+<p>In the waveforms that follow, a thread is written M0, TH0, meaning thread 0 of Minion 0. <a href="#fig-ch3-td-l0-hit">Figure 24</a> shows a request that hits: the core presents it, the 8:1 LRU arbiter grants it in cycle 1, and the response is returned in cycle 5, four cycles later. The grant frees both registers that hold the request, the core&#8217;s F1 request register and the Neighborhood&#8217;s per-thread register, which is why both valids fall in the next cycle. <code>f4_grant</code> still names M0, TH0, the thread that was granted four cycles earlier, which is how F4 knows whose priority to update: the response is a hit, so <code>f4_update_prio</code> is asserted and M0, TH0 moves behind the other threads in the LRU order.</p>
 </div>
 <div id="fig-ch3-td-l0-hit" class="imageblock text-center">
 <div class="content">
@@ -3728,10 +3730,10 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>In both cases the core that made the request receives a miss response and puts the requesting thread to sleep.</p>
 </div>
 <div class="paragraph">
-<p>When the fill completes, that is when the translation has been written into the TLB or the line into the micro-cache data array, the L0 micro-cache pulses <code>icache_fill_done</code>. The pulse is common to all eight threads it serves and carries no address, so every sleeping thread wakes and retries. A thread whose line is still absent misses again and sleeps until the next fill.</p>
+<p>When the fill completes, that is, when the translation is in the TLB or the line is in the micro-cache data array, the L0 micro-cache pulses <code>icache_fill_done</code>. The pulse is common to all eight threads it serves and carries no address, so every sleeping thread wakes and retries. A thread whose line is still absent misses again and sleeps until the next fill.</p>
 </div>
 <div class="paragraph">
-<p>Fill done is deliberately driven one stage later than the response. A request that looks the cache up while the fill is being written still misses, and its miss response is the last one that this fill can cause. Sending fill done after that response guarantees that every thread has entered the sleep state before its wake-up arrives, so no wake-up is lost.</p>
+<p>Fill done is deliberately driven one stage later than the response. A lookup that reaches F2 in the cycle the fill is written hits, because the micro-tag array checks the tag being written as well as the tags it already holds. The last lookup that misses on the line is the one in F3 while the line is written, so its miss response is returned two cycles before <code>f5_resp_fill_done</code>. Every thread has therefore entered the sleep state before its wake-up arrives, and no wake-up is lost.</p>
 </div>
 <div class="paragraph">
 <p>Each L0 micro-cache has one miss handler, which holds one miss at a time; it is described in <a href="#sec-ch3-ll-mh">Section 3.3.8.1</a>. <a href="#fig-ch3-td-l0-miss">Figure 25</a> follows one thread through a miss and its retry. The lookup misses in F2, the handler leaves <code>Ready</code>, and the request to the L1 instruction cache is driven in F3. The response in F4 is a miss, so the thread sleeps and its priority is left unchanged; the grant has already freed both the core&#8217;s F1 request register and the Neighborhood&#8217;s per-thread register.</p>
@@ -3804,7 +3806,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>In cycle 0 the four cores present a TH0 request each, and the F1 registers hold them. The thread registers go valid in cycle 1, M0, TH0 wins and <code>icache_req_ready</code> frees M0&#8217;s F1 register, which reloads with TH1 in cycle 2. M1, TH0 is granted in cycle 2, and in cycle 3 M0, TH1 is granted, while M2 and M3 are still holding their first request.</p>
 </div>
 <div class="paragraph">
-<p>M0 is therefore served twice before M2 and M3 are served once, and the reason is that the aging matrix has one entry per thread, not one per Minion. Granting M0, TH0 demotes M0, TH0 and nothing else, so M0, TH1 keeps a position that is still ahead of M2 and M3 and wins the arbitration in cycle 3. The deferred update does not cause this: had the priority been updated at the grant instead of at the response, M0, TH1 would have won that cycle just the same.</p>
+<p>M0 is therefore served twice before M2 and M3 are served once, and the reason is that the aging matrix has one entry per thread, not one per Minion. Granting M0, TH0 demotes M0, TH0 and nothing else, so M0, TH1 keeps a position that is still ahead of M2 and M3 and wins the arbitration in cycle 3. The deferred update does not cause this: if the priority update occurs at the grant instead of at the response, M0, TH1 still wins in cycle 3.</p>
 </div>
 <div class="paragraph">
 <p>Per-thread entries are what make the arbitration fair, because the two threads of a core succeed and fail independently. One may hit while the other misses, and a single entry shared by both would demote the thread that missed every time its sibling was served, costing it the position it needs to win its retry after the fill. What the deferred update adds is the next step: a thread whose own response is a miss keeps its place, so it wins its retry immediately, and the miss-count guard bounds how long any thread can be passed over (<a href="#sec-ch3-fe-ic-livelock">Section 3.3.8</a>).</p>
@@ -3895,7 +3897,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </tbody>
 </table>
 <div class="paragraph">
-<p>The mechanisms in the first two rows are described with the hardware that implements them: the 2:1 LRU arbiter of the core fetch port in <a href="#sec-ch2-fe-pipeline">Section 2.2.3</a>, and the 8:1 LRU arbiter with its deferred priority update in <a href="#sec-ch3-fe-ic-arb">Section 3.3.3</a>. The code prefetcher and the two timed windows that hold it behind every thread are described in <a href="#sec-ch3-l0-prefetch">Section 3.4.10</a>, the round-robin arbiter between the two micro-caches in <a href="#sec-ch3-l1-arb">Section 3.5.5</a>, and the decoders, instruction FIFOs and thread scheduler in <a href="#sec-ch2-fe-decode">Section 2.2.7</a> and <a href="#sec-ch2-fe-sched">Section 2.2.9</a>. What remains, and what the rest of this section describes, is the one shared resource with no arbitration of its own: the miss handler of the L0 micro-cache.</p>
+<p>The mechanisms in the first two rows are described with the hardware that implements them: the 2:1 LRU arbiter of the core fetch port in <a href="#sec-ch2-fe-pipeline">Section 2.2.3</a>, and the 8:1 LRU arbiter with its deferred priority update in <a href="#sec-ch3-fe-ic-arb">Section 3.3.3</a>. The code prefetcher and the two timed windows that hold it behind every thread are described in <a href="#sec-ch3-l0-prefetch">Section 3.4.11</a>, the round-robin arbiter between the two micro-caches in <a href="#sec-ch3-l1-arb">Section 3.5.5</a>, and the decoders, instruction FIFOs and thread scheduler in <a href="#sec-ch2-fe-decode">Section 2.2.7</a> and <a href="#sec-ch2-fe-sched">Section 2.2.9</a>. What remains, and what the rest of this section describes, is the one shared resource with no arbitration of its own: the miss handler of the L0 micro-cache.</p>
 </div>
 <div class="sect4">
 <h5 id="sec-ch3-ll-mh"><a class="anchor" href="#sec-ch3-ll-mh"></a><a class="link" href="#sec-ch3-ll-mh">3.3.8.1. The L0 Miss Handler</a></h5>
@@ -3925,7 +3927,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>Behind it, the L1 instruction cache is also single-transaction. It accepts one request, closes its request port until that request&#8217;s response, and always answers with the block: on an L1 hit from its data RAM, on an L1 miss once the line has come back from the Shire Cache. A micro-cache miss that reaches the L1 therefore occupies the L1 for its whole duration, which on an L1 miss is a full round trip out of the Neighborhood.</p>
 </div>
 <div class="paragraph">
-<p>The code prefetcher shares this same handler. It never delays a fetch in the same cycle, because a prefetch request enters the L0 pipeline only in cycles with no core request, but once it has taken the handler it holds it exactly as a demand miss would (<a href="#sec-ch3-l0-prefetch">Section 3.4.10</a>).</p>
+<p>The code prefetcher shares this same handler. It never delays a fetch in the same cycle, because a prefetch request enters the L0 pipeline only in cycles with no core request, but after a prefetch takes the handler, the prefetcher holds the handler exactly as a demand miss does (<a href="#sec-ch3-l0-prefetch">Section 3.4.11</a>).</p>
 </div>
 <div class="paragraph">
 <p>A lookup that does not hit returns a miss response to the thread in one of the following three cases:</p>
@@ -3944,7 +3946,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </ol>
 </div>
 <div class="paragraph">
-<p>In all three cases the thread enters the sleep state (<code>f0_miss_pending</code>) and no request is issued. In the second and third nothing has been requested on that thread&#8217;s behalf, and it is the second that this section is about.</p>
+<p>In all three cases the thread enters the sleep state (<code>f0_miss_pending</code>) and no request is issued. In the second and third cases nothing is requested for that thread, and it is the second that this section is about.</p>
 </div>
 </div>
 <div class="sect4">
@@ -3953,7 +3955,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>The L0 micro-cache pulses <code>f6_icache_fill_done</code> to all its threads whenever an L1 fill completes, whether it is a demand miss or a prefetch, and whenever a translation fill completes. On seeing the fill done every sleeping thread wakes and retries according to the arbitration priority. A thread whose line is now present hits, including any thread that missed on the line already being fetched, and a thread whose line is still absent misses again; if the handler is now idle, its miss is sent to the L1 instruction cache.</p>
 </div>
 <div class="paragraph">
-<p>A thread sleeps because its own response was a miss; that is the only thing that puts it to sleep. What decides when it is woken is what the handler was doing at that moment: serving this thread&#8217;s own miss, serving the fill of another thread that kept the handler busy, or completing a translation. In all three a fill is in progress, so every sleeping thread is woken when it receives the fill-done signal. The fill-done timing (<a href="#sec-ch2-fe-miss">Section 2.2.4.3</a>) makes sure that no wake-up is lost: fill done is issued one cycle after the last response the fill can affect, and it is registered again in the Front End. A redirect, a thread disable or a pending halt clears the sleep state of the affected thread only; fill done is the only event that wakes all sleeping threads.</p>
+<p>A thread sleeps because its own response was a miss; that is the only thing that puts it to sleep. What decides when it is woken is the task of the miss handler at that moment: the thread&#8217;s own miss, the fill of another thread that keeps the handler busy, or a translation. In all three a fill is in progress, so every sleeping thread is woken when it receives the fill-done signal. The fill-done timing (<a href="#sec-ch2-fe-miss">Section 2.2.4.3</a>) makes sure that no wake-up is lost: fill done is issued one cycle after the last response the fill can affect, and it is registered again in the Front End. A redirect, a thread disable or a pending halt clears the sleep state of the affected thread only; fill done is the only event that wakes all sleeping threads.</p>
 </div>
 <div class="paragraph">
 <p>Which thread is served in a round is decided in F2. That is the stage where the tag is compared, where a miss is therefore first indicated, and where the handler accepts it and flops its state so that the request to the L1 instruction cache goes out in F3 (<a href="#tab-ch3-l0-stages">Table 29</a>). A lookup that reaches F2 any later in the round finds the handler no longer Ready.</p>
@@ -3971,7 +3973,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p>The following sequence is built from ordinary events and needs no fault, no error and no unusual configuration.</p>
 </div>
 <div class="paragraph">
-<p><strong>Starting point.</strong> Each fetch returns a 32-byte block, half an L0 line, and a thread buffer holds two of them (<a href="#sec-ch2-fe-tb">Section 2.2.5</a>). Thread A has the first half of line X in its buffer and is executing from it. It requests the second half of X. While A was executing, another thread&#8217;s fill selected X as its LRU victim and evicted it, so A&#8217;s request misses. The miss handler is busy with that other fill, so A&#8217;s miss is <strong>not recorded</strong>. A receives a miss response and sleeps.</p>
+<p><strong>Starting point.</strong> Each fetch returns a 32-byte block, half an L0 line, and a thread buffer holds two of them (<a href="#sec-ch2-fe-tb">Section 2.2.5</a>). Thread A has the first half of line X in its buffer and executes from it. It requests the second half of X. While A executes from the first half, a fill for another thread selects X as its LRU victim and evicts it, so A&#8217;s request misses. The miss handler is busy with that other fill, so A&#8217;s miss is <strong>not recorded</strong>. A receives a miss response and sleeps.</p>
 </div>
 <div class="paragraph">
 <p><strong>The redirect.</strong> While A sleeps, the integer pipeline resolves a branch in the instructions A already consumed and redirects it. The redirect clears A&#8217;s sleep bit at once, and A presents a request for the branch target without waiting for any fill.</p>
@@ -3983,7 +3985,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <p><strong>The others.</strong> Each of the seven woken threads reaches F2 one or more cycles later and finds the handler in <code>Request</code> or <code>Fill_Wait</code>. Every one of their misses is discarded. They receive miss responses, sleep again, and because a miss response does not update the arbitration priority, the next round begins in exactly the same order as this one.</p>
 </div>
 <div class="paragraph">
-<p>Thread A has not done anything wrong, and no arbiter has misbehaved: A was granted on merit and its miss was accepted on merit. The point is that a redirect let A bypass the queue of sleeping threads entirely, and that one fill-done round can serve only one miss. A thread that is redirected often enough, or a prefetch engine that is already in the pipeline when the threads wake, can take that single opportunity repeatedly.</p>
+<p>No part of the design is at fault: the arbiter grants A on merit, and the miss handler accepts its miss on merit. The point is that a redirect let A bypass the queue of sleeping threads entirely, and that one fill-done round can serve only one miss. A thread that is redirected often enough, or a prefetch engine that is already in the pipeline when the threads wake, can take that single opportunity repeatedly.</p>
 </div>
 <div class="paragraph">
 <p>The result is a thread that is granted in every round, answered in every round, and never once has a line fetched on its behalf. Its arbitration priority does not change, because priority is only updated on a hit or a fault, so the arbiter cannot lift it out of the position it is in. Raising its priority would not be enough in any case: priority decides who enters the pipeline first, and the thread that enters first is not necessarily the thread that finds the handler idle.</p>
@@ -4125,60 +4127,2392 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 <div class="sect3">
 <h4 id="sec-ch3-l0-overview"><a class="anchor" href="#sec-ch3-l0-overview"></a><a class="link" href="#sec-ch3-l0-overview">3.4.1. Overview</a></h4>
 <div class="paragraph">
-<p><em>Table: L0 micro-cache characteristics.</em></p>
+<p>The L0 micro-cache (<code>icache_micro_cache</code>) is the first level of the Neighborhood&#8217;s shared instruction cache: a fully associative, physically tagged cache of 16 lines of 64 bytes, 1 KB in all. Each Neighborhood has two instances, each shared by four Minions, eight threads: the north micro-cache serves Minions 0 to 3 and the south micro-cache serves Minions 4 to 7. The cache is split in two so that each instance is next to the Minions it serves, which reduces congestion in the Neighborhood channel. The two instances are identical except for the code prefetcher, which loads code into the L1 instruction cache at the request of software and is active only in the north micro-cache.</p>
 </div>
-</div>
-<div class="sect3">
-<h4 id="sec-ch3-l0-blocks"><a class="anchor" href="#sec-ch3-l0-blocks"></a><a class="link" href="#sec-ch3-l0-blocks">3.4.2. Internal Blocks</a></h4>
 <div class="paragraph">
-<p><em>Figure: L0 micro-cache block diagram.</em></p>
+<p>The micro-cache has a single request port, so the eight threads of an instance are arbitrated in the Neighborhood by an 8:1 LRU arbiter (<a href="#sec-ch3-fe-ic-arb">Section 3.3.3</a>), which presents the virtual fetch address of one request per cycle. The micro-cache translates the address with its own instruction TLB and, on a hit, returns a 32-byte instruction block, half a line. On a miss it requests the complete 64-byte line from the L1 instruction cache, the next level, which both micro-caches share.</p>
 </div>
-</div>
-<div class="sect3">
-<h4 id="sec-ch3-l0-pipeline"><a class="anchor" href="#sec-ch3-l0-pipeline"></a><a class="link" href="#sec-ch3-l0-pipeline">3.4.3. Pipeline Stages</a></h4>
 <div class="paragraph">
-<p><em>Figure: L0 micro-cache pipeline.</em></p>
+<p>The design rests on four decisions:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><strong>Never stalls, fixed latency:</strong> a miss does not block the requests behind it, so the cache accepts one request in every cycle, serves hits while a miss is outstanding, and returns a response for every request, hit or miss, four cycles after the grant. The Front End depends on the fixed latency, because it recognizes its responses by timing alone (<a href="#sec-ch2-fe-track">Section 2.2.4.2</a>).</p>
+</li>
+<li>
+<p><strong>Translate, then look up:</strong> the tags are physical, so the instruction TLB translates the fetch address in the cycle after the request is accepted, and the physical tag is compared with all 16 lines in the next cycle.</p>
+</li>
+<li>
+<p><strong>One fill at a time:</strong> one line request to the L1 instruction cache and one page-table walk can be outstanding. A miss that finds the resource it needs busy is answered but not recorded, and every completed fill wakes all sleeping threads (<a href="#sec-ch3-fe-ic-miss">Section 3.3.5</a>).</p>
+</li>
+<li>
+<p><strong>One TLB for four Minions:</strong> each Minion owns four of the 16 TLB entries, except in cooperative mode, a Shire-wide setting held in the <code>shire_coop_mode</code> ESR, in which the four Minions share all 16 entries.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><a href="#tab-ch3-l0-submodules">Table 32</a> lists the submodules. The sections that follow describe the interface (<a href="#sec-ch3-l0-if">Section 3.4.2</a>), the organization and address decode (<a href="#sec-ch3-l0-org">Section 3.4.3</a>), the pipeline (<a href="#sec-ch3-l0-pipeline">Section 3.4.4</a>), the instruction TLB (<a href="#sec-ch3-l0-tlb">Section 3.4.5</a>), the arrays and the replacement policy (<a href="#sec-ch3-l0-tags-data">Section 3.4.6</a>), the PMA check (<a href="#sec-ch3-l0-pma">Section 3.4.7</a>), miss handling (<a href="#sec-ch3-l0-miss">Section 3.4.8</a>), flush (<a href="#sec-ch3-l0-flush">Section 3.4.9</a>), bypass mode (<a href="#sec-ch3-l0-bypass">Section 3.4.10</a>), the code prefetcher (<a href="#sec-ch3-l0-prefetch">Section 3.4.11</a>) and debug access (<a href="#sec-ch3-l0-dbg">Section 3.4.12</a>).</p>
+</div>
+<table id="tab-ch3-l0-submodules" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 32. L0 micro-cache submodules</caption>
+<colgroup>
+<col style="width: 37.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Submodule</th>
+<th class="tableblock halign-left valign-top">Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction TLB (<code>icache_tlb_array</code>, wrapping <code>tlb_top</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Translates the fetch address. Requests a page-table walk on a miss.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-tag array (<code>icache_micro_tag_array</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16 tags with their valid bits. Compares the physical tag with all lines in parallel and generates the one-hot hit vector.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-data array (<code>icache_micro_data_array</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16 lines with their error flags. Read with the one-hot hit vector that the micro-tag array generates.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PMA unit (<code>icache_pma_unit</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Checks the physical address and reports an access fault and whether it is cacheable.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">LRU selector (<code>lru_sel</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Chooses the victim among the 16 lines.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Miss handler (inline)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Holds the one outstanding line request to the L1 instruction cache.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Code prefetcher (inline)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Generates prefetch requests. Active only in the north micro-cache.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bypass register (inline)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Holds the last fetched line while the cache is bypassed.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APB debug access (inline)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Debug reads and writes of the micro-tag and micro-data arrays.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-func">Figure 29</a> shows how the submodules connect. A request from a core or from the code prefetcher passes the arbiter and the instruction TLB, and its physical address goes to the micro-tag array, the bypass register and the miss handler. The hit and miss logic forms the response to the Minions. The miss handler sends the line request to the L1 instruction cache, and supplies the victim and the tag when the line returns. The translation returns from the shared page-table walker at the top, and the line returns from the L1 instruction cache at the right. The walk state machine of the instruction TLB is drawn as a separate block, PTW FSM.</p>
+</div>
+<div id="fig-ch3-l0-func" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-top-block.drawio.png" alt="L0 micro-cache functional block diagram" width="85%">
+</div>
+<div class="title">Figure 29. L0 micro-cache functional block diagram</div>
+</div>
+<div class="paragraph">
+<p>The functional block diagram does not show the PMA unit (<a href="#sec-ch3-l0-pma">Section 3.4.7</a>) or the APB debug access (<a href="#sec-ch3-l0-dbg">Section 3.4.12</a>). Both appear in <a href="#fig-ch3-l0-top">Figure 31</a>, the detailed pipeline diagram, which places every block in the stage where it works. The sections that follow draw each transaction on the functional block diagram, starting with a core request hit in <a href="#sec-ch3-l0-pipeline">Section 3.4.4</a>.</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="sec-ch3-l0-tlb"><a class="anchor" href="#sec-ch3-l0-tlb"></a><a class="link" href="#sec-ch3-l0-tlb">3.4.4. Instruction TLB</a></h4>
-
+<h4 id="sec-ch3-l0-if"><a class="anchor" href="#sec-ch3-l0-if"></a><a class="link" href="#sec-ch3-l0-if">3.4.2. Interface</a></h4>
+<div class="paragraph">
+<p>This section defines the boundary of <code>icache_micro_cache</code>. <a href="#sec-ch3-l0-ports">Section 3.4.2.1</a> lists its ports in eleven groups: system, ESR configuration, fetch request, fetch response, flush, line request to the L1 instruction cache, line response from it, address-translation control, page-table walker, APB debug access and the Status Monitor outputs. <a href="#sec-ch3-l0-structs">Section 3.4.2.2</a> gives the field layout of the packed structures that cross these ports.</p>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-ports"><a class="anchor" href="#sec-ch3-l0-ports"></a><a class="link" href="#sec-ch3-l0-ports">3.4.2.1. I/O Signals</a></h5>
+<div class="paragraph">
+<p><a href="#tab-ch3-l0-ports">Table 33</a> lists the ports of <code>icache_micro_cache</code>. The module is instantiated with <code>NR_MINIONS</code> set to 4, so the per-Minion ports are four wide and <code>f0_req_min_id</code> is 2 bits.</p>
+</div>
+<table id="tab-ch3-l0-ports" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 33. L0 micro-cache I/O signals</caption>
+<colgroup>
+<col style="width: 31%;">
+<col style="width: 5%;">
+<col style="width: 25%;">
+<col style="width: 39%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Signal</th>
+<th class="tableblock halign-left valign-top">Dir</th>
+<th class="tableblock halign-left valign-top">Width / type</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">System</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>clock</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Clock.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>reset</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reset. Synchronous, active high.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">ESR configuration</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_prefetch_conf</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_prefetch_conf_t</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Privilege, start line and line count of a prefetch operation. Zero in the south instance.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_prefetch_start</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Starts a prefetch operation. A pulse during an operation cancels that operation and starts the new one. Tied low in the south instance.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_prefetch_done</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cleared when the prefetcher starts an operation, set when the operation completes. Resets high. The north instance drives <code>esr_prefetch_done</code> of <code>icache_top</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_mprot</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_mprot_t</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Memory-protection setting for the PMA check.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_vmspagesize</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>tlb_entry_type</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page size of every TLB entry: 4 KB, 2 MB or 1 GB.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_bypass_icache</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bypasses both cache levels. Driven by the <code>bypass_icache</code> chicken bit. Sampled with each request in F0.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_shire_coop_mode</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cooperative mode: the four Minions share all TLB entries.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Fetch request</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request granted by the 8:1 LRU arbiter of the Neighborhood.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>frontend_icache_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread, virtual-memory status and fetch address.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_req_min_id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minion that made the request, 0 to 3 within the instance. Selects its translation registers and, outside cooperative mode, its TLB entries.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_req_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tied high. The pipeline never stalls.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Fetch response</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f4_resp_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Response to a core request, four cycles after the grant. Not driven for prefetch requests.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f4_resp_miss</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Line or TLB miss. The response carries no instruction data.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f4_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_frontend_resp</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32-byte block and status.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_resp_fill_done</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A line or translation fill is complete. For a line, pulsed three cycles after <code>f0_l1_miss_resp_valid</code>.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Flush</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_flush_data</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Invalidates all 16 lines. It also flushes the L1 instruction cache, and it is the OR of the flush requests of the eight Minions, registered once in <code>neigh_shared_icache</code>.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Line request to the L1 instruction cache</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The miss handler requests a line. Driven from F3 of the missing request until accepted.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_req_addr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">40</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Physical address of the missing line.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_req_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The holding register of this instance in <code>icache_top</code> is free.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Line response from the L1 instruction cache</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_resp_early_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Asserted one cycle before <code>f0_l1_miss_resp_valid</code>. Early write enable of the latch-based tag and data arrays.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_resp_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The line is returned and written into the victim entry in this cycle. Steered to the instance that made the request.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_resp_data</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">512</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Line data. Driven to both instances.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_resp_ecc_err</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ECC error in the L1 data RAM, of a class enabled in the error-log control ESR. Stored with the line.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_resp_l2_err</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Error response from the Shire Cache for this line. Stored with the line.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Address-translation control</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>satp_info</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 x <code>minion_satp_info</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Supervisor address-translation register of each of the four Minions of this instance.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>matp_info</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 x <code>minion_satp_info</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Machine address-translation register of each of the four Minions of this instance, used for fetches in M-mode.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>tlb_invalidate</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Invalidates the TLB entries of one of the four Minions of this instance, or the whole TLB in cooperative mode.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Page-table walker</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Translation request. Held until accepted.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_req_data</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_ptw_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Translation mode, root page number, privilege and virtual page number.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_req_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The walker accepts the request.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_invalidate</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Any <code>tlb_invalidate</code>, registered once and forwarded to the walker.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_resp_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The walk is complete.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_resp_data</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_ptw_pte</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Leaf page-table entry, access fault or cancellation.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">APB debug access</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>apb_paddr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Address in the debug space of the micro-cache: micro-tag array, or micro-data array and error flags.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>apb_psel</code>, <code>apb_penable</code>, <code>apb_pwrite</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APB control. <code>apb_psel</code> and <code>apb_penable</code> are decoded for this instance by <code>icache_top</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>apb_pwdata</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">64</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Write data.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>apb_pready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Transfer complete.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>apb_prdata</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">64</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Read data.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>apb_pslverr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tied low.</p></td>
+</tr>
+<tr>
+<th class="tableblock halign-left valign-top" colspan="4"><p class="tableblock">Status Monitor</p></th>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>dbg_sm_signals</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>icache_dbg_sm_t</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Prefetch and miss state-machine states, F2 valid, F2 hit vector and F2 line address, for the Status Monitor debug logic. <code>icache_top</code> merges both instances.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-structs"><a class="anchor" href="#sec-ch3-l0-structs"></a><a class="link" href="#sec-ch3-l0-structs">3.4.2.2. Data Structures</a></h5>
+<div class="paragraph">
+<p>The fetch request and response, <code>frontend_icache_req</code> and <code>icache_frontend_resp</code>, are the structures of the Front End interface and are given in <a href="#tab-ch2-fe-icache-req">Table 7</a> and <a href="#tab-ch2-fe-icache-resp">Table 9</a>. The structures below are used only by the instruction cache and its page-table walker.</p>
+</div>
+<table id="tab-ch3-l0-prefetch-conf" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 34. <code>icache_prefetch_conf_t</code>: prefetch operation (50 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>prv</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Privilege level used to translate the prefetch addresses.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>start_addr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">42</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual address of the first line, bits 47:6.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>num_lines</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Number of lines minus one: 0 prefetches one line, 63 prefetches 64.</p></td>
+</tr>
+</tbody>
+</table>
+<table id="tab-ch3-l0-satp" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 35. <code>minion_satp_info</code>: address-translation register (32 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mode</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Translation mode: Bare (0), Sv39 (8) or Sv48 (9).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ppn</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">28</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Physical page number of the root page table.</p></td>
+</tr>
+</tbody>
+</table>
+<table id="tab-ch3-l0-ptw-req" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 36. <code>minion_ptw_req</code>: page-table walk request (70 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>satp_mode</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Translation mode of the register used for this fetch, <code>satp_info</code> or, in M-mode, <code>matp_info</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>satp_ppn</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">28</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Root page-table page number from the same register.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>prv</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Privilege level of the fetch.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>addr</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">36</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual page number, virtual address bits 47:12.</p></td>
+</tr>
+</tbody>
+</table>
+<table id="tab-ch3-l0-ptw-pte" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 37. <code>minion_ptw_pte</code>: page-table walk response (64 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>canceled_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The walk was cancelled. The TLB is not written.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>access_fault</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The walk ended in an access fault. Recorded in the TLB entry and reported as an access fault when the entry hits.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>rsvd_for_hw</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bit 0 is the execution mode the translation was walked for, 1 for M-mode. A TLB entry hits only for a fetch in the same mode.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ppn</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">44</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Physical page number. The TLB keeps the low 28 bits.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>rsvd_for_sw</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Not used by the TLB.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>d</code>, <code>a</code>, <code>g</code>, <code>u</code>, <code>x</code>, <code>w</code>, <code>r</code>, <code>v</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 each</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page-table entry flags. The TLB keeps <code>d</code>, <code>a</code>, <code>u</code> and the <code>r</code>, <code>w</code>, <code>x</code> permissions; a fetch needs <code>x</code> and <code>a</code>.</p></td>
+</tr>
+</tbody>
+</table>
+<table id="tab-ch3-l0-mprot" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 38. <code>esr_mprot_t</code>: memory-protection setting (9 bits)</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 12.5%;">
+<col style="width: 62.5%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Field</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mprot_en</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables the M-mode and S-mode protection boxes checked by the PMA unit (<a href="#sec-ch3-l0-pma">Section 3.4.7</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>mmode_size</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Size of the M-mode box, encoded as a power of two.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>smode_size</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Upper bound of the S-mode box, encoded as a power of two.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><code>tlb_entry_type</code> is a 2-bit page size: 0 for 4 KB, 2 for 2 MB and 3 for 1 GB; 1 is reserved.</p>
+</div>
+</div>
 </div>
 <div class="sect3">
-<h4 id="sec-ch3-l0-tags-data"><a class="anchor" href="#sec-ch3-l0-tags-data"></a><a class="link" href="#sec-ch3-l0-tags-data">3.4.5. Micro-Tag and Micro-Data Arrays</a></h4>
-
+<h4 id="sec-ch3-l0-org"><a class="anchor" href="#sec-ch3-l0-org"></a><a class="link" href="#sec-ch3-l0-org">3.4.3. Cache Organization and Address Decode</a></h4>
+<div class="paragraph">
+<p>This section gives the organization of the micro-cache, the parameters that size it, the storage they result in, and how a fetch address is divided on its way through the TLB and the tag lookup.</p>
+</div>
+<div class="paragraph">
+<p><a href="#tab-ch3-l0-org">Table 39</a> summarizes the organization of one micro-cache.</p>
+</div>
+<table id="tab-ch3-l0-org" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 39. L0 micro-cache organization</caption>
+<colgroup>
+<col style="width: 28.5714%;">
+<col style="width: 71.4286%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Property</th>
+<th class="tableblock halign-left valign-top">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Capacity</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 KB: 16 lines of 64 bytes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Associativity</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fully associative. The lookup has no index; the tag is compared with all 16 lines.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tag</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Physical address bits 39:6, 34 bits, and one valid bit for each line (<a href="#sec-ch3-l0-tags-data">Section 3.4.6</a>)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Access size</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">32-byte block, half a line, selected by physical address bit 5</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Replacement</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">LRU over all 16 lines (<a href="#sec-ch3-l0-lru">Section 3.4.6.3</a>)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Allocation</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A line is allocated only for a core miss accepted by the miss handler. Prefetch and bypassed fills are not allocated.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Write policy</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Read-only. Lines are written only by fills and by APB debug writes, and nothing is written back.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Coherence</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">None. The micro-cache does not snoop. A change to code in memory is seen only after a flush (<a href="#sec-ch3-l0-flush">Section 3.4.9</a>).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="sect4">
+<h5 id="sec-ch3-l0-params"><a class="anchor" href="#sec-ch3-l0-params"></a><a class="link" href="#sec-ch3-l0-params">3.4.3.1. Configuration Parameters</a></h5>
+<table id="tab-ch3-l0-params" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 40. L0 micro-cache configuration parameters</caption>
+<colgroup>
+<col style="width: 37.5%;">
+<col style="width: 12.5%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Define</th>
+<th class="tableblock halign-left valign-top">Value</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ICACHE_NR_REQS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-cache instances per Neighborhood.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>NR_MINIONS</code> (module parameter)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minions served by one instance, eight threads.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ICACHE_MICRO_CACHE_SIZE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lines.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ICACHE_MICRO_CACHE_ADWIDTH</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bits that number a line.<br>
+log2(<code>ICACHE_MICRO_CACHE_SIZE</code>) = log2(16) = 4</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ICACHE_BLOCK_BITS</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">512</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Line size, 64 bytes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ICACHE_BLOCK_ADDR_SIZE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Byte-offset bits in a line.<br>
+log2(<code>ICACHE_BLOCK_BITS</code> / 8) = log2(64) = 6</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>FE_FETCH_READ_SIZE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">256</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Response block, 32 bytes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ICACHE_CHUNK_ADDR_SIZE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bits that select the block within a line.<br>
+log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(512 / 256) = 1</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ICACHE_MICRO_TAG_SIZE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">34</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Tag bits.<br>
+<code>PA_SIZE</code> - <code>ICACHE_BLOCK_ADDR_SIZE</code> = 40 - 6 = 34</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ICACHE_TLB_ENTRIES</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction TLB entries.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ICACHE_PREFETCH_MAX_LINES</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">64</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lines in one prefetch operation.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>VA_SIZE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">48</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual-address bits.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>VA_SIZE_EXT</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">49</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fetch-address bits: the 48-bit virtual address and the extension bit, bit 48.<br>
+<code>VA_SIZE</code> + 1 = 49. The TLB detects a non-canonical address from VA[48] XOR VA[47].</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PA_SIZE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">40</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Physical-address bits.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>VA_UNTRANS_SIZE</code>, <code>PA_UNTRANS_SIZE</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">12</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page-offset bits, not translated.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>PTW_PG_IDX_SZ</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual-page-number bits per page-table level. Places the TLB index and tag for 2 MB and 1 GB pages.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-storage"><a class="anchor" href="#sec-ch3-l0-storage"></a><a class="link" href="#sec-ch3-l0-storage">3.4.3.2. Storage</a></h5>
+<div class="paragraph">
+<p><a href="#tab-ch3-l0-storage">Table 41</a> lists the storage of one micro-cache. The tag array, the data array and the TLB are latch-based register files (<code>rf_latch_1r_1w_par</code>, <code>rf_latch_1r_1w_dec</code> and <code>rf_latch_1r_1w</code>); the tag array reads all its entries in parallel for the fully associative compare, and the data array is read with a one-hot entry select. The valid bits are flip-flops beside the arrays.</p>
+</div>
+<table id="tab-ch3-l0-storage" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 41. L0 micro-cache storage</caption>
+<colgroup>
+<col style="width: 28.5714%;">
+<col style="width: 57.1428%;">
+<col style="width: 14.2858%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Structure</th>
+<th class="tableblock halign-left valign-top">Organization</th>
+<th class="tableblock halign-left valign-top">Bits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-tag array</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16 entries of a 34-bit tag, and 16 valid bits</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">560</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-data array</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16 entries of 512 data bits, an ECC-error flag and a bus-error flag</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8,224</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction TLB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">16 entries of a 34-bit tag (per-Minion mode, not cooperative mode, <a href="#sec-ch3-l0-tlb-org">Section 3.4.5.1</a>) and 36 bits of entry data, and 16 valid bits</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1,136</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bypass register</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">34-bit tag, 512 data bits, two error flags and a valid bit</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">549</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-addr"><a class="anchor" href="#sec-ch3-l0-addr"></a><a class="link" href="#sec-ch3-l0-addr">3.4.3.3. Address Decode</a></h5>
+<div class="paragraph">
+<p>The micro-cache receives a 49-bit fetch address, the 48-bit virtual address and its extension bit, and generates a 40-bit physical address (<a href="#fig-ch3-l0-addr">Figure 30</a>). With 4 KB pages the low 12 bits, the page offset, pass through unchanged. The virtual page number, bits 47:12, goes to the instruction TLB with the extension bit, and the TLB returns a 28-bit physical page number (<a href="#sec-ch3-l0-tlb">Section 3.4.5</a>). The micro-cache divides the physical address into three fields: bits 39:6 are the 34-bit tag, compared with the tags of all 16 lines; bit 5 selects the 32-byte half of the line that is returned; and bits 4:0 are not used by the micro-cache, because the Front End extracts the instruction from the block (<a href="#sec-ch2-fe-extract">Section 2.2.5.4</a>).</p>
+</div>
+<div id="fig-ch3-l0-addr" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-addr-decode.drawio.png" alt="Address decode from fetch address to L0 lookup" width="100%">
+</div>
+<div class="title">Figure 30. Address decode from fetch address to L0 lookup</div>
+</div>
+</div>
 </div>
 <div class="sect3">
-<h4 id="sec-ch3-l0-pma"><a class="anchor" href="#sec-ch3-l0-pma"></a><a class="link" href="#sec-ch3-l0-pma">3.4.6. PMA Check</a></h4>
-
+<h4 id="sec-ch3-l0-pipeline"><a class="anchor" href="#sec-ch3-l0-pipeline"></a><a class="link" href="#sec-ch3-l0-pipeline">3.4.4. Pipeline Stages</a></h4>
+<div class="paragraph">
+<p>This section describes the five L0 micro-cache stages, F0 to F4, and the fill-done stage F5. A lookup runs from F0 to F4: a request enters in F0, is translated by the instruction TLB in F1, is compared with the tags and checked by the PMA unit in F2, reads the data array in F3, and returns its response in F4. A miss accepted in F2 sends its line request to the L1 instruction cache in F3. The fill runs independently of the lookup, and fill done is driven in F5, three cycles after the fill finishes.</p>
+</div>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-top">Figure 31</a> shows the north micro-cache, the instance that contains the prefetcher, with each block drawn in the stage in which it operates. Blocks outside the frame are its neighbors: the cores, the per-thread request registers and the 8:1 LRU arbiter of the Neighborhood, the page-table walker, the L1 instruction cache, and the ESR and APB interfaces.</p>
+</div>
+<div id="fig-ch3-l0-top" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-detailed-pipeline.drawio.png" alt="L0 micro-cache detailed pipeline diagram" width="80%">
+</div>
+<div class="title">Figure 31. L0 micro-cache detailed pipeline diagram</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">F0 Stage</dt>
+<dd>
+<p>The F0 stage arbitrates between the core request granted by the 8:1 LRU arbiter and a request from the code prefetcher, and always gives priority to the core request. In a cycle with no core request, the code prefetcher can enter its request, if it is in its Request state and no miss unattended by the miss handler is pending (<a href="#sec-ch3-l0-pf-window">Section 3.4.11.3</a>). A prefetch request uses the same path through the pipeline as a core request, so a prefetch flag goes with each request to the next stages to tell the two apart. The request, the identifier of its Minion, the bypass bit and the prefetch flag are registered into F1.</p>
+</dd>
+<dt class="hdlist1">F1 Stage</dt>
+<dd>
+<p>The F1 stage translates the virtual address of the request to a physical address in the instruction TLB. The translation uses the supervisor and machine address-translation registers that each Minion sends to the micro-cache (<code>satp_info</code> and <code>matp_info</code>), and the privilege level of the fetch selects one of the two (<a href="#sec-ch3-l0-tlb-lookup">Section 3.4.5.2</a>). The TLB returns the physical page number, a miss indication, and page and access faults. A TLB miss starts a page-table walk if no walk is in progress and the address is valid, and the walk request goes to the page-table walker one cycle later (<a href="#sec-ch3-l0-tlb-walk">Section 3.4.5.3</a>). The request continues to F4 and receives a miss response, and the thread retries after fill done.</p>
+</dd>
+<dt class="hdlist1">F2 Stage</dt>
+<dd>
+<p>The F2 stage forms the physical address from the page number and the page offset. The tag is compared with all 16 lines of the micro-tag array, and with the line that a fill writes in the same cycle, while the PMA unit checks the address. The LRU state is updated on a hit, on an accepted miss, and when the L1 response writes the line into the victim entry. A line miss with no TLB miss and no fault is accepted if the miss handler is Ready: the handler records the physical address, the LRU victim and the bypass and prefetch flags, and the victim&#8217;s valid bit is cleared. A miss that finds the handler busy is not recorded and receives only the miss response in F4. In bypass mode the tag is compared with the bypass register instead of the micro-tag array, and a prefetch request is forced to miss.</p>
+</dd>
+<dt class="hdlist1">F3 Stage</dt>
+<dd>
+<p>The F3 stage reads the micro-data array with the one-hot hit vector that the micro-tag array generates in F2, and selects the 32-byte half-line named by address bit 5; in bypass mode the half comes from the bypass register. The response is a miss when the tag misses or the TLB misses. The ECC and bus-error flags stored with the line are valid only on a hit. If F2 accepted a miss, the miss handler is in its Request state in this cycle and drives the line request to the L1 instruction cache.</p>
+</dd>
+<dt class="hdlist1">F4 Stage</dt>
+<dd>
+<p>The F4 stage registers the response and drives it to the four Minions, four cycles after the grant, for a hit and for a miss alike. A prefetch request produces no response.</p>
+</dd>
+<dt class="hdlist1">F5 Stage</dt>
+<dd>
+<p>The F5 stage drives fill done, which tells the sleeping threads that a line or translation fill is complete. Fill done is generated in F2 and passes through F3 and F4 to F5. F5 is not part of a lookup.</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-flow">Figure 32</a> shows the path of one request from F0 to F4 and the fill that a miss starts. Every request leaves the pipeline at F4 with a hit, miss or fault response. The fill path on the right runs independently of the lookup and ends with fill done in F5. The time to fill a line depends on the L1 instruction cache and is given in <a href="#sec-ch3-l1">Section 3.5</a>.</p>
+</div>
+<div id="fig-ch3-l0-flow" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-pipeline-flow.drawio.png" alt="L0 micro-cache pipeline flow" width="100%">
+</div>
+<div class="title">Figure 32. L0 micro-cache pipeline flow</div>
+</div>
+<div class="paragraph">
+<p>The transaction figures of the L0 micro-cache draw one transaction on the functional block diagram (<a href="#fig-ch3-l0-func">Figure 29</a>):</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Path:</strong> the dashed green line is the path of the transaction.</p>
+</li>
+<li>
+<p><strong>Steps:</strong> a numbered green circle marks each step, in order.</p>
+</li>
+<li>
+<p><strong>Unused blocks:</strong> a red circle or a dashed red line marks a block that the transaction does not use, or whose result it ignores.</p>
+</li>
+<li>
+<p><strong>Cycles:</strong> two steps with different numbers can occur in the same cycle. The table under each figure gives the cycle of each step: a request counts its cycles from the grant, with the stage in brackets, and a fill counts them from the cycle <em>N</em> of its response.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-tx-hit">Figure 33</a> shows a core request that hits in the instruction TLB and in the micro-tag array, the common case, and <a href="#tab-ch3-l0-tx-hit">Table 42</a> lists its steps. The later transaction tables refer to this one for the steps that they share with it.</p>
+</div>
+<div id="fig-ch3-l0-tx-hit" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-uTag-Hit.drawio.png" alt="Core request hit" width="85%">
+</div>
+<div class="title">Figure 33. Core request hit</div>
+</div>
+<table id="tab-ch3-l0-tx-hit" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 42. Core request hit, steps by cycle</caption>
+<colgroup>
+<col style="width: 13.7931%;">
+<col style="width: 10.3448%;">
+<col style="width: 20.6896%;">
+<col style="width: 55.1725%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Block</th>
+<th class="tableblock halign-left valign-top">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0 (F0)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Core request, code prefetcher</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A core request and, if one is qualified, a prefetch request reach the arbiter.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0 (F0)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Arbiter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Grants the core request, which always has priority.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 (F1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction TLB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hits and returns the physical page number.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-tag array</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The physical tag hits one line. The bypass register is not used outside bypass mode.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hit and miss logic, LRU</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hit is 1 and miss is 0. The LRU state records the line that hits.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3 (F3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-data array</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reads the line with the one-hot hit vector and selects the 32-byte half.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 (F4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Response</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Drives the instruction block to the Minions, with the miss bit clear.</p></td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="sect3">
-<h4 id="sec-ch3-l0-lru"><a class="anchor" href="#sec-ch3-l0-lru"></a><a class="link" href="#sec-ch3-l0-lru">3.4.7. Replacement</a></h4>
-
+<h4 id="sec-ch3-l0-tlb"><a class="anchor" href="#sec-ch3-l0-tlb"></a><a class="link" href="#sec-ch3-l0-tlb">3.4.5. Instruction TLB</a></h4>
+<div class="paragraph">
+<p>The instruction TLB translates the virtual address of a request, from a core or from the code prefetcher, to a physical address in F1. It is <code>icache_tlb_array</code>, a wrapper around <code>tlb_top</code>. The data cache of each Minion has its own instance of the same <code>tlb_top</code> (<code>dcache_tlb_array</code>), so the two caches share the design of the TLB but not its translations. Each wrapper only adapts <code>tlb_top</code> to its cache. The instruction wrapper sets 16 entries for four Minions, marks every request as an instruction fetch, and registers the address-translation registers of the four Minions (<code>satp_info</code> and <code>matp_info</code>) and <code>esr_vmspagesize</code>; <code>tlb_top</code> registers <code>esr_shire_coop_mode</code>. A change to any of these settings takes effect one cycle later.</p>
+</div>
+<div class="paragraph">
+<p>A TLB miss needs a page-table walk, and the TLB has at most one walk outstanding (<a href="#sec-ch3-l0-tlb-walk">Section 3.4.5.3</a>). The TLB does not block during a walk: it continues to look up every request, and a request that hits receives its translation. A request that misses during a walk starts no walk and receives a miss response with no data, and its thread retries after fill done.</p>
+</div>
+<div class="paragraph">
+<p><a href="#tab-ch3-l0-tlb-if">Table 43</a> lists the interface of <code>icache_tlb_array</code>, grouped by the block at the other end. The request and the response connect to F1 of the micro-cache pipeline: the TLB answers in the same cycle, and the micro-cache registers the response into F2. The configuration inputs, the invalidation pulses and the walker ports pass through to ports of the micro-cache (<a href="#tab-ch3-l0-ports">Table 33</a>).</p>
+</div>
+<table id="tab-ch3-l0-tlb-if" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 43. Instruction TLB interface signals</caption>
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 8.3333%;">
+<col style="width: 16.6666%;">
+<col style="width: 50.0001%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Signal</th>
+<th class="tableblock halign-left valign-top">Dir</th>
+<th class="tableblock halign-left valign-top">Width</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top" colspan="4"><p class="tableblock"><strong>Request from the pipeline, F1</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A request is in F1, from a core or from the code prefetcher.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>req_min_id</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minion of the request. Selects its address-translation registers and, in per-Minion mode, its four TLB entries. A prefetch request uses Minion 0.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>req_data.status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_vm_status</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Privilege level, <code>mprv</code>, <code>mpp</code>, <code>sum</code>, <code>mxr</code> and debug mode of the requesting thread.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>req_data.vpn</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">36</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Virtual page number, VA[47:12].</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>req_data.msb_err</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VA[48] differs from VA[47]. Used for the canonical-address check.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>req_data.passthrough</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Disables translation. Tied low in the micro-cache.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" colspan="4"><p class="tableblock"><strong>Response to the pipeline, F1</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resp_data.ppn</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">28</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Physical page number. VA[39:12] when translation is disabled.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resp_data.miss</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">TLB miss.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resp_data.xcpt_if</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page fault (<a href="#tab-ch3-l0-tlb-faults">Table 45</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resp_data.access_fault</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Access fault from the walk that filled the entry.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>resp_data.fill_pending</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A walk is in progress. Its fall marks the end of a translation fill.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" colspan="4"><p class="tableblock"><strong>Configuration and invalidation</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>satp_info</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 × <code>minion_satp_info</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Supervisor address-translation register of each of the four Minions (<a href="#tab-ch3-l0-satp">Table 35</a>). Registered in the wrapper.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>matp_info</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 × <code>minion_satp_info</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Machine address-translation register of each of the four Minions, used for fetches in M-mode. Registered in the wrapper.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_vmspagesize</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>tlb_entry_type</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Page size of every entry: 4 KB, 2 MB or 1 GB. Registered in the wrapper.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_shire_coop_mode</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cooperative mode: the four Minions share all 16 entries. Registered in <code>tlb_top</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>tlb_invalidate</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">One pulse per Minion. Clears the entries of that Minion, or all 16 entries in cooperative mode (<a href="#sec-ch3-l0-tlb-inval">Section 3.4.5.5</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top" colspan="4"><p class="tableblock"><strong>Page-table walker</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_req_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Walk request. Held until the walker accepts it.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_req_ready</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The walker accepts the request.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_req_data</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_ptw_req</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Translation mode, root page number, privilege level and virtual page number (<a href="#tab-ch3-l0-ptw-req">Table 36</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_invalidate</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">out</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OR of the four <code>tlb_invalidate</code> pulses, registered once.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_resp_valid</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The walk is complete.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ptw_resp_data</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">in</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>minion_ptw_pte</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Last page-table entry of the walk, with the access-fault and cancel flags (<a href="#tab-ch3-l0-ptw-pte">Table 37</a>).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="sect4">
+<h5 id="sec-ch3-l0-tlb-org"><a class="anchor" href="#sec-ch3-l0-tlb-org"></a><a class="link" href="#sec-ch3-l0-tlb-org">3.4.5.1. Organization</a></h5>
+<div class="paragraph">
+<p>The TLB has 16 entries, and all of them hold translations of one page size, 4 KB, 2 MB or 1 GB, set by <code>esr_vmspagesize</code>. <a href="#fig-ch3-l0-tlb-org">Figure 34</a> shows the format of an entry and how the 16 entries are divided between the Minions. An entry holds 70 bits in a latch-based register file: the 34-bit tag, the 28-bit physical page number, the <code>x</code>, <code>w</code>, <code>r</code>, <code>u</code>, <code>a</code> and <code>d</code> bits of the page-table entry, the access-fault flag of the walk, and the execution mode of the walk. The valid bits are separate flip-flops. The tag field is 34 bits because that is the longest tag, the one of 4 KB pages in per-Minion mode; cooperative mode and larger pages use fewer bits and store them with zero bits (<a href="#tab-ch3-l0-tlb-fields">Table 44</a>).</p>
+</div>
+<div class="paragraph">
+<p>A walk can end without a translation. The walker returns the last page-table entry that it reads, and that entry is not a valid leaf when <code>v</code> is clear, when <code>r</code> and <code>x</code> are both clear, or when <code>w</code> is set and <code>r</code> is clear, a reserved encoding. A walk that ends in an access fault gives no translation either. The TLB still writes the entry, with <code>x</code>, <code>w</code> and <code>r</code> as 0. The thread&#8217;s retry then hits that entry and takes a page fault, and also an access fault if the walk ended in one, instead of starting the same walk again.</p>
+</div>
+<div id="fig-ch3-l0-tlb-org" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-tlb-org.drawio.png" alt="Instruction TLB organization" width="100%">
+</div>
+<div class="title">Figure 34. Instruction TLB organization</div>
+</div>
+<div class="paragraph">
+<p>The TLB is direct-mapped in both of its modes: the index selects one entry, and a translation is either in that entry or not in the TLB. The mode, set by <code>esr_shire_coop_mode</code>, decides where the index comes from:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Per-Minion mode:</strong> the micro-cache serves four Minions, so the 16 entries are divided into four groups of four, one group for each Minion. The upper two index bits are the Minion identifier, and the lower two come from the virtual page number. A Minion replaces only its own entries, so a Minion that touches many pages cannot evict the translations of the other three.</p>
+</li>
+<li>
+<p><strong>Cooperative mode:</strong> all 16 entries are shared, and all four index bits come from the virtual page number. An entry carries no Minion identifier, so an entry filled for one Minion hits for the other three. Cooperative mode therefore assumes that the four Minions use the same translation, and in return the group has 16 entries instead of four for each Minion.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-tlb-index">Figure 35</a> shows how the index and the tag are taken from the virtual page number for 4 KB pages, and <a href="#tab-ch3-l0-tlb-fields">Table 44</a> lists them for all page sizes. Each stored tag is written most-significant field first. Cooperative mode adds two zero bits at the top, because its index takes two more address bits; a 2 MB or 1 GB page adds 9 or 18 zero bits at the bottom, one page-table level of 9 bits for each step above 4 KB.</p>
+</div>
+<div id="fig-ch3-l0-tlb-index" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-tlb-index.drawio.png" alt="Instruction TLB index and tag for 4 KB pages" width="100%">
+</div>
+<div class="title">Figure 35. Instruction TLB index and tag for 4 KB pages</div>
+</div>
+<table id="tab-ch3-l0-tlb-fields" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 44. Instruction TLB index and tag</caption>
+<colgroup>
+<col style="width: 10%;">
+<col style="width: 20%;">
+<col style="width: 30%;">
+<col style="width: 40%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Page size</th>
+<th class="tableblock halign-left valign-top">Mode</th>
+<th class="tableblock halign-left valign-top">Index (4 bits)</th>
+<th class="tableblock halign-left valign-top">Stored tag, 34 bits (significant bits)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 KB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per-Minion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minion identifier, VA[13:12]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{VA[47:14]} (34)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 KB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cooperative</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VA[15:12]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{2 zeros, VA[47:16]} (32)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 MB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per-Minion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minion identifier, VA[22:21]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{VA[47:23], 9 zeros} (25)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 MB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cooperative</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VA[24:21]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{2 zeros, VA[47:25], 9 zeros} (23)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 GB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per-Minion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Minion identifier, VA[31:30]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{VA[47:32], 18 zeros} (16)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 GB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Cooperative</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VA[33:30]</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">{2 zeros, VA[47:34], 18 zeros} (14)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>A change of <code>esr_shire_coop_mode</code> does not invalidate the entries. An entry filled in one mode stays valid in the other mode and can give a false hit, so the TLB must be invalidated after a change of mode (<a href="#sec-ch3-l0-tlb-inval">Section 3.4.5.5</a>).</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-tlb-lookup"><a class="anchor" href="#sec-ch3-l0-tlb-lookup"></a><a class="link" href="#sec-ch3-l0-tlb-lookup">3.4.5.2. Lookup and Permission Check</a></h5>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-tlb-lookup">Figure 36</a> shows the lookup in F1 as a sequence of decisions from top to bottom. The canonical-address check comes first because it depends only on the mode of the selected register, not on whether translation is enabled. The privilege level of the fetch, <code>vm_status.prv</code>, selects the translation register: <code>matp_info</code> of the requesting Minion in M-mode, <code>satp_info</code> otherwise. For an instruction fetch <code>mprv</code> is ignored. Translation is enabled when the selected register is not in Bare mode and the thread is not in debug mode. When translation is disabled, the TLB returns VA[39:12] as the physical page number and never misses.</p>
+</div>
+<div id="fig-ch3-l0-tlb-lookup" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-tlb-lookup.drawio.png" alt="Instruction TLB lookup and permission check" width="65%">
+</div>
+<div class="title">Figure 36. Instruction TLB lookup and permission check</div>
+</div>
+<div class="paragraph">
+<p>An entry hits when it is valid, its tag matches, and its execution mode matches the fetch: an entry walked for M-mode hits only for M-mode fetches, and an entry walked for S-mode or U-mode only for those. A miss goes to the walk state machine (<a href="#sec-ch3-l0-tlb-walk">Section 3.4.5.3</a>).</p>
+</div>
+<div class="paragraph">
+<p>The TLB reports two faults, listed in <a href="#tab-ch3-l0-tlb-faults">Table 45</a>. The page fault comes from three checks:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Privilege check:</strong> in U-mode the entry must have <code>u</code> set; in S-mode and M-mode it must have <code>u</code> clear, unless <code>mstatus.SUM</code> is set.</p>
+</li>
+<li>
+<p><strong>Accessed bit:</strong> the TLB does not set <code>a</code>. It raises a page fault instead, and software updates the page-table entry.</p>
+</li>
+<li>
+<p><strong>Canonical address:</strong> in Sv48, VA[48] must equal VA[47]; in Sv39, VA[47:38] must also all be equal. A non-canonical address raises the page fault whether or not the entry hits, and starts no walk.</p>
+</li>
+</ul>
+</div>
+<table id="tab-ch3-l0-tlb-faults" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 45. Instruction TLB faults</caption>
+<colgroup>
+<col style="width: 28.5714%;">
+<col style="width: 71.4286%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Signal</th>
+<th class="tableblock halign-left valign-top">Condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>xcpt_if</code>, instruction page fault</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The entry hits and <code>x</code> is clear, the privilege check fails, or <code>a</code> is clear; or the address is not canonical. <code>x</code> is also clear when the walk finds no valid leaf entry (<a href="#sec-ch3-l0-tlb-org">Section 3.4.5.1</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>access_fault</code>, instruction access fault</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The entry hits and its walk ended in an access fault.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>A walk that ends in an access fault leaves <code>x</code> clear and AF set, so the retry reports both faults. The integer pipeline gives the access fault priority, and the thread takes an instruction access fault.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-tlb-walk"><a class="anchor" href="#sec-ch3-l0-tlb-walk"></a><a class="link" href="#sec-ch3-l0-tlb-walk">3.4.5.3. Page-Table Walk</a></h5>
+<div class="paragraph">
+<p>A page-table walk reads the page tables in memory, from the root table of the selected translation register down to the leaf entry that holds the translation. The TLB does not read the page tables itself: it sends the walk to the shared page-table walker (<a href="#sec-ch3-ptw">Section 3.6</a>).</p>
+</div>
+<div class="paragraph">
+<p>For the walk the TLB uses a three-state machine, shown in <a href="#fig-ch3-l0-tlb-fsm">Figure 37</a>:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Ready:</strong> no walk is in progress. A TLB miss on a canonical address captures the Minion, the virtual page number and the walk request, and moves the state machine to Request. The request carries the translation mode and root page number of the selected register, the privilege level and the virtual page number (<a href="#tab-ch3-l0-ptw-req">Table 36</a>).</p>
+</li>
+<li>
+<p><strong>Request:</strong> sends the walk request to the walker. <code>ptw_req_valid</code> is held until the walker accepts the request with <code>ptw_req_ready</code>, and the state machine then moves to Wait. An invalidation withdraws the request and returns the state machine to Ready (<a href="#sec-ch3-l0-tlb-inval">Section 3.4.5.5</a>).</p>
+</li>
+<li>
+<p><strong>Wait:</strong> waits for the walker&#8217;s response. The response is registered for one cycle, and in the next cycle the entry is written at the index of the request&#8217;s Minion and virtual page number, unless the walk is cancelled. The state machine returns to Ready in the same cycle.</p>
+</li>
+</ul>
+</div>
+<div id="fig-ch3-l0-tlb-fsm" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-tlb-fsm.drawio.png" alt="Instruction TLB walk state machine" width="70%">
+</div>
+<div class="title">Figure 37. Instruction TLB walk state machine</div>
+</div>
+<div class="paragraph">
+<p>A walk starts only from Ready, so one walk at most is in progress. A miss that arrives in Request or Wait receives a miss response and starts no walk. <code>fill_pending</code> is set in Request and Wait. The micro-cache detects the end of the walk as the fall of <code>fill_pending</code> and turns it into <code>f2_tlb_fill_done</code>, which reaches the cores as <code>f5_resp_fill_done</code> three cycles later.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-tlb-miss"><a class="anchor" href="#sec-ch3-l0-tlb-miss"></a><a class="link" href="#sec-ch3-l0-tlb-miss">3.4.5.4. TLB Miss and Translation Fill</a></h5>
+<div class="paragraph">
+<p>A request that misses in the TLB receives a miss response and starts a page-table walk if none is in progress. It never takes the miss handler of the micro-cache, because it has no physical address to send to the L1 instruction cache. The thread sleeps until the translation fill and then retries. <a href="#fig-ch3-l0-tx-tlbmiss">Figure 38</a> shows a core request that misses in the TLB, and <a href="#tab-ch3-l0-tx-tlbmiss">Table 46</a> lists its steps.</p>
+</div>
+<div id="fig-ch3-l0-tx-tlbmiss" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-Tlb-Miss.drawio.png" alt="Core request TLB miss" width="85%">
+</div>
+<div class="title">Figure 38. Core request TLB miss</div>
+</div>
+<table id="tab-ch3-l0-tx-tlbmiss" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 46. Core request TLB miss, steps by cycle</caption>
+<colgroup>
+<col style="width: 13.7931%;">
+<col style="width: 10.3448%;">
+<col style="width: 20.6896%;">
+<col style="width: 55.1725%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Block</th>
+<th class="tableblock halign-left valign-top">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0 (F0)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1–2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Arbiter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">As for a core request hit (<a href="#tab-ch3-l0-tx-hit">Table 42</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 (F1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction TLB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Misses. The walk state machine is in Ready, so it captures the request and moves to Request.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Walk state machine</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Drives the walk request to the shared page-table walker. The micro-tag array and the bypass register compare an address that is not valid, and their results are ignored.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hit and miss logic, LRU</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No miss is accepted, because the TLB missed. The LRU state does not change.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3 (F3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-data array</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Not read.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 (F4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Response</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The TLB-miss bit forces a miss response. The thread sleeps until fill done.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-tlb-miss">Figure 39</a> shows a fetch by M0, TH0 that misses in the TLB. The miss is seen in F1 in cycle 1, the walk request is driven in cycle 2, and the miss response leaves F4 in cycle 4. The break stands for the walk. The walker responds in cycle 8, the entry is written in cycle 9, and fill done is driven in cycle 13. The thread then retries, hits in the TLB, and proceeds to the line lookup.</p>
+</div>
+<div id="fig-ch3-l0-tlb-miss" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/td-l0-tlb-miss.png" alt="TLB miss, page-table walk and fill done" width="100%">
+</div>
+<div class="title">Figure 39. TLB miss, page-table walk and fill done</div>
+</div>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-tx-tlbfill">Figure 40</a> shows the end of a page-table walk, and <a href="#tab-ch3-l0-tx-tlbfill">Table 47</a> lists its steps. Cycle <em>N</em> is the cycle in which the walker response arrives. Fill done reaches the cores five cycles later: the response is registered, the entry is written, the fall of <code>fill_pending</code> is detected (<a href="#fig-ch3-l0-fill-done">Figure 46</a>), and fill done passes F3 and F4.</p>
+</div>
+<div id="fig-ch3-l0-tx-tlbfill" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-Tlb-Fill.drawio.png" alt="Translation fill" width="85%">
+</div>
+<div class="title">Figure 40. Translation fill</div>
+</div>
+<table id="tab-ch3-l0-tx-tlbfill" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 47. Translation fill, steps by cycle</caption>
+<colgroup>
+<col style="width: 13.7931%;">
+<col style="width: 10.3448%;">
+<col style="width: 20.6896%;">
+<col style="width: 55.1725%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Block</th>
+<th class="tableblock halign-left valign-top">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Walk state machine</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">In Wait, receives the walker response and registers it.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em> + 1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction TLB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Writes the entry at the index of the request, unless the walk is cancelled. The walk state machine returns to Ready.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em> + 2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction TLB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>fill_pending</code> falls. The micro-cache detects the fall and generates fill done.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em> + 5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill done</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_resp_fill_done</code> wakes the sleeping threads.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-tlb-inval"><a class="anchor" href="#sec-ch3-l0-tlb-inval"></a><a class="link" href="#sec-ch3-l0-tlb-inval">3.4.5.5. Invalidation</a></h5>
+<div class="paragraph">
+<p><code>tlb_invalidate</code> carries one pulse per Minion, driven when the Minion writes 1 to bit 1 of its <code>cacheInvalidate</code> CSR (0x7D0). Outside cooperative mode a pulse clears the four entries of that Minion; in cooperative mode any pulse clears all 16. A walk in progress for the invalidated Minion, or any walk in cooperative mode, is cancelled: in Request it is withdrawn, and in Wait its response is discarded. The invalidation is held until the outstanding walk ends, so a response from before the invalidation can never be written. The OR of the four pulses, registered once, is forwarded to the walker on <code>ptw_invalidate</code>.</p>
+</div>
+<div class="paragraph">
+<p>The entries carry no address-space identifier, and a change of <code>satp_info</code> or <code>matp_info</code> does not invalidate them. Software must invalidate the TLB through <code>cacheInvalidate</code> after it changes the translation.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-tlb-pages"><a class="anchor" href="#sec-ch3-l0-tlb-pages"></a><a class="link" href="#sec-ch3-l0-tlb-pages">3.4.5.6. Page Size</a></h5>
+<div class="paragraph">
+<p><code>esr_vmspagesize</code> selects 4 KB, 2 MB or 1 GB for every entry, and moves the index and the tag accordingly (<a href="#tab-ch3-l0-tlb-fields">Table 44</a>). A change of <code>esr_vmspagesize</code> does not invalidate the entries either. The walker ends the walk at the page-table level of that size. A leaf found at a higher level is split into pages of the configured size, with the walker supplying the lower page-number bits from the virtual address. For a configured size of 2 MB or 1 GB the walker returns the page-number bits below that size as zero, and the micro-cache forms the physical address from the returned page number and VA[11:0] only.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-tags-data"><a class="anchor" href="#sec-ch3-l0-tags-data"></a><a class="link" href="#sec-ch3-l0-tags-data">3.4.6. Micro-Tag and Micro-Data Arrays</a></h4>
+<div class="paragraph">
+<p>The micro-tag array and the micro-data array hold the 16 lines of the micro-cache, and the LRU selector chooses the line that a new miss replaces. The micro-tag array works in F2: it holds the physical tag of each line, and compares the tag of the request, translated by the instruction TLB in F1, with all 16 tags at once. The micro-data array works in F3: it holds the lines, and returns the 32-byte half that the request needs. The two arrays have the same 16 entries, so the entry that holds a tag also holds its line, and one one-hot vector selects both. <a href="#fig-ch3-l0-uarray">Figure 41</a> shows the format of an entry of each array, and how a lookup passes from one array to the other.</p>
+</div>
+<div id="fig-ch3-l0-uarray" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-uarray-org.drawio.png" alt="Micro-tag and micro-data arrays" width="100%">
+</div>
+<div class="title">Figure 41. Micro-tag and micro-data arrays</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-tag-array"><a class="anchor" href="#sec-ch3-l0-tag-array"></a><a class="link" href="#sec-ch3-l0-tag-array">3.4.6.1. Micro-Tag Array</a></h5>
+<div class="paragraph">
+<p>The micro-tag array holds 16 tags, one for each line. It has no index: the cache is fully associative, so a line can be in any entry. Each tag is the line address, PA[39:6], 34 bits, stored in a latch-based register file that reads all 16 entries at once (<code>rf_latch_1r_1w_par</code>). Each entry also has a valid bit in a flip-flop beside the register file. <a href="#tab-ch3-l0-tag-ports">Table 48</a> lists the ports of the array.</p>
+</div>
+<table id="tab-ch3-l0-tag-ports" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 48. Micro-tag array ports</caption>
+<colgroup>
+<col style="width: 22.2222%;">
+<col style="width: 11.1111%;">
+<col style="width: 66.6667%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Port</th>
+<th class="tableblock halign-left valign-top">Stage</th>
+<th class="tableblock halign-left valign-top">Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Read</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Receives PA[39:6] of the request and returns the one-hot hit vector.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Victim</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Receives the LRU victim of an accepted miss and clears its valid bit.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Write</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill cycle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Writes the tag that the miss handler recorded into the victim entry, and sets its valid bit. APB debug writes share the port, and the fill has priority.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Flush</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_flush_data</code> clears all valid bits (<a href="#sec-ch3-l0-flush">Section 3.4.9</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">–</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reads and writes the tag and the valid bit of one entry (<a href="#sec-ch3-l0-dbg">Section 3.4.12</a>).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><strong>Lookup.</strong> In F2 the array compares the tag of the request with all 16 tags in parallel. An entry hits when it is valid, its tag equals PA[39:6], it receives no write in this cycle, and no flush is in progress. A line is allocated only after a miss, so at most one entry hits, and the result is a one-hot hit vector of 16 bits. The vector goes to two places in the same cycle: to the LRU selector, which records the entry as the most recent, and through the stage register to the micro-data array, which reads the line with it in F3.</p>
+</div>
+<div class="paragraph">
+<p><strong>Lookup in the fill cycle.</strong> While a fill writes a tag, the array also compares the request with the tag that is written. The entry under write cannot hit on its old tag, but a request whose tag matches the new tag hits on that entry. A request that arrives in the fill cycle therefore sees the new line and does not miss on it (<a href="#fig-ch3-l0-fill">Figure 42</a>).</p>
+</div>
+<div class="paragraph">
+<p><strong>Miss.</strong> When no entry hits and the miss handler accepts the miss, the array frees the victim that the LRU selector chooses: it clears the valid bit of the victim in F2, so the entry cannot hit while its new line is outstanding. The miss handler records the victim and the tag, and requests the line from the L1 instruction cache in F3 (<a href="#sec-ch3-l0-mh">Section 3.4.8.1</a>). A bypassed or prefetch miss frees no victim, because its fill writes no array.</p>
+</div>
+<div class="paragraph">
+<p><strong>Fill.</strong> When the L1 instruction cache returns the line for the outstanding miss request, the array writes the tag that the miss handler recorded into the victim entry, and sets the valid bit (<a href="#sec-ch3-l0-fill-write">Section 3.4.6.4</a>).</p>
+</div>
+<div class="paragraph">
+<p>The valid bits change on four events:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Accepted miss:</strong> the valid bit of the victim is cleared.</p>
+</li>
+<li>
+<p><strong>Fill:</strong> the valid bit of the victim is set, unless a flush arrived while the fill was outstanding.</p>
+</li>
+<li>
+<p><strong>Flush:</strong> all valid bits are cleared.</p>
+</li>
+<li>
+<p><strong>Debug write:</strong> the valid bit is written with the tag.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-data-array"><a class="anchor" href="#sec-ch3-l0-data-array"></a><a class="link" href="#sec-ch3-l0-data-array">3.4.6.2. Micro-Data Array</a></h5>
+<div class="paragraph">
+<p>The micro-data array holds the 16 lines, entry for entry with the micro-tag array. Each entry is 514 bits in a latch-based register file with one-hot read and write selects (<code>rf_latch_1r_1w_dec</code>): the 512-bit line, the ECC-error flag (bit 512) and the bus-error flag (bit 513) that the L1 instruction cache delivers with the line. <a href="#tab-ch3-l0-data-ports">Table 49</a> lists the ports of the array.</p>
+</div>
+<table id="tab-ch3-l0-data-ports" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 49. Micro-data array ports</caption>
+<colgroup>
+<col style="width: 22.2222%;">
+<col style="width: 11.1111%;">
+<col style="width: 66.6667%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Port</th>
+<th class="tableblock halign-left valign-top">Stage</th>
+<th class="tableblock halign-left valign-top">Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Read</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">F3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Receives the one-hot hit vector from F2 and returns the selected entry. APB debug reads share the port and wait for a cycle with no request in F3.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Write</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill cycle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Writes the line and its error flags into the victim entry. APB debug writes share the port, and the fill has priority.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">–</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Reads and writes one entry (<a href="#sec-ch3-l0-dbg">Section 3.4.12</a>).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><strong>Read.</strong> In F3 the array reads the entry that the hit vector selects, and PA[5] selects the 32-byte half that goes to the response in F4. On a miss the hit vector is all zeros, and the response carries no instruction block. The error flags go to the response with the block, and they are valid only on a hit.</p>
+</div>
+<div class="paragraph">
+<p><strong>Write.</strong> The fill writes the line and its error flags into the victim entry, in the same cycle as the tag (<a href="#sec-ch3-l0-fill-write">Section 3.4.6.4</a>).</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-lru"><a class="anchor" href="#sec-ch3-l0-lru"></a><a class="link" href="#sec-ch3-l0-lru">3.4.6.3. LRU Selector</a></h5>
+<div class="paragraph">
+<p>The LRU selector (<code>lru_sel</code>) decides which line a new miss replaces. It keeps the exact order of use of all 16 entries, and the victim is always the entry that was used least recently. For each pair of entries the selector holds one bit that tells which of the two was used more recently. An entry is the victim when it is older than each of the other 15, and the selector presents the victim as a one-hot vector, in every cycle, to the micro-tag array and the miss handler.</p>
+</div>
+<div class="paragraph">
+<p>Three events in F2 count as a use, and each makes the entry the most recent one:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Hit:</strong> the entry that hits.</p>
+</li>
+<li>
+<p><strong>Accepted miss:</strong> the victim, when the miss handler takes the miss.</p>
+</li>
+<li>
+<p><strong>Line fill:</strong> the victim again, when its line is written. While the line was outstanding, other entries continued to hit and became more recent, so without this second update the new line could be the next victim as soon as it arrives.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The selector is not updated for a prefetch request or a bypassed request, because neither keeps a line in the arrays. The selector also ignores the valid bits, so it does not look for an empty entry first. Empty entries exist only after reset or a flush, and after reset the selector hands the entries out in order, entry 0 first.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-fill-write"><a class="anchor" href="#sec-ch3-l0-fill-write"></a><a class="link" href="#sec-ch3-l0-fill-write">3.4.6.4. Fill Write</a></h5>
+<div class="paragraph">
+<p>A line from the L1 instruction cache is written into the tag and data arrays in the cycle <code>f0_l1_miss_resp_valid</code> is asserted, at the victim recorded when the miss was accepted. The latch-based register files need their write enable one cycle ahead of the write, and <code>f0_l1_miss_resp_early_valid</code> supplies it; the L1 derives it from the next-cycle value of its response valid. Prefetch and bypassed fills write neither array.</p>
+</div>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-fill">Figure 42</a> shows the write in cycle 3. All the requests in the figure are for the same line, line A: the outstanding miss in <code>f0_miss_addr</code>, which the L1 instruction cache answers in cycle 3, and the lookups of M1, TH0 and M2, TH0. M1, TH0 reaches F2 in cycle 2, before the write, and misses; the miss handler is still in Fill_Wait, so nothing is recorded for it. M2, TH0 reaches F2 in cycle 3, the write cycle, and hits on the line being written. Their responses leave F4 in cycles 4 and 5, the handler returns to Ready in cycle 4, and fill done is driven in cycle 6, three cycles after the write.</p>
+</div>
+<div id="fig-ch3-l0-fill" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/td-l0-fill.png" alt="Line fill and lookup in the fill cycle" width="75%">
+</div>
+<div class="title">Figure 42. Line fill and lookup in the fill cycle</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-pma"><a class="anchor" href="#sec-ch3-l0-pma"></a><a class="link" href="#sec-ch3-l0-pma">3.4.7. PMA Check</a></h4>
+<div class="paragraph">
+<p>The PMA unit (<code>icache_pma_unit</code>) checks the physical address in F2 against the regions from which instructions may be fetched, and reports an access fault and whether the address is cacheable. <a href="#tab-ch3-l0-pma">Table 50</a> lists the regions, decoded from the address-map defines in <code>shire_defines.vh</code>. The privilege used is the privilege level of the fetch, <code>vm_status.prv</code>; for a prefetch request it is the privilege of the prefetch operation.</p>
+</div>
+<table id="tab-ch3-l0-pma" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 50. Instruction-fetch regions checked by the PMA unit</caption>
+<colgroup>
+<col style="width: 22.2222%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 11.1112%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Region</th>
+<th class="tableblock halign-left valign-top">Physical address</th>
+<th class="tableblock halign-left valign-top">Fetch permitted</th>
+<th class="tableblock halign-left valign-top">Cacheable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">BootROM</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0x0_0200_8000 to 0x0_0200_9FFF, 8 KB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">All privilege levels</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">SRAM</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0x0_0200_C000 to 0x0_0200_CFFF, 4 KB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">All privilege levels</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MRAM, M-mode box</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">From 0x0_4000_0000, the first 2<sup><code>mmode_size</code></sup> 4-KB granules</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">M-mode only</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MRAM, S-mode box</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Above the M-mode box, up to 2<sup><code>smode_size</code></sup> granules from the base</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">M-mode and S-mode</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MRAM, other</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The rest of 0x0_4000_0000 to 0x0_40FF_FFFF, 16 MB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">All privilege levels</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Yes</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Any other address</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Access fault</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The two boxes exist only while <code>esr_mprot.mprot_en</code> is set; with it clear, the whole MRAM region is in the last MRAM row. The granule number is PA[23:12], so the box sizes are powers of two from 4 KB to 16 MB.</p>
+</div>
+<div class="paragraph">
+<p>The access fault from the PMA unit is suppressed when the TLB misses, because the physical address is not valid then. Every region that passes the check is cacheable, so a fetch that does not fault is always reported as cacheable.</p>
+</div>
 </div>
 <div class="sect3">
 <h4 id="sec-ch3-l0-miss"><a class="anchor" href="#sec-ch3-l0-miss"></a><a class="link" href="#sec-ch3-l0-miss">3.4.8. Miss Handling</a></h4>
 <div class="sect4">
-<h5 id="sec-ch3-l0-tlb-miss"><a class="anchor" href="#sec-ch3-l0-tlb-miss"></a><a class="link" href="#sec-ch3-l0-tlb-miss">3.4.8.1. TLB Miss</a></h5>
-
+<h5 id="sec-ch3-l0-mh"><a class="anchor" href="#sec-ch3-l0-mh"></a><a class="link" href="#sec-ch3-l0-mh">3.4.8.1. Miss Handler</a></h5>
+<div class="paragraph">
+<p>The miss handler fetches missing lines from the L1 instruction cache. It sends the line request, and it keeps the information about the miss that the fill needs when the line comes back. It serves three kinds of miss: a core request that misses in the micro-tag array, a bypassed core request that misses in the bypass register, and a prefetch request. A TLB miss never reaches the miss handler. Without a translation there is no physical address to send to the L1, so the walk state machine of the instruction TLB handles the TLB miss instead (<a href="#sec-ch3-l0-tlb-miss">Section 3.4.5.4</a>).</p>
+</div>
+<div class="paragraph">
+<p>The miss handler holds one line request at a time and uses a three-state machine, shown in <a href="#fig-ch3-l0-miss-fsm">Figure 43</a>:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Ready:</strong> no line request is outstanding, and the handler can take a miss. It takes one in F2, asserts <code>f2_miss</code> and moves to Request, when the request in F2 is valid, does not hit, has a translation, and has no page fault or access fault.</p>
+</li>
+<li>
+<p><strong>Request:</strong> drives the line request on <code>f0_l1_miss_req_valid</code> with the physical address, and holds it until the holding register of the instance in <code>icache_top</code> takes it (<code>f0_l1_miss_req_ready</code>). The handler then moves to Fill_Wait.</p>
+</li>
+<li>
+<p><strong>Fill_Wait:</strong> waits for the line. The line is written in the cycle <code>f0_l1_miss_resp_valid</code> arrives, and the handler is back in Ready in the next cycle.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>A miss that arrives while the handler is in Request or Fill_Wait still receives its miss response, but nothing is recorded for it (<a href="#sec-ch3-l0-tag-miss">Section 3.4.8.2</a>).</p>
+</div>
+<div id="fig-ch3-l0-miss-fsm" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-miss-fsm.drawio.png" alt="Miss handler state machine" width="70%">
+</div>
+<div class="title">Figure 43. Miss handler state machine</div>
+</div>
+<div class="paragraph">
+<p>The response from the L1 instruction cache carries the line and its two error flags, but not its address. So when the handler takes a miss, it records everything the fill needs later:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Tag:</strong> PA[39:6] of the miss, in <code>f0_miss_addr</code>. It is the address of the line request, and the tag that the fill writes into the micro-tag array or into the bypass register.</p>
+</li>
+<li>
+<p><strong>Victim:</strong> the one-hot entry that the LRU selector chose, in <code>f0_miss_victim</code>. The fill writes the tag and the line into this entry.</p>
+</li>
+<li>
+<p><strong>Flags:</strong> bypassed, prefetch, and L0 write disabled, the last set for a bypassed or prefetch request. They decide where the line goes: into the arrays, into the bypass register, or nowhere in the micro-cache.</p>
+</li>
+</ul>
+</div>
 </div>
 <div class="sect4">
-<h5 id="sec-ch3-l0-tag-miss"><a class="anchor" href="#sec-ch3-l0-tag-miss"></a><a class="link" href="#sec-ch3-l0-tag-miss">3.4.8.2. Tag Miss</a></h5>
-
+<h5 id="sec-ch3-l0-tag-miss"><a class="anchor" href="#sec-ch3-l0-tag-miss"></a><a class="link" href="#sec-ch3-l0-tag-miss">3.4.8.2. Line Miss</a></h5>
+<div class="paragraph">
+<p>A request that translates but does not hit receives a miss response. If the handler is in Ready, the miss is accepted and the line is requested; if it is busy, nothing is recorded, and the thread fetches the line after a later fill done, when it retries and finds the handler idle. A core miss that is not recorded also opens the window in which the code prefetcher holds back (<a href="#sec-ch3-l0-pf-window">Section 3.4.11.3</a>). <a href="#fig-ch3-l0-tx-miss">Figure 44</a> shows a line miss that finds the miss handler in Ready, and <a href="#fig-ch3-l0-tx-busy">Figure 45</a> one that finds it busy. <a href="#tab-ch3-l0-tx-miss">Table 51</a> lists the steps of both side by side. The busy case is the path that the livelock guard of the Front End bounds (<a href="#sec-ch3-fe-ic-livelock">Section 3.3.8</a>).</p>
+</div>
+<div id="fig-ch3-l0-tx-miss" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-uTag-Miss.drawio.png" alt="Core request line miss" width="85%">
+</div>
+<div class="title">Figure 44. Core request line miss</div>
+</div>
+<div id="fig-ch3-l0-tx-busy" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-Miss-Handler-Busy.drawio.png" alt="Line miss with the miss handler busy" width="85%">
+</div>
+<div class="title">Figure 45. Line miss with the miss handler busy</div>
+</div>
+<table id="tab-ch3-l0-tx-miss" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 51. Core request line miss, steps by cycle</caption>
+<colgroup>
+<col style="width: 12.1212%;">
+<col style="width: 9.0909%;">
+<col style="width: 39.3939%;">
+<col style="width: 39.394%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Miss handler in Ready (<a href="#fig-ch3-l0-tx-miss">Figure 44</a>)</th>
+<th class="tableblock halign-left valign-top">Miss handler busy (<a href="#fig-ch3-l0-tx-busy">Figure 45</a>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0–1 (F0–F1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1–3</p></td>
+<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">As for a core request hit (<a href="#tab-ch3-l0-tx-hit">Table 42</a>): the arbiter grants the core request, and the instruction TLB hits.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">The physical tag hits no line in the micro-tag array.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hit is 0 and miss is 1. The miss handler records the tag, the LRU victim and the flags of the request. The valid bit of the victim is cleared, and the LRU state records the victim.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hit is 0, and miss is 0 because the miss handler is not in Ready. Nothing is recorded, no victim is cleared, and the LRU state does not change. The unattended-miss state machine moves to FillDone_Wait and holds the code prefetcher back (<a href="#sec-ch3-l0-pf-window">Section 3.4.11.3</a>).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3 (F3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The miss handler, in Request, drives the line request to the L1 instruction cache. The micro-data array is not read.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The micro-data array is not read, and no line request is made.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 (F4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">The response is a miss. The thread sleeps until the next fill done, and then retries.</p></td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="sect4">
 <h5 id="sec-ch3-l0-fill"><a class="anchor" href="#sec-ch3-l0-fill"></a><a class="link" href="#sec-ch3-l0-fill">3.4.8.3. Fill and Thread Wake-Up</a></h5>
-
-</div>
-</div>
-<div class="sect3">
-<h4 id="sec-ch3-l0-bypass"><a class="anchor" href="#sec-ch3-l0-bypass"></a><a class="link" href="#sec-ch3-l0-bypass">3.4.9. L1 Bypass</a></h4>
-
-</div>
-<div class="sect3">
-<h4 id="sec-ch3-l0-prefetch"><a class="anchor" href="#sec-ch3-l0-prefetch"></a><a class="link" href="#sec-ch3-l0-prefetch">3.4.10. Software Prefetch</a></h4>
 <div class="paragraph">
-<p><em>Figure: Prefetch state machine.</em></p>
+<p>Fill done tells the sleeping threads that a line or a translation has arrived, so that they retry. <a href="#fig-ch3-l0-fill-done">Figure 46</a> shows how the micro-cache generates it from two sources:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Line fill:</strong> <code>f0_l1_miss_resp_valid</code>, in the cycle in which the L1 instruction cache returns a line.</p>
+</li>
+<li>
+<p><strong>Translation fill:</strong> <code>f2_tlb_fill_done</code>, a one-cycle pulse at the end of a page-table walk. The micro-cache registers <code>fill_pending</code> from the instruction TLB into <code>f2_tlb_fill_was_pending</code>, and the pulse is high when the registered value is 1 and the current value is 0. This is the fall of <code>fill_pending</code>, one cycle after the TLB entry is written.</p>
+</li>
+</ul>
+</div>
+<div id="fig-ch3-l0-fill-done" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-fill-done-gen.drawio.png" alt="Fill-done generation" width="100%">
+</div>
+<div class="title">Figure 46. Fill-done generation</div>
+</div>
+<div class="paragraph">
+<p>The OR of the two sources is <code>f2_resp_fill_done</code>. It passes through the F3, F4 and F5 stage registers and reaches the cores as <code>f5_resp_fill_done</code>, three cycles later. Every line fill produces fill done, including prefetch and bypassed fills, which write no array. The reason fill done follows the response by one stage is given in <a href="#sec-ch3-fe-ic-miss">Section 3.3.5</a>.</p>
+</div>
+<div class="paragraph">
+<p>A core line fill writes the line into the arrays. <a href="#fig-ch3-l0-tx-l1fill">Figure 47</a> shows the transaction, and <a href="#tab-ch3-l0-tx-l1fill">Table 52</a> lists its steps; cycle <em>N</em> is the cycle in which <code>f0_l1_miss_resp_valid</code> is asserted. The fill of a bypassed miss and the fill of a prefetch miss are explained in their own sections (<a href="#sec-ch3-l0-bypass">Section 3.4.10</a>, <a href="#sec-ch3-l0-prefetch">Section 3.4.11</a>), and the translation fill in <a href="#sec-ch3-l0-tlb-miss">Section 3.4.5.4</a>.</p>
+</div>
+<div id="fig-ch3-l0-tx-l1fill" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-L1-Icache-Fill.drawio.png" alt="Core line fill" width="85%">
+</div>
+<div class="title">Figure 47. Core line fill</div>
+</div>
+<table id="tab-ch3-l0-tx-l1fill" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 52. Core line fill, steps by cycle</caption>
+<colgroup>
+<col style="width: 13.7931%;">
+<col style="width: 10.3448%;">
+<col style="width: 20.6896%;">
+<col style="width: 55.1725%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Block</th>
+<th class="tableblock halign-left valign-top">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">L1 instruction cache</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Asserts <code>f0_l1_miss_resp_valid</code> and returns the line and its two error flags.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-tag array, micro-data array, LRU, miss handler</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The line and its error flags are written into the victim entry of the micro-data array, and the tag recorded by the miss handler into the micro-tag array, which makes the entry valid. The LRU state records the entry. The miss handler returns to Ready, and fill done is generated.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em> + 3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill done</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_resp_fill_done</code> wakes the sleeping threads.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-flush"><a class="anchor" href="#sec-ch3-l0-flush"></a><a class="link" href="#sec-ch3-l0-flush">3.4.9. Flush</a></h4>
+<div class="paragraph">
+<p><code>f0_flush_data</code> invalidates the micro-cache. <code>neigh_shared_icache</code> forms it as the OR of the flush requests of the eight Minions, registered once, and drives it to both micro-caches and to the L1 instruction cache. In the flush cycle the valid bits of all micro-tag entries are cleared, and no lookup hits. A fill outstanding at the flush is written when it arrives but left invalid, because the flush is remembered until the miss handler returns to Ready. The flush does not affect the TLB or the bypass register; TLB entries are invalidated through <code>tlb_invalidate</code> (<a href="#sec-ch3-l0-tlb-inval">Section 3.4.5.5</a>).</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-bypass"><a class="anchor" href="#sec-ch3-l0-bypass"></a><a class="link" href="#sec-ch3-l0-bypass">3.4.10. Bypass Mode</a></h4>
+<div class="paragraph">
+<p>Bypass mode is intended to bypass both levels of the instruction cache, so that no line is kept. It is set by the <code>bypass_icache</code> chicken bit of the Neighborhood, received as <code>esr_bypass_icache</code>. The L1 instruction cache then never hits and never allocates, and every line comes from the Shire Cache through the L1.</p>
+</div>
+<div class="paragraph">
+<p>The micro-cache cannot bypass itself in the same way. Its response latency is fixed at four cycles after the grant, and the Front End depends on that latency (<a href="#sec-ch2-fe-track">Section 2.2.4.2</a>), but a line from the Shire Cache takes much longer. A bypassed request therefore still passes the complete micro-cache pipeline and receives a miss response, and its thread retries after fill done. For the retry to hit, the micro-cache keeps the last bypassed line in a one-line bypass register. <a href="#fig-ch3-l0-bypass-reg">Figure 48</a> shows its format: the tag, the 512-bit line, the two error flags and a valid bit, all in flip-flops.</p>
+</div>
+<div id="fig-ch3-l0-bypass-reg" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-bypass-reg.drawio.png" alt="Bypass register" width="100%">
+</div>
+<div class="title">Figure 48. Bypass register</div>
+</div>
+<div class="paragraph">
+<p><a href="#tab-ch3-l0-bypass-use">Table 53</a> lists the parts of the micro-cache that a bypassed request uses.</p>
+</div>
+<table id="tab-ch3-l0-bypass-use" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 53. Micro-cache parts in bypass mode</caption>
+<colgroup>
+<col style="width: 28.5714%;">
+<col style="width: 71.4286%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Part</th>
+<th class="tableblock halign-left valign-top">In bypass mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Pipeline, F0 to F4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Used. The response returns four cycles after the grant.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction TLB and PMA check</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Used. The request is translated and checked as usual.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-tag array</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Not used. The tag of the request is compared with the bypass register.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-data array</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Not read and not written.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">LRU selector</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Not updated.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Miss handler</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Used. It records the miss with the bypass flag, and no victim.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bypass register</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Holds the last bypassed line: its tag, the 512-bit line, the two error flags and a valid bit.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">L1 instruction cache</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Never hits and never allocates. It forwards the request to the Shire Cache.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>The bypass register follows each bypassed line through five steps:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Sampling:</strong> the bit is registered with each request in F0 and travels with it; it is recorded by the miss handler when the miss is accepted.</p>
+</li>
+<li>
+<p><strong>Lookup:</strong> in F2 a bypassed request compares its tag with the bypass register instead of the micro-tag array. The register does not hit in the cycle it is loaded.</p>
+</li>
+<li>
+<p><strong>Fill:</strong> the fill of a bypassed core miss loads the bypass register; the arrays and the LRU state are not touched (<a href="#tab-ch3-l0-tx-bypfill">Table 55</a>).</p>
+</li>
+<li>
+<p><strong>Read:</strong> in F3 the 32-byte half and the error flags come from the bypass register.</p>
+</li>
+<li>
+<p><strong>Exit:</strong> the register is invalidated when a request that is not bypassed passes F2.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-tx-byphit">Figure 49</a> shows a bypassed core request that hits in the bypass register, and <a href="#fig-ch3-l0-tx-bypmiss">Figure 50</a> one that misses. <a href="#tab-ch3-l0-tx-byp">Table 54</a> lists the steps of both side by side. In both, the result of the micro-tag array is not used, the micro-data array is not read, and the LRU state does not change.</p>
+</div>
+<div id="fig-ch3-l0-tx-byphit" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-Bypass-Hit.drawio.png" alt="Bypassed core request hit" width="85%">
+</div>
+<div class="title">Figure 49. Bypassed core request hit</div>
+</div>
+<div id="fig-ch3-l0-tx-bypmiss" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-Bypass-Miss.drawio.png" alt="Bypassed core request miss" width="85%">
+</div>
+<div class="title">Figure 50. Bypassed core request miss</div>
+</div>
+<table id="tab-ch3-l0-tx-byp" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 54. Bypassed core request, steps by cycle</caption>
+<colgroup>
+<col style="width: 12.1212%;">
+<col style="width: 9.0909%;">
+<col style="width: 39.3939%;">
+<col style="width: 39.394%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Bypass register hit (<a href="#fig-ch3-l0-tx-byphit">Figure 49</a>)</th>
+<th class="tableblock halign-left valign-top">Bypass register miss (<a href="#fig-ch3-l0-tx-bypmiss">Figure 50</a>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0–1 (F0–F1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1–3</p></td>
+<td class="tableblock halign-left valign-top" colspan="2"><p class="tableblock">As for a core request hit (<a href="#tab-ch3-l0-tx-hit">Table 42</a>): the arbiter grants the core request, and the instruction TLB hits.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The physical tag matches the bypass tag.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The physical tag does not match the bypass tag.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hit is 1 and miss is 0.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hit is 0 and, with the miss handler in Ready, miss is 1. The miss handler records the tag and the bypass flag, and no victim.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3 (F3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The bypass register supplies the 32-byte half and the error flags.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The miss handler, in Request, drives the line request to the L1 instruction cache.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 (F4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The response carries the instruction block, with the miss bit clear.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The response is a miss. The thread sleeps until fill done.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-tx-bypfill">Figure 51</a> shows the fill of the bypassed miss, and <a href="#tab-ch3-l0-tx-bypfill">Table 55</a> lists its steps. The line goes into the bypass register, and the thread then retries and hits there.</p>
+</div>
+<div id="fig-ch3-l0-tx-bypfill" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-Bypass-Fill.drawio.png" alt="Bypassed line fill" width="85%">
+</div>
+<div class="title">Figure 51. Bypassed line fill</div>
+</div>
+<table id="tab-ch3-l0-tx-bypfill" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 55. Bypassed line fill, steps by cycle</caption>
+<colgroup>
+<col style="width: 13.7931%;">
+<col style="width: 10.3448%;">
+<col style="width: 20.6896%;">
+<col style="width: 55.1725%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Block</th>
+<th class="tableblock halign-left valign-top">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">L1 instruction cache</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Asserts <code>f0_l1_miss_resp_valid</code> and returns the line and its two error flags.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Bypass register, miss handler</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The bypass register loads the line data and its two error flags from the L1 instruction cache response, and the tag recorded by the miss handler, and becomes valid. The arrays are not written, and the LRU state does not change. The miss handler returns to Ready, and fill done is generated.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em> + 3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill done</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_resp_fill_done</code> wakes the sleeping threads.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-prefetch"><a class="anchor" href="#sec-ch3-l0-prefetch"></a><a class="link" href="#sec-ch3-l0-prefetch">3.4.11. Code Prefetcher</a></h4>
+<div class="paragraph">
+<p>The code prefetcher loads a range of consecutive lines into the L1 instruction cache, so that code is resident before the cores execute it. It is built into the north micro-cache so that its requests use the micro-cache&#8217;s TLB and PMA check. Its requests pass through the micro-cache pipeline but never allocate in the L0: they are forced to miss, write no array and produce no response. Only the L1 keeps the line.</p>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-pf-start"><a class="anchor" href="#sec-ch3-l0-pf-start"></a><a class="link" href="#sec-ch3-l0-pf-start">3.4.11.1. Starting an Operation</a></h5>
+<div class="paragraph">
+<p>Software starts an operation by writing the start line address (42 bits, VA[47:6]) and the line count to one of three Shire ESRs: <code>icache_uprefetch</code>, <code>icache_sprefetch</code> or <code>icache_mprefetch</code>. The ESR written sets the privilege of the operation. A write is accepted only in cooperative mode. Pending requests are served in privilege order: an M-mode request at once, and an S-mode or U-mode request only when no operation is in progress or the current operation has the same or lower privilege. The served request reaches the north micro-cache as <code>esr_prefetch_conf</code> and a pulse on <code>esr_prefetch_start</code>.</p>
+</div>
+<div class="paragraph">
+<p>A start pulse moves the prefetcher to Request from any state. An operation in progress is abandoned and the new one starts at once. Prefetch requests carry Minion identifier 0 and the privilege of the operation, with the other virtual-memory status fields clear; the RTL comment gives the reason as the virtual-memory configuration being the same for all Minions.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-pf-fsm"><a class="anchor" href="#sec-ch3-l0-pf-fsm"></a><a class="link" href="#sec-ch3-l0-pf-fsm">3.4.11.2. Prefetch State Machine</a></h5>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-prefetch-fsm">Figure 52</a> shows the prefetch state machine and the unattended-miss state machine that qualifies its requests. <a href="#tab-ch3-l0-pf-fsm">Table 56</a> lists the transitions.</p>
+</div>
+<div id="fig-ch3-l0-prefetch-fsm" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-prefetch-fsm.drawio.png" alt="Code prefetcher state machines" width="100%">
+</div>
+<div class="title">Figure 52. Code prefetcher state machines</div>
+</div>
+<table id="tab-ch3-l0-pf-fsm" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 56. Prefetch state machine transitions</caption>
+<colgroup>
+<col style="width: 16.6666%;">
+<col style="width: 33.3333%;">
+<col style="width: 16.6666%;">
+<col style="width: 33.3335%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">From</th>
+<th class="tableblock halign-left valign-top">Condition</th>
+<th class="tableblock halign-left valign-top">To</th>
+<th class="tableblock halign-left valign-top">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Any</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_prefetch_start</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Load the start address and line count; set <code>esr_prefetch_done</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">No core request in F0 (<code>f0_prefetch_req_ready</code>)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Check_Hit</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Clear <code>esr_prefetch_done</code>. The request enters F0 if it is qualified.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Check_Hit</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Prefetch request in F2, miss accepted</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill_Wait</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Check_Hit</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Prefetch request in F2, page or access fault</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FillDone_Wait</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Advance to the next line.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Check_Hit</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Prefetch request in F2, no miss accepted and no fault</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FillDone_Wait</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Retry the same line.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill_Wait</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_resp_valid</code>, no lines left</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Idle</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set <code>esr_prefetch_done</code>.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill_Wait</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_resp_valid</code>, lines left</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FillDone_Wait</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Advance to the next line.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FillDone_Wait</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_resp_fill_done</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PreReq_Pause</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Clear the pause counter.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">PreReq_Pause</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8 cycles</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Request</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Advancing adds one to the line address and subtracts one from the line count. An address that overflows bit 47 changes bit 48, which the TLB reports as a non-canonical address when translation is in Sv39 or Sv48 mode. The pause after every fill done leaves the freshly woken threads a window in which to retry before the prefetcher takes the miss handler again.</p>
+</div>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-tx-pf">Figure 53</a> shows one prefetch request, and <a href="#tab-ch3-l0-tx-pf">Table 57</a> lists its steps. The request is forced to miss, so it always takes the miss handler if the handler is in Ready, and it produces no response. <a href="#fig-ch3-l0-tx-pffill">Figure 54</a> shows its fill.</p>
+</div>
+<div id="fig-ch3-l0-tx-pf" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-Prefetch-Request.drawio.png" alt="Prefetch request" width="85%">
+</div>
+<div class="title">Figure 53. Prefetch request</div>
+</div>
+<table id="tab-ch3-l0-tx-pf" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 57. Prefetch request, steps by cycle</caption>
+<colgroup>
+<col style="width: 13.7931%;">
+<col style="width: 10.3448%;">
+<col style="width: 20.6896%;">
+<col style="width: 55.1725%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Block</th>
+<th class="tableblock halign-left valign-top">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0 (F0)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Code prefetcher</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The prefetcher is in Request and its request is qualified, and no core request is present.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0 (F0)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Arbiter</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Grants the prefetch request.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1 (F1)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instruction TLB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hits and returns the physical page number.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Micro-tag array, bypass register</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Their results are not used, because a prefetch request is forced to miss.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hit and miss logic, miss handler</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Miss is 1 whenever the miss handler is in Ready. The miss handler records the physical address and the prefetch flag. No victim is cleared, and the LRU state does not change.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3 (F3)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Miss handler</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">In Request, drives the line request to the L1 instruction cache.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">4 (F4)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">–</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Response</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">None. A prefetch request produces no response.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-tx-pffill">Figure 54</a> shows the fill of a prefetch miss, and <a href="#tab-ch3-l0-tx-pffill">Table 58</a> lists its steps. The miss handler recorded the prefetch with L0 writes disabled, so nothing is written in the micro-cache and only the L1 instruction cache keeps the line. The fill still produces fill done, and fill done starts the pause of the prefetcher.</p>
+</div>
+<div id="fig-ch3-l0-tx-pffill" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/l0-transactions/fig-l0-Prefetch-Fill.drawio.png" alt="Prefetch line fill" width="85%">
+</div>
+<div class="title">Figure 54. Prefetch line fill</div>
+</div>
+<table id="tab-ch3-l0-tx-pffill" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 58. Prefetch line fill, steps by cycle</caption>
+<colgroup>
+<col style="width: 13.7931%;">
+<col style="width: 10.3448%;">
+<col style="width: 20.6896%;">
+<col style="width: 55.1725%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Cycle</th>
+<th class="tableblock halign-left valign-top">Step</th>
+<th class="tableblock halign-left valign-top">Block</th>
+<th class="tableblock halign-left valign-top">Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">L1 instruction cache</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Asserts <code>f0_l1_miss_resp_valid</code> and returns the line and its two error flags.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Miss handler, code prefetcher</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Nothing is written in the micro-cache, and the LRU state does not change. The miss handler returns to Ready, and fill done is generated. The code prefetcher leaves Fill_Wait for FillDone_Wait, or for Idle after the last line.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><em>N</em> + 3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Fill done</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_resp_fill_done</code> wakes the sleeping threads, and the code prefetcher starts its eight-cycle pause.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-prefetch">Figure 55</a> shows the first two lines of a two-line operation. The start pulse in cycle 0 moves the prefetcher to Request, and its request enters F0 in cycle 1, a cycle with no core request. The miss is accepted in F2 in cycle 3, and the L1 request is driven in cycle 4. The line returns in cycle 9 and the prefetcher advances to line A+1. Fill done in cycle 12 starts the eight-cycle pause, shown compressed by the second break. The request for line A+1 enters F0 in cycle 18.</p>
+</div>
+<div id="fig-ch3-l0-prefetch" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/td-l0-prefetch.png" alt="Code prefetch sequence" width="100%">
+</div>
+<div class="title">Figure 55. Code prefetch sequence</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-pf-window"><a class="anchor" href="#sec-ch3-l0-pf-window"></a><a class="link" href="#sec-ch3-l0-pf-window">3.4.11.3. Unattended-Miss Window</a></h5>
+<div class="paragraph">
+<p>When a core lookup misses and the miss is not accepted, the thread retries after the next fill done. The unattended-miss state machine holds the prefetcher back until that retry can enter the pipeline: a prefetch request is qualified (<code>f0_prefetch_req_valid</code>) only while the state machine is in NotPending.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>NotPending to FillDone_Wait:</strong> a core request in F2 misses and no miss is accepted for it.</p>
+</li>
+<li>
+<p><strong>FillDone_Wait to Req_Wait:</strong> <code>f5_resp_fill_done</code>.</p>
+</li>
+<li>
+<p><strong>Req_Wait to NotPending:</strong> a core request enters F0, or 16 cycles pass.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect4">
+<h5 id="sec-ch3-l0-pf-done"><a class="anchor" href="#sec-ch3-l0-pf-done"></a><a class="link" href="#sec-ch3-l0-pf-done">3.4.11.4. Completion</a></h5>
+<div class="paragraph">
+<p><code>esr_prefetch_done</code> resets high, is set by a start pulse, is cleared when the prefetcher enters Request, and is set again when the fill of the last line returns. It is returned to the Shire ESR block.</p>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="sec-ch3-l0-dbg"><a class="anchor" href="#sec-ch3-l0-dbg"></a><a class="link" href="#sec-ch3-l0-dbg">3.4.12. Debug Access</a></h4>
+<div class="paragraph">
+<p>The micro-tag and micro-data arrays of both instances can be read and written over APB. <code>icache_top</code> decodes the upper bits of its 10-bit APB address and passes the low eight bits to the selected instance (<a href="#tab-ch3-l0-dbg-map">Table 59</a>).</p>
+</div>
+<table id="tab-ch3-l0-dbg-map" class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 59. Micro-cache debug address</caption>
+<colgroup>
+<col style="width: 16.6666%;">
+<col style="width: 83.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Bits</th>
+<th class="tableblock halign-left valign-top">Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">9</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1: micro-cache space. 0 selects the L1 tag array.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">8</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Instance: 0 for the north micro-cache, 1 for the south.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">7</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">0: micro-data array. 1: micro-tag array or error flags.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">6:3</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Line number, 0 to 15.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2:0</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">With bit 7 = 0: 64-bit word within the line. With bit 7 = 1: bit 2 selects the tag (0) or the error flags (1).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Tag access:</strong> a read returns the tag in bits 33:0 and the valid bit in bit 34; a write sets both from the same bits. A write waits for a cycle in which no fill writes the array.</p>
+</li>
+<li>
+<p><strong>Data access:</strong> a read returns one 64-bit word of the line. A write is a read-modify-write of the whole 514-bit entry: the line is read, the selected word replaced, and the entry written back. Reads wait for cycles in which F3 does not read the array, and writes for cycles in which no fill writes it.</p>
+</li>
+<li>
+<p><strong>Error flags:</strong> bit 0 is the ECC-error flag and bit 1 the bus-error flag of the line, read or written in the same way.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><code>apb_pslverr</code> is never asserted.</p>
 </div>
 </div>
 </div>
@@ -4296,7 +6630,7 @@ log2(<code>FE_FETCH_VALID_INST_SIZE</code> * <code>FE_FETCH_BUFFERS</code>) = lo
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-10-07 14:25:44 +0500
+Last updated 2026-10-27 11:40:32 +0500
 </div>
 </div>
 </body>

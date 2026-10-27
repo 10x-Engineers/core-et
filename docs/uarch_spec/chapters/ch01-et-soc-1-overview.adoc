@@ -98,7 +98,7 @@ Eight counters count ET-Minion events and four count Neighborhood events.
 ** *Pair-256*: 256 bits from each of two cores, forming a full 512-bit cache line
 ** *Pair-128*: 128 bits from each of two cores, forming half a cache line
 +
-Each core holds its request until every core of the group has presented one, so operations of different modes cannot mix.
+Each core holds its request until every core of the group presents one, so operations of different modes cannot mix.
 * *Fast Local Messaging Network (FLN)*: carries messages between cores of the same Neighborhood directly, instead of sending them out through the request path and back in through the response path. Connections are not all-to-all; they follow the pattern used by the tensor reduction instructions, and a message arriving over this network takes priority over the other responses to that core.
 * *Fast local barrier (FLB) path*
 * *Neighborhood ESRs*

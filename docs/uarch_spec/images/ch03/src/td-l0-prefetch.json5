@@ -1,0 +1,21 @@
+{ signal: [
+  { name: 'clk',                    wave: 'p.......|.......|...' },
+  {},
+  { name: 'esr_prefetch_start',     wave: '10......|.......|...' },
+  { name: 'esr_prefetch_done',      wave: '1.0.....|.......|...' },
+  { name: 'f0_prefetch_state',      wave: '222.2...|.2..2..|.22', data: ['Idle','Request','Check_Hit','Fill_Wait','FillDone_Wait','PreReq_Pause','Request','Check_Hit'] },
+  { name: 'f0_prefetch_lines',      wave: '2.......|.2.....|...', data: ['1','0'] },
+  { name: 'f0_prefetch_req.addr',   wave: '2.......|.2.....|...', data: ['line A','line A+1'] },
+  { name: 'f0_prefetch_req_valid',  wave: '010.....|.......|.10' },
+  { name: 'L0 stage (prefetch)',    wave: 'x22222x.|.......|x22', data: ['F0','F1','F2','F3','F4','F0','F1'] },
+  {},
+  { name: 'f0_l1_miss_req_valid',   wave: '0...10..|.......|...' },
+  { name: 'f0_l1_miss_resp_valid',  wave: '0.......|10.....|...' },
+  { name: 'f5_resp_fill_done',      wave: '0.......|0..10..|...' }
+ ],
+ group: [
+   { name: 'Prefetcher', from: 'esr_prefetch_start', to: 'L0 stage (prefetch)' },
+   { name: 'Line fill',  from: 'f0_l1_miss_req_valid', to: 'f5_resp_fill_done' }
+ ],
+ head: { tick: 0 }
+}

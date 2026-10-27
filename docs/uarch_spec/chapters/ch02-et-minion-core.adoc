@@ -101,9 +101,9 @@ It delivers one decoded instruction per cycle to ID, from either thread. The cor
 
 The Front End is built around the following four concepts:
 
-. *Fetch is double-buffered:* each thread has a thread buffer with two 256-bit entries, each holding half a cache line, so the next block can be requested while the current one is being consumed.
+. *Fetch is double-buffered:* each thread has a thread buffer with two 256-bit entries, each holding half a cache line, so the next block can be requested while instructions are extracted from the current one.
 
-. *Each thread has at most one fetch request in flight:* the L0 micro-cache answers every accepted request, hit or miss, after a fixed latency, so a thread recognizes its own by timing alone, without a thread identifier. On a miss the thread sleeps until the L0 micro-cache reports that a fill has completed, and then retries.
+. *Each thread has at most one fetch request in flight:* the L0 micro-cache answers every accepted request, hit or miss, after a fixed latency, so a thread recognizes its own by timing alone, without a thread identifier. On a miss the thread sleeps until the L0 micro-cache reports that a fill is complete, and then retries.
 
 . *Instructions are decoded before they are queued:* one integer decoder and one VPU decoder, shared by both threads, decode in F7, and each thread has a two-entry instruction FIFO that holds decoded instructions until ID accepts them. This moves decode out of the ID stage and lets a thread keep fetching while ID serves the other thread.
 
@@ -173,7 +173,7 @@ This section defines the boundary of `frontend_top`. <<sec-ch2-fe-ports>> lists 
 | `f5_icache_resp_valid` | in | 1 | `icache_resp_valid` | A response is present. It carries no thread identifier.
 | `f5_icache_resp_miss` | in | 1 | `icache_resp_miss` | The response is a miss and carries no instruction data.
 | `f5_icache_resp` | in | `icache_frontend_resp` | `icache_resp` | 32-byte block and status.
-| `f6_icache_fill_done` | in | 1 | `icache_fill_done` | The L0 micro-cache has completed a line or translation fill.
+| `f6_icache_fill_done` | in | 1 | `icache_fill_done` | A line or translation fill in the L0 micro-cache is complete.
 5+h| Redirect and stall from the integer pipeline
 | `f0_core_req_valid` | in | 2 | `id_core_fe_req_valid` | Redirect. Flushes the thread and restarts fetch at `f0_core_req.pc`.
 | `f0_core_req` | in | 2 x `minion_fe_req` | `id_core_fe_req` | Redirect PC, speculation status and debug-mode transition.
@@ -316,7 +316,7 @@ Fetching and extracting are independent: a thread keeps extracting instructions 
 image::ch02/fig-fe-pipeline.drawio.png["Front End pipeline",width=100%,align=center]
 
 F0 Stage:: The F0 stage receives instruction-block requests from both thread buffers and decides which one gets access to the L0 micro-cache using a 2:1 LRU arbiter. The selected request is registered and sent to the L0 micro-cache through the Neighborhood interface. This stage also handles the enabling and disabling of threads and redirect requests from the integer pipeline, for example the new address after a mispredicted branch.
-F1–F5 Stage:: The selected request is held in F1 until the L0 micro-cache accepts it, which happens at the earliest in the second F1 cycle. The thread then waits for the response. The L0 micro-cache always responds to an accepted request, whether it is a hit or a miss, with a fixed five-cycle latency: counting the cycle in which it accepts the request as the first cycle, the response is returned in the fifth cycle, in F5 (<<fig-ch2-fe-td-hit>>).
+F1–F5 Stage:: The selected request is held in F1 until the L0 micro-cache accepts it, which happens at the earliest in the second F1 cycle. The thread then waits for the response. The L0 micro-cache always responds to an accepted request, whether it is a hit or a miss, four cycles after the grant, in F5 (<<fig-ch2-fe-td-hit>>).
 F6 Stage:: The response from the L0 micro-cache is checked. If it is a hit, the instruction block is stored in the buffer of the thread that issued the request. If it is a miss, nothing is stored, and the thread waits for the cache to be filled. Instruction reading is independent of the fetch request: whenever a buffer entry holds instructions, the thread reads its next instruction, expands it if it is compressed, and passes it on for decoding, in parallel with any request in F0 to F5.
 F7 Stage:: This stage selects which thread's instruction is read from its buffer. The selected instruction is decoded and stored, along with its control signals, in that thread's FIFO. The thread scheduler decides which thread's FIFO issues an instruction to the integer pipeline in the next cycle. If both threads are eligible, they are selected in round-robin order; otherwise, the eligible thread is selected.
 
@@ -377,14 +377,14 @@ image::ch02/td-fe-miss.png["Miss, sleep and retry",width=100%,align=center]
 
 In <<fig-ch2-fe-td-miss>> the miss response arrives in cycle 7 and the thread sleeps from cycle 9. Fill done arrives in cycle 11, is registered, and the thread retries in cycle 12.
 
-Fill done is issued one cycle after the response slot. A request that looks up the L0 micro-cache while a fill is being written still misses, and its response is the last miss that the fill can cause. Issuing fill done one cycle after that response, and registering it again in the Front End, ensures that every thread has entered the sleep state before the wake-up arrives. A wake-up that arrived first would be lost, and the thread would wait for an unrelated fill.
+Fill done is issued one cycle after the response slot. A request that looks up the L0 micro-cache in the cycle in which a fill writes the array still misses, and its response is the last miss that the fill can cause. Issuing fill done one cycle after that response, and registering it again in the Front End, ensures that every thread is in the sleep state before the wake-up arrives. If the wake-up arrives first, it is lost, and the thread waits for an unrelated fill.
 
 [[sec-ch2-fe-kill]]
 ===== Request Cancellation
 
 A redirect invalidates the thread's tokens in F2 to F5 and suppresses the F6 write, so the responses of in-flight requests are discarded.
 
-A request still waiting in the F1 I-cache request register cannot be withdrawn: the register is shared and the Neighborhood already holds a copy. The thread records the cancellation and does not advance the token when the request is accepted. The I-cache lookup is performed and its response is discarded. The thread's new request is issued only after the cancelled request has been accepted.
+A request still waiting in the F1 I-cache request register cannot be withdrawn: the register is shared and the Neighborhood already holds a copy. The thread records the cancellation and does not advance the token when the request is accepted. The I-cache lookup is performed and its response is discarded. The thread's new request is issued only after the Neighborhood accepts the cancelled request.
 
 [[fig-ch2-fe-td-kill]]
 .Redirect while a request waits in F1
@@ -538,7 +538,7 @@ All status fields are forced to zero while the debug program buffer is executed.
 [[sec-ch2-fe-inval]]
 ==== Entry Invalidation, Redirect and Thread Start
 
-This section describes the events that discard buffered instructions or restart fetch. <<sec-ch2-fe-release>> lists when a buffer entry is released: normally when its last instruction has been extracted, but also on a redirect, a thread disable or entry to debug mode. <<sec-ch2-fe-redirect>> describes a redirect from the integer pipeline: what triggers it, what it clears in each stage, and how long the thread takes to deliver its first target instruction. <<sec-ch2-fe-enable>> describes how thread enable and disable events are derived from the enable input, how fetch starts at the reset vector, and what state a thread has after reset.
+This section describes the events that discard buffered instructions or restart fetch. <<sec-ch2-fe-release>> lists when a buffer entry is released: normally after its last instruction is extracted, but also on a redirect, a thread disable or entry to debug mode. <<sec-ch2-fe-redirect>> describes a redirect from the integer pipeline: what triggers it, what it clears in each stage, and how long the thread takes to deliver its first target instruction. <<sec-ch2-fe-enable>> describes how thread enable and disable events are derived from the enable input, how fetch starts at the reset vector, and what state a thread has after reset.
 
 [[sec-ch2-fe-release]]
 ===== Entry Invalidation
@@ -669,7 +669,7 @@ A redirect empties the thread's FIFO.
 The integer pipeline accepts one instruction per cycle from either thread. This section describes how the thread scheduler (`frontend_thread_sched`) chooses which thread's FIFO head is presented to ID in the next cycle. It defines when a thread is awake (enabled and not stalled by the integer pipeline) and when it is ready (it has an instruction and is not being redirected). It gives the round-robin rule between eligible threads, including the default choice when neither thread is eligible. It then describes the handshake with ID: what drives the ID outputs, why the valid signal is not qualified with the stall, and what happens to an instruction that ID does not accept.
 
 Awake:: The thread is enabled and `id_core_stall` is deasserted. Awake is registered, so a stall affects scheduling one cycle after it is asserted.
-Ready:: The thread's FIFO is not empty or is being written in the current cycle, and the thread is not being redirected. Including the write allows an instruction to pass from F7 to ID in consecutive cycles.
+Ready:: The thread's FIFO is not empty or receives a write in the current cycle, and no redirect is in progress for the thread. Including the write allows an instruction to pass from F7 to ID in consecutive cycles.
 
 A thread that is awake and ready is eligible. The scheduler selects between eligible threads in round-robin order:
 
