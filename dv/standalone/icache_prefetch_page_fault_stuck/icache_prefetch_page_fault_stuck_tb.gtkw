@@ -1,0 +1,109 @@
+[*] GTKWave save file for icache_prefetch_page_fault_stuck_tb.vcd
+[*] Open with: make wave
+[*] Primary marker: cycle 44, page fault on line 0 (TLB hit), FSM -> FillDone_Wait
+[*] Marker A: cycle 28, PTW response for page 1 (X = 0)
+[*] Marker B: cycle 33, f5_resp_fill_done from the TLB fill (the last one)
+[timestart] 0
+*-9.000000 87000 55000 65000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+@200
+-Testbench
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.clock
+TOP.icache_prefetch_page_fault_stuck_tb.reset
+@24
+TOP.icache_prefetch_page_fault_stuck_tb.cyc[31:0]
+TOP.icache_prefetch_page_fault_stuck_tb.tb_phase[31:0]
+@200
+-Prefetch ESR
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.dut.esr_prefetch_start
+@22
+TOP.icache_prefetch_page_fault_stuck_tb.dut.esr_prefetch_conf.start_addr[47:6]
+@24
+TOP.icache_prefetch_page_fault_stuck_tb.dut.esr_prefetch_conf.num_lines[5:0]
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.dut.esr_prefetch_conf.prv[1:0]
+TOP.icache_prefetch_page_fault_stuck_tb.dut.esr_prefetch_done
+@200
+-Prefetch FSM
+@2022
+^1 prefetch_state.txt
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_prefetch_state[2:0]
+@2022
+^1 prefetch_state.txt
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_prefetch_state_next[2:0]
+@24
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_prefetch_lines[5:0]
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_prefetch_load_new_req
+@22
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_prefetch_req.addr[48:0]
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_prefetch_req_valid
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_prefetch_req_access
+@24
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_prefetch_prereq_cnt[2:0]
+@200
+-TLB and PTW
+@2022
+^4 tlb_state.txt
+TOP.icache_prefetch_page_fault_stuck_tb.dut.tlb_array.tlb_top.state[1:0]
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.ptw_req_valid
+@22
+TOP.icache_prefetch_page_fault_stuck_tb.ptw_req_data.addr[47:12]
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.ptw_resp_valid
+TOP.icache_prefetch_page_fault_stuck_tb.ptw_resp_data.x
+@22
+TOP.icache_prefetch_page_fault_stuck_tb.ptw_resp_data.ppn[43:0]
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f1_tlb_resp_data.fill_pending
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_tlb_fill_done
+@200
+-F2 lookup
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_valid
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_is_prefetch
+@22
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_req.addr[48:0]
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_paddr[39:0]
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_tlb_resp_data.miss
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_tlb_resp_data.xcpt_if
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_miss
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_page_fault
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_access_fault
+@200
+-Miss handler and L1
+@2022
+^2 miss_state.txt
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_miss_state[1:0]
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_l1_miss_req_valid
+@22
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_l1_miss_req_addr[39:0]
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f0_l1_miss_resp_valid
+@200
+-Fill done chain
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f2_resp_fill_done
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f3_resp_fill_done
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f4_resp_fill_done
+TOP.icache_prefetch_page_fault_stuck_tb.dut.f5_resp_fill_done
+@200
+-TB checks
+@424
+TOP.icache_prefetch_page_fault_stuck_tb.fault_cyc[31:0]
+TOP.icache_prefetch_page_fault_stuck_tb.lines_after_fault[31:0]
+@22
+TOP.icache_prefetch_page_fault_stuck_tb.next_va_after_fault[47:0]
+@24
+TOP.icache_prefetch_page_fault_stuck_tb.stuck_cycles[31:0]
+@28
+TOP.icache_prefetch_page_fault_stuck_tb.left_filldone
+@424
+TOP.icache_prefetch_page_fault_stuck_tb.done_rise_cyc[31:0]
+[pattern_trace] 1
+[pattern_trace] 0
