@@ -725,7 +725,7 @@ The transaction figures of the L0 micro-cache draw one transaction on the functi
 * *Unused blocks:* a red circle or a dashed red line marks a block that the transaction does not use, or whose result it ignores.
 * *Cycles:* two steps with different numbers can occur in the same cycle. The table under each figure gives the cycle of each step: a request counts its cycles from the grant, with the stage in brackets, and a fill counts them from the cycle _N_ of its response.
 
-<<fig-ch3-l0-tx-hit>> shows a core request that hits in the instruction TLB and in the micro-tag array, the common case, and <<tab-ch3-l0-tx-hit>> lists its steps. The later transaction tables refer to this one for the steps that they share with it.
+<<fig-ch3-l0-tx-hit>> shows a core request that hits in the instruction TLB and in the micro-tag array, the common case, and <<tab-ch3-l0-tx-hit>> lists its steps.
 
 [[fig-ch3-l0-tx-hit]]
 .Core request hit
@@ -892,7 +892,7 @@ image::ch03/l0-transactions/fig-l0-Tlb-Miss.drawio.png["Core request TLB miss",w
 |===
 | Cycle | Step | Block | Action
 
-| 0 (F0) | 1–2 | Arbiter | As for a core request hit (<<tab-ch3-l0-tx-hit>>).
+| 0 (F0) | 1–2 | Arbiter | Grants the core request, which always has priority.
 | 1 (F1) | 3 | Instruction TLB | Misses. The walk state machine is in Ready, so it captures the request and moves to Request.
 | 2 (F2) | 4 | Walk state machine | Drives the walk request to the shared page-table walker. The micro-tag array and the bypass register compare an address that is not valid, and their results are ignored.
 | 2 (F2) | 5 | Hit and miss logic, LRU | No miss is accepted, because the TLB missed. The LRU state does not change.
@@ -1094,7 +1094,7 @@ image::ch03/l0-transactions/fig-l0-Miss-Handler-Busy.drawio.png["Line miss with 
 |===
 | Cycle | Step | Miss handler in Ready (<<fig-ch3-l0-tx-miss>>) | Miss handler busy (<<fig-ch3-l0-tx-busy>>)
 
-| 0–1 (F0–F1) | 1–3 2+| As for a core request hit (<<tab-ch3-l0-tx-hit>>): the arbiter grants the core request, and the instruction TLB hits.
+| 0–1 (F0–F1) | 1–3 2+| The arbiter grants the core request, and the instruction TLB translates its address.
 | 2 (F2) | 4 2+| The physical tag hits no line in the micro-tag array.
 | 2 (F2) | 5 | Hit is 0 and miss is 1. The miss handler records the tag, the LRU victim and the flags of the request. The valid bit of the victim is cleared, and the LRU state records the victim. | Hit is 0, and miss is 0 because the miss handler is not in Ready. Nothing is recorded, no victim is cleared, and the LRU state does not change. The unattended-miss state machine moves to FillDone_Wait and holds the code prefetcher back (<<sec-ch3-l0-pf-window>>).
 | 3 (F3) | 6 | The miss handler, in Request, drives the line request to the L1 instruction cache. The micro-data array is not read. | The micro-data array is not read, and no line request is made.
@@ -1142,39 +1142,58 @@ image::ch03/l0-transactions/fig-l0-L1-Icache-Fill.drawio.png["Core line fill",wi
 [[sec-ch3-l0-bypass]]
 ==== Bypass Mode
 
-Bypass mode is intended to bypass both levels of the instruction cache, so that no line is kept. It is set by the `bypass_icache` chicken bit of the Neighborhood, received as `esr_bypass_icache`. The L1 instruction cache then never hits and never allocates, and every line comes from the Shire Cache through the L1.
+Bypass mode turns off instruction caching in the Neighborhood. The cores still fetch their instructions, but neither the L0 micro-cache nor the L1 instruction cache keeps a line, so every new line comes from the Shire Cache, the shared L2 and L3 cache of the Minion Shire. Bypass mode is a chicken bit, a switch that disables a feature in silicon. It is set by the `bypass_icache` bit of the Neighborhood chicken ESR, which reaches the shared instruction cache as `esr_bypass_icache`.
 
-The micro-cache cannot bypass itself in the same way. Its response latency is fixed at four cycles after the grant, and the Front End depends on that latency (<<sec-ch2-fe-track>>), but a line from the Shire Cache takes much longer. A bypassed request therefore still passes the complete micro-cache pipeline and receives a miss response, and its thread retries after fill done. For the retry to hit, the micro-cache keeps the last bypassed line in a one-line bypass register. <<fig-ch3-l0-bypass-reg>> shows its format: the tag, the 512-bit line, the two error flags and a valid bit, all in flip-flops.
+[[sec-ch3-l0-bypass-why]]
+===== Request Path in Bypass Mode
+
+The Front End is not connected to the Shire Cache directly. Its fetch port connects to the L0 micro-cache, the L0 micro-cache connects to the L1 instruction cache, and only the L1 instruction cache connects to the Shire Cache. A bypassed request therefore still passes through both caches, and the design must respect two rules of that path:
+
+* *Physical addresses.* The fetch address is virtual, but the L1 instruction cache and the Shire Cache take physical addresses.
+* *Fixed latency.* The Front End expects every response a fixed four cycles after the grant, for a hit and for a miss alike, and recognizes its own response by that timing alone (<<sec-ch2-fe-track>>). A hit that is served from the Shire Cache takes many more cycles than that.
+
+A core request first enters the L0 micro-cache, because the fetch port of the core is connected to it. The micro-cache pipeline already solves the translation: the instruction TLB translates the address in F1, and the PMA unit checks it in F2, before any request leaves for the L1 instruction cache. In F2 the micro-cache also sees that the request is bypassed. It skips the micro-tag array and, if the miss handler is in Ready, the miss handler registers the line request (<<sec-ch3-l0-mh>>). The request is sent to the L1 instruction cache in the next cycle, in F3.
+
+The L1 instruction cache also sees the bypass bit. It treats every request as a miss and sends it to the Shire Cache. The line returns through its data RAM and reaches the micro-cache with its ECC and bus-error flags, as for any line fill. The L1 instruction cache writes no tag and does not update its LRU state, so it keeps no copy of the line.
+
+[[sec-ch3-l0-bypass-reg]]
+===== Bypass Register
+
+The line request leaves the micro-cache in F3, and the core expects its response in the next cycle, in F4, as a hit or a miss. In one cycle the request cannot reach the L1 instruction cache, look up the Shire Cache and come back to the micro-cache, so the core always receives a miss. The line then arrives after a number of cycles that is not fixed, and by that time the thread sleeps. The micro-cache must hold the line until the thread retries, but its arrays must not keep it.
+
+To hold the line, the micro-cache adds the bypass register, a small cache of one line built from flip-flops. A bypassed fetch of a new line then runs as follows:
+
+. The core request is translated and checked, and in F3 the miss handler sends the line request to the L1 instruction cache.
+. The response in F4 is a miss, and the thread sleeps.
+. When the line arrives from the L1 instruction cache, the micro-cache loads the line, its error flags and the tag that the miss handler recorded into the bypass register. It then pulses fill done, as for a normal line fill, and the thread wakes.
+. The thread retries. Its request hits in the bypass register in F2, and the response in F4 carries the instruction block.
+
+The next request, for the other 32-byte half of the same line, also hits in the bypass register. A request for a different line misses: the thread sleeps, the bypass register is loaded with the new line, fill done wakes the thread, and its retry hits. <<fig-ch3-l0-bypass-flow>> shows the complete flow.
+
+[[fig-ch3-l0-bypass-flow]]
+.Bypassed fetch flow
+image::ch03/fig-l0-bypass-flow.drawio.png["Bypassed fetch flow",width=65%,align=center]
+
+<<fig-ch3-l0-bypass-reg>> shows the format of the bypass register: the tag, the 512-bit line, the two error flags and a valid bit.
 
 [[fig-ch3-l0-bypass-reg]]
 .Bypass register
 image::ch03/fig-l0-bypass-reg.drawio.png["Bypass register",width=100%,align=center]
 
-<<tab-ch3-l0-bypass-use>> lists the parts of the micro-cache that a bypassed request uses.
+The bypass register is used as follows:
 
-[[tab-ch3-l0-bypass-use]]
-.Micro-cache parts in bypass mode
-[cols="2,5",options="header"]
-|===
-| Part | In bypass mode
+* *Lookup.* In F2 a bypassed request compares its tag with the bypass register instead of the micro-tag array. The register does not hit in the cycle in which it is loaded.
+* *Fill.* The miss handler records the bypass flag with the miss, so the fill loads the bypass register instead of the arrays. The micro-tag array, the micro-data array and the LRU selector are not updated (<<tab-ch3-l0-tx-bypfill>>).
+* *Read.* In F3 the 32-byte half and the error flags come from the bypass register.
+* *Invalidation.* The register is invalidated when a request that is not bypassed passes F2.
 
-| Pipeline, F0 to F4 | Used. The response returns four cycles after the grant.
-| Instruction TLB and PMA check | Used. The request is translated and checked as usual.
-| Micro-tag array | Not used. The tag of the request is compared with the bypass register.
-| Micro-data array | Not read and not written.
-| LRU selector | Not updated.
-| Miss handler | Used. It records the miss with the bypass flag, and no victim.
-| Bypass register | Holds the last bypassed line: its tag, the 512-bit line, the two error flags and a valid bit.
-| L1 instruction cache | Never hits and never allocates. It forwards the request to the Shire Cache.
-|===
+Bypass mode has two further effects:
 
-The bypass register follows each bypassed line through five steps:
+* *Mode changes.* A change of bypass mode flushes neither cache level. The micro-tag and micro-data arrays keep the lines that they held before bypass mode, and those lines hit again when it ends. If the code in memory changed meanwhile, software must flush the instruction caches (<<sec-ch3-l0-flush>>).
+* *Prefetch.* A prefetch request in bypass mode loads nothing, because the L1 instruction cache keeps no line and the bypass register takes only the lines of core misses. The code prefetcher is therefore of no use in bypass mode.
 
-* *Sampling:* the bit is registered with each request in F0 and travels with it; it is recorded by the miss handler when the miss is accepted.
-* *Lookup:* in F2 a bypassed request compares its tag with the bypass register instead of the micro-tag array. The register does not hit in the cycle it is loaded.
-* *Fill:* the fill of a bypassed core miss loads the bypass register; the arrays and the LRU state are not touched (<<tab-ch3-l0-tx-bypfill>>).
-* *Read:* in F3 the 32-byte half and the error flags come from the bypass register.
-* *Exit:* the register is invalidated when a request that is not bypassed passes F2.
+[[sec-ch3-l0-bypass-tx]]
+===== Bypassed Transactions
 
 <<fig-ch3-l0-tx-byphit>> shows a bypassed core request that hits in the bypass register, and <<fig-ch3-l0-tx-bypmiss>> one that misses. <<tab-ch3-l0-tx-byp>> lists the steps of both side by side. In both, the result of the micro-tag array is not used, the micro-data array is not read, and the LRU state does not change.
 
@@ -1192,7 +1211,7 @@ image::ch03/l0-transactions/fig-l0-Bypass-Miss.drawio.png["Bypassed core request
 |===
 | Cycle | Step | Bypass register hit (<<fig-ch3-l0-tx-byphit>>) | Bypass register miss (<<fig-ch3-l0-tx-bypmiss>>)
 
-| 0–1 (F0–F1) | 1–3 2+| As for a core request hit (<<tab-ch3-l0-tx-hit>>): the arbiter grants the core request, and the instruction TLB hits.
+| 0–1 (F0–F1) | 1–3 2+| The arbiter grants the core request, and the instruction TLB translates its address.
 | 2 (F2) | 4 | The physical tag matches the bypass tag. | The physical tag does not match the bypass tag.
 | 2 (F2) | 5 | Hit is 1 and miss is 0. | Hit is 0 and, with the miss handler in Ready, miss is 1. The miss handler records the tag and the bypass flag, and no victim.
 | 3 (F3) | 6 | The bypass register supplies the 32-byte half and the error flags. | The miss handler, in Request, drives the line request to the L1 instruction cache.
@@ -1220,19 +1239,42 @@ image::ch03/l0-transactions/fig-l0-Bypass-Fill.drawio.png["Bypassed line fill",w
 [[sec-ch3-l0-prefetch]]
 ==== Code Prefetcher
 
-The code prefetcher loads a range of consecutive lines into the L1 instruction cache, so that code is resident before the cores execute it. It is built into the north micro-cache so that its requests use the micro-cache's TLB and PMA check. Its requests pass through the micro-cache pipeline but never allocate in the L0: they are forced to miss, write no array and produce no response. Only the L1 keeps the line.
+The code prefetcher is a service that software uses to load critical code into the L1 instruction cache before the cores execute it. Without it, the first fetch of each new line misses in both cache levels, and the thread sleeps until the line comes from the Shire Cache. Software starts a prefetch operation through Shire ESRs. The operation gives a start address, a number of lines and a privilege level, and the prefetcher loads that many consecutive lines into the L1 instruction cache.
+
+[[sec-ch3-l0-pf-path]]
+===== Prefetch Path
+
+The target of the service is the L1 instruction cache, but the L1 instruction cache takes physical addresses, and a prefetch operation gives a virtual address. Only the L0 micro-cache translates an instruction address, with its instruction TLB in F1 and its PMA check in F2. The prefetcher is therefore built into the north micro-cache, and its requests pass through the micro-cache pipeline as core requests do. Each prefetch request carries Minion identifier 0 and the privilege of the operation, and its other virtual-memory status fields are clear. The RTL comment gives the reason: the virtual-memory configuration is the same for all Minions.
+
+A prefetch request passes the pipeline as follows:
+
+* *F0.* The core request always has priority. A prefetch request enters the pipeline only in a cycle with no core request, so it never delays a fetch.
+* *F1.* The instruction TLB translates the address. On a TLB miss a page-table walk starts as for a core request, and the prefetcher requests the same line again after the translation fill.
+* *F2.* The PMA unit checks the physical address. The request is forced to miss, whatever the micro-tag array holds, so that a line request goes to the L1 instruction cache. The miss handler takes the request if it is in Ready.
+* *F3.* The miss handler sends the line request to the L1 instruction cache.
+* *F4.* No response is sent, because no thread waits for the line.
+
+The L1 instruction cache handles the line request as any other request: on a miss it fetches the line from the Shire Cache and keeps it. When the line returns to the micro-cache, the micro-cache discards it. It writes neither the micro-tag array nor the micro-data array, and the LRU selector does not change. The line is kept only in the L1 instruction cache, where both micro-caches can use it. The fill still produces fill done, as every line fill does.
 
 [[sec-ch3-l0-pf-start]]
 ===== Starting an Operation
 
 Software starts an operation by writing the start line address (42 bits, VA[47:6]) and the line count to one of three Shire ESRs: `icache_uprefetch`, `icache_sprefetch` or `icache_mprefetch`. The ESR written sets the privilege of the operation. A write is accepted only in cooperative mode. Pending requests are served in privilege order: an M-mode request at once, and an S-mode or U-mode request only when no operation is in progress or the current operation has the same or lower privilege. The served request reaches the north micro-cache as `esr_prefetch_conf` and a pulse on `esr_prefetch_start`.
 
-A start pulse moves the prefetcher to Request from any state. An operation in progress is abandoned and the new one starts at once. Prefetch requests carry Minion identifier 0 and the privilege of the operation, with the other virtual-memory status fields clear; the RTL comment gives the reason as the virtual-memory configuration being the same for all Minions.
+The prefetcher loads one line at a time. It requests the line, waits for the line to return, and then moves to the next line address, until the line count is used up. If the request for a line takes a page fault or an access fault, that line is not loaded, and the operation continues with the next line. A new start pulse cancels an operation in progress, and the prefetcher starts the new operation at once.
+
+[[sec-ch3-l0-pf-window]]
+===== Sharing the Miss Handler
+
+The prefetcher has no miss handler of its own. It shares the miss handler of the north micro-cache with the four cores, and the miss handler holds one line request at a time. While it waits for a prefetched line, a core miss finds it busy: the thread receives a miss response, nothing is recorded, and the thread sleeps until the next fill done. If the prefetcher takes the miss handler again before that thread retries, the thread misses again, and a long operation can keep the cores from their own lines. Two waits prevent this:
+
+* *Pause after fill done.* After each fill done, the prefetcher waits eight cycles before its next request. The RTL comment gives the reason: the pause leaves the Minions time to retry before a new prefetch request.
+* *Unattended-miss window.* When a core miss is not taken by the miss handler, the prefetcher is held back. The hold lasts until the next fill done, and after it until a core request enters F0, or for 16 cycles if no core request comes. The woken threads therefore have the first chance at the miss handler.
 
 [[sec-ch3-l0-pf-fsm]]
 ===== Prefetch State Machine
 
-<<fig-ch3-l0-prefetch-fsm>> shows the prefetch state machine and the unattended-miss state machine that qualifies its requests. <<tab-ch3-l0-pf-fsm>> lists the transitions.
+<<fig-ch3-l0-prefetch-fsm>> shows the prefetch state machine and the unattended-miss state machine, which holds it back (<<sec-ch3-l0-pf-window>>). <<tab-ch3-l0-pf-fsm>> lists the transitions of the prefetch state machine.
 
 [[fig-ch3-l0-prefetch-fsm]]
 .Code prefetcher state machines
@@ -1245,17 +1287,26 @@ image::ch03/fig-l0-prefetch-fsm.drawio.png["Code prefetcher state machines",widt
 | From | Condition | To | Action
 
 | Any | `esr_prefetch_start` | Request | Load the start address and line count; set `esr_prefetch_done`.
-| Request | No core request in F0 (`f0_prefetch_req_ready`) | Check_Hit | Clear `esr_prefetch_done`. The request enters F0 if it is qualified.
+| Request | The prefetch request is qualified and enters F0, in a cycle with no core request | Check_Hit | Clear `esr_prefetch_done`.
 | Check_Hit | Prefetch request in F2, miss accepted | Fill_Wait |
 | Check_Hit | Prefetch request in F2, page or access fault | FillDone_Wait | Advance to the next line.
-| Check_Hit | Prefetch request in F2, no miss accepted and no fault | FillDone_Wait | Retry the same line.
+| Check_Hit | Prefetch request in F2, no miss accepted and no fault: the miss handler is busy, or the TLB missed | FillDone_Wait | Retry the same line.
 | Fill_Wait | `f0_l1_miss_resp_valid`, no lines left | Idle | Set `esr_prefetch_done`.
 | Fill_Wait | `f0_l1_miss_resp_valid`, lines left | FillDone_Wait | Advance to the next line.
 | FillDone_Wait | `f5_resp_fill_done` | PreReq_Pause | Clear the pause counter.
 | PreReq_Pause | 8 cycles | Request |
 |===
 
-Advancing adds one to the line address and subtracts one from the line count. An address that overflows bit 47 changes bit 48, which the TLB reports as a non-canonical address when translation is in Sv39 or Sv48 mode. The pause after every fill done leaves the freshly woken threads a window in which to retry before the prefetcher takes the miss handler again.
+Advancing adds one to the line address and subtracts one from the line count. An address that overflows bit 47 changes bit 48, which the TLB reports as a non-canonical address when translation is in Sv39 or Sv48 mode.
+
+A prefetch request is qualified only while the unattended-miss state machine is in NotPending. Its three states are:
+
+* *NotPending.* Prefetch requests are qualified. A core request in F2 that neither hits nor takes the miss handler, and has no fault, moves the state machine to FillDone_Wait.
+* *FillDone_Wait.* Prefetch requests are held. The state machine waits for `f5_resp_fill_done` and then moves to Req_Wait.
+* *Req_Wait.* Prefetch requests are held. The state machine moves back to NotPending when a core request enters F0, or after 16 cycles.
+
+[[sec-ch3-l0-pf-tx]]
+===== Prefetch Transactions
 
 <<fig-ch3-l0-tx-pf>> shows one prefetch request, and <<tab-ch3-l0-tx-pf>> lists its steps. The request is forced to miss, so it always takes the miss handler if the handler is in Ready, and it produces no response. <<fig-ch3-l0-tx-pffill>> shows its fill.
 
@@ -1301,15 +1352,6 @@ image::ch03/l0-transactions/fig-l0-Prefetch-Fill.drawio.png["Prefetch line fill"
 [[fig-ch3-l0-prefetch]]
 .Code prefetch sequence
 image::ch03/td-l0-prefetch.png["Code prefetch sequence",width=100%,align=center]
-
-[[sec-ch3-l0-pf-window]]
-===== Unattended-Miss Window
-
-When a core lookup misses and the miss is not accepted, the thread retries after the next fill done. The unattended-miss state machine holds the prefetcher back until that retry can enter the pipeline: a prefetch request is qualified (`f0_prefetch_req_valid`) only while the state machine is in NotPending.
-
-* *NotPending to FillDone_Wait:* a core request in F2 misses and no miss is accepted for it.
-* *FillDone_Wait to Req_Wait:* `f5_resp_fill_done`.
-* *Req_Wait to NotPending:* a core request enters F0, or 16 cycles pass.
 
 [[sec-ch3-l0-pf-done]]
 ===== Completion
