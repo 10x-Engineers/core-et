@@ -1,0 +1,93 @@
+[*] GTKWave save file for icache_sum_fetch_fault_tb.vcd
+[*] Open with: make wave
+[*] Primary marker: cycle 83, step 3 F2: S-mode SUM=1 on the U page, TLB hit, no page fault, L0 miss -> L1
+[*] Marker A: cycle 76, step 2 F2: S-mode SUM=0 on the U page, page fault (correct)
+[*] Marker B: cycle 102, step 3 F4: U-page line returned to S-mode
+[*] TLB lookup (tlb_top group) is one cycle before F2
+[timestart] 0
+*-8.000000 165000 151000 203000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+@200
+-Testbench
+@28
+TOP.icache_sum_fetch_fault_tb.clock
+TOP.icache_sum_fetch_fault_tb.reset
+@24
+TOP.icache_sum_fetch_fault_tb.cyc[31:0]
+TOP.icache_sum_fetch_fault_tb.tb_step[31:0]
+@28
+TOP.icache_sum_fetch_fault_tb.tb_expect_fault
+@200
+-Minion 0 request (F0)
+@28
+TOP.icache_sum_fetch_fault_tb.f0_req_valid
+@2022
+^5 prv.txt
+TOP.icache_sum_fetch_fault_tb.f0_req.vm_status.prv[1:0]
+@28
+TOP.icache_sum_fetch_fault_tb.f0_req.vm_status.sum
+@22
+TOP.icache_sum_fetch_fault_tb.f0_req.addr[48:0]
+@200
+-TLB lookup (tlb_top, F1)
+@2022
+^5 prv.txt
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.privilege_mode[1:0]
+@28
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.req_data.status.sum
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.vm_enabled
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.tlb_cache_hit
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.tlb_miss
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.tlb_cache_rdata.u
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.tlb_cache_rdata.sx
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.priv_ok
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.x_perm_ok
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.resp_data.xcpt_if
+@2022
+^4 tlb_state.txt
+TOP.icache_sum_fetch_fault_tb.dut.tlb_array.tlb_top.state[1:0]
+@200
+-PTW
+@28
+TOP.icache_sum_fetch_fault_tb.ptw_req_valid
+@22
+TOP.icache_sum_fetch_fault_tb.ptw_req_data.addr[47:12]
+@28
+TOP.icache_sum_fetch_fault_tb.ptw_resp_valid
+TOP.icache_sum_fetch_fault_tb.ptw_resp_data.u
+TOP.icache_sum_fetch_fault_tb.ptw_resp_data.x
+@200
+-F2 lookup
+@28
+TOP.icache_sum_fetch_fault_tb.dut.f2_valid
+@22
+TOP.icache_sum_fetch_fault_tb.dut.f2_req.addr[48:0]
+TOP.icache_sum_fetch_fault_tb.dut.f2_paddr[39:0]
+@28
+TOP.icache_sum_fetch_fault_tb.dut.f2_tlb_resp_data.miss
+TOP.icache_sum_fetch_fault_tb.dut.f2_page_fault
+TOP.icache_sum_fetch_fault_tb.dut.f2_access_fault
+TOP.icache_sum_fetch_fault_tb.dut.f2_hit
+TOP.icache_sum_fetch_fault_tb.dut.f2_miss
+@200
+-Miss handler and L1
+@2022
+^2 miss_state.txt
+TOP.icache_sum_fetch_fault_tb.dut.f0_miss_state[1:0]
+@28
+TOP.icache_sum_fetch_fault_tb.dut.f0_l1_miss_req_valid
+@22
+TOP.icache_sum_fetch_fault_tb.dut.f0_l1_miss_req_addr[39:0]
+@28
+TOP.icache_sum_fetch_fault_tb.dut.f0_l1_miss_resp_valid
+TOP.icache_sum_fetch_fault_tb.dut.f5_resp_fill_done
+@200
+-Response to Minion 0 (F4)
+@28
+TOP.icache_sum_fetch_fault_tb.f4_resp_valid
+TOP.icache_sum_fetch_fault_tb.f4_resp_miss
+TOP.icache_sum_fetch_fault_tb.f4_resp.page_fault
+TOP.icache_sum_fetch_fault_tb.f4_resp.access_fault
+@22
+TOP.icache_sum_fetch_fault_tb.f4_resp.data[255:0]
+[pattern_trace] 1
+[pattern_trace] 0
