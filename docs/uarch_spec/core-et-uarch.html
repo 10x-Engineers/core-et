@@ -4952,7 +4952,7 @@ log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(51
 <dl>
 <dt class="hdlist1">F0 Stage</dt>
 <dd>
-<p>The F0 stage arbitrates between the core request granted by the 8:1 LRU arbiter and a request from the code prefetcher, and always gives priority to the core request. In a cycle with no core request, the code prefetcher can enter its request, if it is in its Request state and no miss unattended by the miss handler is pending (<a href="#sec-ch3-l0-pf-window">Section 3.4.11.3</a>). A prefetch request uses the same path through the pipeline as a core request, so a prefetch flag goes with each request to the next stages to tell the two apart. The request, the identifier of its Minion, the bypass bit and the prefetch flag are registered into F1.</p>
+<p>The F0 stage arbitrates between the core request granted by the 8:1 LRU arbiter and a request from the code prefetcher, and always gives priority to the core request. In a cycle with no core request, the code prefetcher can enter its request, if it is in its Request state and no miss unattended by the miss handler is pending (<a href="#sec-ch3-l0-pf-window">unattended-miss state machine</a>). A prefetch request uses the same path through the pipeline as a core request, so a prefetch flag goes with each request to the next stages to tell the two apart. The request, the identifier of its Minion, the bypass bit and the prefetch flag are registered into F1.</p>
 </dd>
 <dt class="hdlist1">F1 Stage</dt>
 <dd>
@@ -5870,7 +5870,7 @@ log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(51
 <div class="sect4">
 <h5 id="sec-ch3-l0-tag-miss"><a class="anchor" href="#sec-ch3-l0-tag-miss"></a><a class="link" href="#sec-ch3-l0-tag-miss">3.4.8.2. Line Miss</a></h5>
 <div class="paragraph">
-<p>A request that translates but does not hit receives a miss response. If the handler is in Ready, the miss is accepted and the line is requested; if it is busy, nothing is recorded, and the thread fetches the line after a later fill done, when it retries and finds the handler idle. A core miss that is not recorded also opens the window in which the code prefetcher holds back (<a href="#sec-ch3-l0-pf-window">Section 3.4.11.3</a>). <a href="#fig-ch3-l0-tx-miss">Figure 44</a> shows a line miss that finds the miss handler in Ready, and <a href="#fig-ch3-l0-tx-busy">Figure 45</a> one that finds it busy. <a href="#tab-ch3-l0-tx-miss">Table 51</a> lists the steps of both side by side. The busy case is the path that the livelock guard of the Front End bounds (<a href="#sec-ch3-fe-ic-livelock">Section 3.3.8</a>).</p>
+<p>A request that translates but does not hit receives a miss response. If the handler is in Ready, the miss is accepted and the line is requested; if it is busy, nothing is recorded, and the thread fetches the line after a later fill done, when it retries and finds the handler idle. A core miss that is not recorded also opens the window in which the code prefetcher holds back (<a href="#sec-ch3-l0-pf-window">unattended-miss state machine</a>). <a href="#fig-ch3-l0-tx-miss">Figure 44</a> shows a line miss that finds the miss handler in Ready, and <a href="#fig-ch3-l0-tx-busy">Figure 45</a> one that finds it busy. <a href="#tab-ch3-l0-tx-miss">Table 51</a> lists the steps of both side by side. The busy case is the path that the livelock guard of the Front End bounds (<a href="#sec-ch3-fe-ic-livelock">Section 3.3.8</a>).</p>
 </div>
 <div id="fig-ch3-l0-tx-miss" class="imageblock text-center">
 <div class="content">
@@ -5915,7 +5915,7 @@ log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(51
 <td class="tableblock halign-left valign-top"><p class="tableblock">2 (F2)</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Hit is 0 and miss is 1. The miss handler records the tag, the LRU victim and the flags of the request. The valid bit of the victim is cleared, and the LRU state records the victim.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Hit is 0, and miss is 0 because the miss handler is not in Ready. Nothing is recorded, no victim is cleared, and the LRU state does not change. The unattended-miss state machine moves to FillDone_Wait and holds the code prefetcher back (<a href="#sec-ch3-l0-pf-window">Section 3.4.11.3</a>).</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Hit is 0, and miss is 0 because the miss handler is not in Ready. Nothing is recorded, no victim is cleared, and the LRU state does not change. The unattended-miss state machine moves to FillDone_Wait and holds the code prefetcher back (<a href="#sec-ch3-l0-pf-window">unattended-miss state machine</a>).</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">3 (F3)</p></td>
@@ -6227,12 +6227,27 @@ log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(51
 <div class="sect3">
 <h4 id="sec-ch3-l0-prefetch"><a class="anchor" href="#sec-ch3-l0-prefetch"></a><a class="link" href="#sec-ch3-l0-prefetch">3.4.11. Code Prefetcher</a></h4>
 <div class="paragraph">
-<p>The code prefetcher is a service that software uses to load critical code into the L1 instruction cache before the cores execute it. Without it, the first fetch of each new line misses in both cache levels, and the thread sleeps until the line comes from the Shire Cache. Software starts a prefetch operation through Shire ESRs. The operation gives a start address, a number of lines and a privilege level, and the prefetcher loads that many consecutive lines into the L1 instruction cache.</p>
+<p>The code prefetcher is a service that software uses to preload critical code into the L1 instruction cache before the cores execute it. Without it, the first fetch of each new line misses in both cache levels, and the thread sleeps until the line comes from the Shire Cache. A prefetch operation gives a start virtual address, a number of lines and a privilege level, and the prefetcher loads that many consecutive lines. A single operation prefetches at most 64 lines into the L1 instruction cache. Software writes the number of lines minus one, so the maximum is configured as 63 (<a href="#tab-ch3-l0-prefetch-conf">Table 34</a>).</p>
+</div>
+<div class="paragraph">
+<p>The prefetcher is built into the north micro-cache, which serves Minions 0 to 3; the south micro-cache has no prefetcher (<a href="#sec-ch3-l0-pf-path">Section 3.4.11.1</a>). The prefetcher and the cores work in parallel. The Minions do not stop during an operation: they continue to fetch, and their requests always have priority. The prefetcher uses only the cycles in which no core request enters the micro-cache, and it holds back while a core waits for the miss handler (<a href="#sec-ch3-l0-pf-window">unattended-miss state machine</a>).</p>
 </div>
 <div class="sect4">
 <h5 id="sec-ch3-l0-pf-path"><a class="anchor" href="#sec-ch3-l0-pf-path"></a><a class="link" href="#sec-ch3-l0-pf-path">3.4.11.1. Prefetch Path</a></h5>
 <div class="paragraph">
-<p>The target of the service is the L1 instruction cache, but the L1 instruction cache takes physical addresses, and a prefetch operation gives a virtual address. Only the L0 micro-cache translates an instruction address, with its instruction TLB in F1 and its PMA check in F2. The prefetcher is therefore built into the north micro-cache, and its requests pass through the micro-cache pipeline as core requests do. Each prefetch request carries Minion identifier 0 and the privilege of the operation, and its other virtual-memory status fields are clear. The RTL comment gives the reason: the virtual-memory configuration is the same for all Minions.</p>
+<p>To load a line into the L1 instruction cache, a request for that line is enough. The L1 instruction cache answers every request with the line: on a hit it reads the line from its data RAM, and on a miss it fetches the line from the Shire Cache, stores it and returns it. Whether the request hits or misses, the line is in the L1 instruction cache when the response returns, which is all that a prefetch needs. A prefetch operation is therefore a sequence of line requests, one for each consecutive line.</p>
+</div>
+<div class="paragraph">
+<p>Two facts decide where these requests come from. The L1 instruction cache has one request port, shared by the two micro-caches through a round-robin arbiter (<a href="#sec-ch3-l1-arb">Section 3.5.5</a>), and a prefetcher with a physical address could simply be a third input of that arbiter. But the operation gives a virtual address. For its translation, the prefetcher can use the instruction TLB of the micro-cache, as a bypassed request does (<a href="#sec-ch3-l0-bypass-why">Section 3.4.10.1</a>). The prefetcher is therefore built into a micro-cache, and sends its requests through the micro-cache pipeline beside the core requests. One requester is enough, so only the north micro-cache has it.</p>
+</div>
+<div class="paragraph">
+<p><a href="#fig-ch3-l0-pf-f0">Figure 53</a> shows the prefetcher in F0. The prefetch address and line-count registers load the operation from <code>esr_prefetch_conf</code> on <code>esr_prefetch_start</code>. For each new line, the address moves to the next line, 64 bytes higher, and the line count decreases by one. The prefetch state machine presents its request with <code>f0_prefetch_req_valid</code> only when the request is qualified (<a href="#sec-ch3-l0-pf-window">unattended-miss state machine</a>). The 2:1 arbiter always selects the core request, so the prefetch request passes only in a cycle with no core request, with Minion identifier 0. <code>f1_is_prefetch</code> marks the prefetch request for the later stages.</p>
+</div>
+<div id="fig-ch3-l0-pf-f0" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-prefetch-f0-stage.drawio.png" alt="Code prefetcher in the F0 stage" width="100%">
+</div>
+<div class="title">Figure 53. Code prefetcher in the F0 stage</div>
 </div>
 <div class="paragraph">
 <p>A prefetch request passes the pipeline as follows:</p>
@@ -6240,13 +6255,13 @@ log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(51
 <div class="ulist">
 <ul>
 <li>
-<p><strong>F0.</strong> The core request always has priority. A prefetch request enters the pipeline only in a cycle with no core request, so it never delays a fetch.</p>
+<p><strong>F0.</strong> The pipeline arbitrates between the core request and the prefetch request, and always gives priority to the core request (<a href="#fig-ch3-l0-pf-f0">Figure 53</a>). A prefetch request enters only in a cycle with no core request, so it never delays a fetch.</p>
 </li>
 <li>
-<p><strong>F1.</strong> The instruction TLB translates the address. On a TLB miss a page-table walk starts as for a core request, and the prefetcher requests the same line again after the translation fill.</p>
+<p><strong>F1.</strong> The instruction TLB translates the address. A prefetch request carries Minion identifier 0, so its translation uses the translation configuration of Minion 0, with the privilege of the operation. On a TLB miss a page-table walk starts as for a core request.</p>
 </li>
 <li>
-<p><strong>F2.</strong> The PMA unit checks the physical address. The request is forced to miss, whatever the micro-tag array holds, so that a line request goes to the L1 instruction cache. The miss handler takes the request if it is in Ready.</p>
+<p><strong>F2.</strong> The PMA unit checks the physical address. The request is forced to miss, and the result of the micro-tag array is not used, because the purpose of the request is a line request to the L1 instruction cache. If the miss handler is in Ready, it takes the request and records that it is a prefetch.</p>
 </li>
 <li>
 <p><strong>F3.</strong> The miss handler sends the line request to the L1 instruction cache.</p>
@@ -6257,151 +6272,103 @@ log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(51
 </ul>
 </div>
 <div class="paragraph">
-<p>The L1 instruction cache handles the line request as any other request: on a miss it fetches the line from the Shire Cache and keeps it. When the line returns to the micro-cache, the micro-cache discards it. It writes neither the micro-tag array nor the micro-data array, and the LRU selector does not change. The line is kept only in the L1 instruction cache, where both micro-caches can use it. The fill still produces fill done, as every line fill does.</p>
+<p>The L1 instruction cache handles the line request with its normal behavior, and returns the line. The miss handler sees that the request was a prefetch and discards the line: the micro-tag array, the micro-data array and the LRU selector are not updated. The line stays only in the L1 instruction cache, where both micro-caches can use it. The fill still generates fill done to the Minions, as every line fill does.</p>
 </div>
 </div>
 <div class="sect4">
 <h5 id="sec-ch3-l0-pf-start"><a class="anchor" href="#sec-ch3-l0-pf-start"></a><a class="link" href="#sec-ch3-l0-pf-start">3.4.11.2. Starting an Operation</a></h5>
 <div class="paragraph">
-<p>Software starts an operation by writing the start line address (42 bits, VA[47:6]) and the line count to one of three Shire ESRs: <code>icache_uprefetch</code>, <code>icache_sprefetch</code> or <code>icache_mprefetch</code>. The ESR written sets the privilege of the operation. A write is accepted only in cooperative mode. Pending requests are served in privilege order: an M-mode request at once, and an S-mode or U-mode request only when no operation is in progress or the current operation has the same or lower privilege. The served request reaches the north micro-cache as <code>esr_prefetch_conf</code> and a pulse on <code>esr_prefetch_start</code>.</p>
+<p>Software starts an operation by writing the start virtual address and the number of lines minus one to one of three Shire ESRs: <code>icache_uprefetch</code>, <code>icache_sprefetch</code> or <code>icache_mprefetch</code>. The ESR written sets the privilege of the operation. A write is accepted only in cooperative mode. Pending requests are served in privilege order: an M-mode request at once, and an S-mode or U-mode request only when no operation is in progress or the current operation has the same or lower privilege. The served request reaches the north micro-cache as <code>esr_prefetch_conf</code> (<a href="#tab-ch3-l0-prefetch-conf">Table 34</a>), with a pulse on <code>esr_prefetch_start</code> that starts the operation.</p>
 </div>
 <div class="paragraph">
-<p>The prefetcher loads one line at a time. It requests the line, waits for the line to return, and then moves to the next line address, until the line count is used up. If the request for a line takes a page fault or an access fault, that line is not loaded, and the operation continues with the next line. A new start pulse cancels an operation in progress, and the prefetcher starts the new operation at once.</p>
+<p><a href="#fig-ch3-l0-pf-conf">Figure 54</a> shows the format of the prefetch ESR that software writes, and of the configuration that the north micro-cache receives.</p>
+</div>
+<div id="fig-ch3-l0-pf-conf" class="imageblock text-center">
+<div class="content">
+<img src="images/ch03/fig-l0-prefetch-conf.drawio.png" alt="Prefetch configuration" width="100%">
+</div>
+<div class="title">Figure 54. Prefetch configuration</div>
 </div>
 </div>
 <div class="sect4">
-<h5 id="sec-ch3-l0-pf-window"><a class="anchor" href="#sec-ch3-l0-pf-window"></a><a class="link" href="#sec-ch3-l0-pf-window">3.4.11.3. Sharing the Miss Handler</a></h5>
+<h5 id="sec-ch3-l0-pf-fsm"><a class="anchor" href="#sec-ch3-l0-pf-fsm"></a><a class="link" href="#sec-ch3-l0-pf-fsm">3.4.11.3. Prefetch State Machines</a></h5>
 <div class="paragraph">
-<p>The prefetcher has no miss handler of its own. It shares the miss handler of the north micro-cache with the four cores, and the miss handler holds one line request at a time. While it waits for a prefetched line, a core miss finds it busy: the thread receives a miss response, nothing is recorded, and the thread sleeps until the next fill done. If the prefetcher takes the miss handler again before that thread retries, the thread misses again, and a long operation can keep the cores from their own lines. Two waits prevent this:</p>
+<p>The prefetcher uses two state machines, shown in <a href="#fig-ch3-l0-prefetch-fsm">Figure 55</a>:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Pause after fill done.</strong> After each fill done, the prefetcher waits eight cycles before its next request. The RTL comment gives the reason: the pause leaves the Minions time to retry before a new prefetch request.</p>
+<p><strong>Prefetch state machine.</strong> Requests the lines of the operation one by one, and waits for each line before it requests the next.</p>
 </li>
 <li>
-<p><strong>Unattended-miss window.</strong> When a core miss is not taken by the miss handler, the prefetcher is held back. The hold lasts until the next fill done, and after it until a core request enters F0, or for 16 cycles if no core request comes. The woken threads therefore have the first chance at the miss handler.</p>
+<p><strong>Unattended-miss state machine.</strong> Keeps the prefetcher from reducing the performance of the Minions. The miss handler holds one line request at a time, and a core miss that finds it busy is not recorded: the thread sleeps and retries after the next fill done. This state machine notes that such a thread waits for the miss handler, and holds the prefetcher back until the thread retries.</p>
 </li>
 </ul>
-</div>
-</div>
-<div class="sect4">
-<h5 id="sec-ch3-l0-pf-fsm"><a class="anchor" href="#sec-ch3-l0-pf-fsm"></a><a class="link" href="#sec-ch3-l0-pf-fsm">3.4.11.4. Prefetch State Machine</a></h5>
-<div class="paragraph">
-<p><a href="#fig-ch3-l0-prefetch-fsm">Figure 53</a> shows the prefetch state machine and the unattended-miss state machine, which holds it back (<a href="#sec-ch3-l0-pf-window">Section 3.4.11.3</a>). <a href="#tab-ch3-l0-pf-fsm">Table 55</a> lists the transitions of the prefetch state machine.</p>
 </div>
 <div id="fig-ch3-l0-prefetch-fsm" class="imageblock text-center">
 <div class="content">
 <img src="images/ch03/fig-l0-prefetch-fsm.drawio.png" alt="Code prefetcher state machines" width="100%">
 </div>
-<div class="title">Figure 53. Code prefetcher state machines</div>
-</div>
-<table id="tab-ch3-l0-pf-fsm" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 55. Prefetch state machine transitions</caption>
-<colgroup>
-<col style="width: 16.6666%;">
-<col style="width: 33.3333%;">
-<col style="width: 16.6666%;">
-<col style="width: 33.3335%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">From</th>
-<th class="tableblock halign-left valign-top">Condition</th>
-<th class="tableblock halign-left valign-top">To</th>
-<th class="tableblock halign-left valign-top">Action</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Any</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>esr_prefetch_start</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Request</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Load the start address and line count; set <code>esr_prefetch_done</code>.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Request</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The prefetch request is qualified and enters F0, in a cycle with no core request</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Check_Hit</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Clear <code>esr_prefetch_done</code>.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Check_Hit</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Prefetch request in F2, miss accepted</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Fill_Wait</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Check_Hit</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Prefetch request in F2, page or access fault</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">FillDone_Wait</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Advance to the next line.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Check_Hit</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Prefetch request in F2, no miss accepted and no fault: the miss handler is busy, or the TLB missed</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">FillDone_Wait</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Retry the same line.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Fill_Wait</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_resp_valid</code>, no lines left</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Idle</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Set <code>esr_prefetch_done</code>.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Fill_Wait</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f0_l1_miss_resp_valid</code>, lines left</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">FillDone_Wait</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Advance to the next line.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">FillDone_Wait</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>f5_resp_fill_done</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">PreReq_Pause</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Clear the pause counter.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">PreReq_Pause</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">8 cycles</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Request</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-<div class="paragraph">
-<p>Advancing adds one to the line address and subtracts one from the line count. An address that overflows bit 47 changes bit 48, which the TLB reports as a non-canonical address when translation is in Sv39 or Sv48 mode.</p>
+<div class="title">Figure 55. Code prefetcher state machines</div>
 </div>
 <div class="paragraph">
-<p>A prefetch request is qualified only while the unattended-miss state machine is in NotPending. Its three states are:</p>
+<p>The prefetch state machine has six states:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>NotPending.</strong> Prefetch requests are qualified. A core request in F2 that neither hits nor takes the miss handler, and has no fault, moves the state machine to FillDone_Wait.</p>
+<p><strong>Idle.</strong> No operation is in progress, and <code>esr_prefetch_done</code> is 1. A pulse on <code>esr_prefetch_start</code> loads the start address and the line count, and moves the state machine to Request. The pulse has this effect in every state, so a new operation cancels the current one and starts at once.</p>
 </li>
 <li>
-<p><strong>FillDone_Wait.</strong> Prefetch requests are held. The state machine waits for <code>f5_resp_fill_done</code> and then moves to Req_Wait.</p>
+<p><strong>Request.</strong> Clears <code>esr_prefetch_done</code> and presents the prefetch request to F0 when it is qualified. The state machine moves to Check_Hit when the request enters F0, in a cycle with no core request.</p>
 </li>
 <li>
-<p><strong>Req_Wait.</strong> Prefetch requests are held. The state machine moves back to NotPending when a core request enters F0, or after 16 cycles.</p>
+<p><strong>Check_Hit.</strong> Waits for the request to reach F2. If the miss handler takes it, the state machine moves to Fill_Wait. If the request takes a page fault or an access fault, the line is skipped, and the state machine moves to the next line and to FillDone_Wait. If neither, because the miss handler is busy or the TLB missed, it moves to FillDone_Wait and requests the same line again later.</p>
+</li>
+<li>
+<p><strong>Fill_Wait.</strong> Waits for the line from the L1 instruction cache. After the last line it moves to Idle and sets <code>esr_prefetch_done</code>; otherwise it moves to the next line and to FillDone_Wait.</p>
+</li>
+<li>
+<p><strong>FillDone_Wait.</strong> Waits for <code>f5_resp_fill_done</code>. Fill done wakes the threads that sleep on a miss, and it also marks the end of the fill for which a busy miss handler or a TLB walk was waiting.</p>
+</li>
+<li>
+<p><strong>PreReq_Pause.</strong> Waits eight cycles and then returns to Request. The north micro-cache serves eight threads, two in each of its four Minions, and the pause gives all eight threads the time to wake up and retry after fill done, before the next prefetch request.</p>
 </li>
 </ul>
 </div>
+<div id="sec-ch3-l0-pf-window" class="paragraph">
+<p>The unattended-miss state machine has three states:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>NotPending.</strong> No core miss waits for the miss handler. A core request that misses in F2 while the miss handler is busy is not recorded, and moves the state machine to FillDone_Wait.</p>
+</li>
+<li>
+<p><strong>FillDone_Wait.</strong> The thread of that core request sleeps. The state machine waits for <code>f5_resp_fill_done</code>, which wakes the thread, and then moves to Req_Wait.</p>
+</li>
+<li>
+<p><strong>Req_Wait.</strong> The thread is awake, and its retry is expected. The state machine returns to NotPending when a core request enters F0, so that a new unattended miss can be noted. If no core request comes, it returns to NotPending after 16 cycles, so that the prefetcher is not held back for good.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>A prefetch request is qualified when both state machines allow it. The prefetch state machine is in Request, so an operation is in progress and waits to request its next line, and the unattended-miss state machine is in NotPending, so no thread waits for the miss handler after a miss that was not recorded. In the first cycle in which no core request uses F0, the prefetcher then sends the request for its line into the pipeline.</p>
+</div>
 </div>
 <div class="sect4">
-<h5 id="sec-ch3-l0-pf-tx"><a class="anchor" href="#sec-ch3-l0-pf-tx"></a><a class="link" href="#sec-ch3-l0-pf-tx">3.4.11.5. Prefetch Transactions</a></h5>
+<h5 id="sec-ch3-l0-pf-tx"><a class="anchor" href="#sec-ch3-l0-pf-tx"></a><a class="link" href="#sec-ch3-l0-pf-tx">3.4.11.4. Prefetch Transactions</a></h5>
 <div class="paragraph">
-<p><a href="#fig-ch3-l0-tx-pf">Figure 54</a> shows one prefetch request, and <a href="#tab-ch3-l0-tx-pf">Table 56</a> lists its steps. The request is forced to miss, so it always takes the miss handler if the handler is in Ready, and it produces no response. <a href="#fig-ch3-l0-tx-pffill">Figure 55</a> shows its fill.</p>
+<p><a href="#fig-ch3-l0-tx-pf">Figure 56</a> shows one prefetch request, and <a href="#tab-ch3-l0-tx-pf">Table 55</a> lists its steps. The request is forced to miss, so it always takes the miss handler if the handler is in Ready, and it produces no response. <a href="#fig-ch3-l0-tx-pffill">Figure 57</a> shows its fill.</p>
 </div>
 <div id="fig-ch3-l0-tx-pf" class="imageblock text-center">
 <div class="content">
 <img src="images/ch03/l0-transactions/fig-l0-Prefetch-Request.drawio.png" alt="Prefetch request" width="85%">
 </div>
-<div class="title">Figure 54. Prefetch request</div>
+<div class="title">Figure 56. Prefetch request</div>
 </div>
 <table id="tab-ch3-l0-tx-pf" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 56. Prefetch request, steps by cycle</caption>
+<caption class="title">Table 55. Prefetch request, steps by cycle</caption>
 <colgroup>
 <col style="width: 13.7931%;">
 <col style="width: 10.3448%;">
@@ -6462,16 +6429,16 @@ log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(51
 </tbody>
 </table>
 <div class="paragraph">
-<p><a href="#fig-ch3-l0-tx-pffill">Figure 55</a> shows the fill of a prefetch miss, and <a href="#tab-ch3-l0-tx-pffill">Table 57</a> lists its steps. The miss handler recorded the prefetch with L0 writes disabled, so nothing is written in the micro-cache and only the L1 instruction cache keeps the line. The fill still produces fill done, and fill done starts the pause of the prefetcher.</p>
+<p><a href="#fig-ch3-l0-tx-pffill">Figure 57</a> shows the fill of a prefetch miss, and <a href="#tab-ch3-l0-tx-pffill">Table 56</a> lists its steps. The miss handler recorded the prefetch with L0 writes disabled, so nothing is written in the micro-cache and only the L1 instruction cache keeps the line. The fill still produces fill done, and fill done starts the pause of the prefetcher.</p>
 </div>
 <div id="fig-ch3-l0-tx-pffill" class="imageblock text-center">
 <div class="content">
 <img src="images/ch03/l0-transactions/fig-l0-Prefetch-Fill.drawio.png" alt="Prefetch line fill" width="85%">
 </div>
-<div class="title">Figure 55. Prefetch line fill</div>
+<div class="title">Figure 57. Prefetch line fill</div>
 </div>
 <table id="tab-ch3-l0-tx-pffill" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 57. Prefetch line fill, steps by cycle</caption>
+<caption class="title">Table 56. Prefetch line fill, steps by cycle</caption>
 <colgroup>
 <col style="width: 13.7931%;">
 <col style="width: 10.3448%;">
@@ -6508,17 +6475,17 @@ log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(51
 </tbody>
 </table>
 <div class="paragraph">
-<p><a href="#fig-ch3-l0-prefetch">Figure 56</a> shows the first two lines of a two-line operation. The start pulse in cycle 0 moves the prefetcher to Request, and its request enters F0 in cycle 1, a cycle with no core request. The miss is accepted in F2 in cycle 3, and the L1 request is driven in cycle 4. The line returns in cycle 9 and the prefetcher advances to line A+1. Fill done in cycle 12 starts the eight-cycle pause, shown compressed by the second break. The request for line A+1 enters F0 in cycle 18.</p>
+<p><a href="#fig-ch3-l0-prefetch">Figure 58</a> shows the first two lines of a two-line operation. The start pulse in cycle 0 moves the prefetcher to Request, and its request enters F0 in cycle 1, a cycle with no core request. The miss is accepted in F2 in cycle 3, and the L1 request is driven in cycle 4. The line returns in cycle 9 and the prefetcher advances to line A+1. Fill done in cycle 12 starts the eight-cycle pause, shown compressed by the second break. The request for line A+1 enters F0 in cycle 18.</p>
 </div>
 <div id="fig-ch3-l0-prefetch" class="imageblock text-center">
 <div class="content">
 <img src="images/ch03/td-l0-prefetch.png" alt="Code prefetch sequence" width="100%">
 </div>
-<div class="title">Figure 56. Code prefetch sequence</div>
+<div class="title">Figure 58. Code prefetch sequence</div>
 </div>
 </div>
 <div class="sect4">
-<h5 id="sec-ch3-l0-pf-done"><a class="anchor" href="#sec-ch3-l0-pf-done"></a><a class="link" href="#sec-ch3-l0-pf-done">3.4.11.6. Completion</a></h5>
+<h5 id="sec-ch3-l0-pf-done"><a class="anchor" href="#sec-ch3-l0-pf-done"></a><a class="link" href="#sec-ch3-l0-pf-done">3.4.11.5. Completion</a></h5>
 <div class="paragraph">
 <p><code>esr_prefetch_done</code> resets high, is set by a start pulse, is cleared when the prefetcher enters Request, and is set again when the fill of the last line returns. It is returned to the Shire ESR block.</p>
 </div>
@@ -6527,10 +6494,10 @@ log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(51
 <div class="sect3">
 <h4 id="sec-ch3-l0-dbg"><a class="anchor" href="#sec-ch3-l0-dbg"></a><a class="link" href="#sec-ch3-l0-dbg">3.4.12. Debug Access</a></h4>
 <div class="paragraph">
-<p>The micro-tag and micro-data arrays of both instances can be read and written over APB. <code>icache_top</code> decodes the upper bits of its 10-bit APB address and passes the low eight bits to the selected instance (<a href="#tab-ch3-l0-dbg-map">Table 58</a>).</p>
+<p>The micro-tag and micro-data arrays of both instances can be read and written over APB. <code>icache_top</code> decodes the upper bits of its 10-bit APB address and passes the low eight bits to the selected instance (<a href="#tab-ch3-l0-dbg-map">Table 57</a>).</p>
 </div>
 <table id="tab-ch3-l0-dbg-map" class="tableblock frame-all grid-all stretch">
-<caption class="title">Table 58. Micro-cache debug address</caption>
+<caption class="title">Table 57. Micro-cache debug address</caption>
 <colgroup>
 <col style="width: 16.6666%;">
 <col style="width: 83.3334%;">
@@ -6696,7 +6663,7 @@ log2(<code>ICACHE_BLOCK_BITS</code> / <code>FE_FETCH_READ_SIZE</code>) = log2(51
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2026-10-28 14:50:30 +0500
+Last updated 2026-10-30 13:35:31 +0500
 </div>
 </div>
 </body>

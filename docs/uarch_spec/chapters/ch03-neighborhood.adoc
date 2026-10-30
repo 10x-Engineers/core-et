@@ -1239,71 +1239,73 @@ image::ch03/l0-transactions/fig-l0-Bypass-Fill.drawio.png["Bypassed line fill",w
 [[sec-ch3-l0-prefetch]]
 ==== Code Prefetcher
 
-The code prefetcher is a service that software uses to load critical code into the L1 instruction cache before the cores execute it. Without it, the first fetch of each new line misses in both cache levels, and the thread sleeps until the line comes from the Shire Cache. Software starts a prefetch operation through Shire ESRs. The operation gives a start address, a number of lines and a privilege level, and the prefetcher loads that many consecutive lines into the L1 instruction cache.
+The code prefetcher is a service that software uses to preload critical code into the L1 instruction cache before the cores execute it. Without it, the first fetch of each new line misses in both cache levels, and the thread sleeps until the line comes from the Shire Cache. A prefetch operation gives a start virtual address, a number of lines and a privilege level, and the prefetcher loads that many consecutive lines. A single operation prefetches at most 64 lines into the L1 instruction cache. Software writes the number of lines minus one, so the maximum is configured as 63 (<<tab-ch3-l0-prefetch-conf>>).
+
+The prefetcher is built into the north micro-cache, which serves Minions 0 to 3; the south micro-cache has no prefetcher (<<sec-ch3-l0-pf-path>>). The prefetcher and the cores work in parallel. The Minions do not stop during an operation: they continue to fetch, and their requests always have priority. The prefetcher uses only the cycles in which no core request enters the micro-cache, and it holds back while a core waits for the miss handler (<<sec-ch3-l0-pf-window>>).
 
 [[sec-ch3-l0-pf-path]]
 ===== Prefetch Path
 
-The target of the service is the L1 instruction cache, but the L1 instruction cache takes physical addresses, and a prefetch operation gives a virtual address. Only the L0 micro-cache translates an instruction address, with its instruction TLB in F1 and its PMA check in F2. The prefetcher is therefore built into the north micro-cache, and its requests pass through the micro-cache pipeline as core requests do. Each prefetch request carries Minion identifier 0 and the privilege of the operation, and its other virtual-memory status fields are clear. The RTL comment gives the reason: the virtual-memory configuration is the same for all Minions.
+To load a line into the L1 instruction cache, a request for that line is enough. The L1 instruction cache answers every request with the line: on a hit it reads the line from its data RAM, and on a miss it fetches the line from the Shire Cache, stores it and returns it. Whether the request hits or misses, the line is in the L1 instruction cache when the response returns, which is all that a prefetch needs. A prefetch operation is therefore a sequence of line requests, one for each consecutive line.
+
+Two facts decide where these requests come from. The L1 instruction cache has one request port, shared by the two micro-caches through a round-robin arbiter (<<sec-ch3-l1-arb>>), and a prefetcher with a physical address could simply be a third input of that arbiter. But the operation gives a virtual address. For its translation, the prefetcher can use the instruction TLB of the micro-cache, as a bypassed request does (<<sec-ch3-l0-bypass-why>>). The prefetcher is therefore built into a micro-cache, and sends its requests through the micro-cache pipeline beside the core requests. One requester is enough, so only the north micro-cache has it.
+
+<<fig-ch3-l0-pf-f0>> shows the prefetcher in F0. The prefetch address and line-count registers load the operation from `esr_prefetch_conf` on `esr_prefetch_start`. For each new line, the address moves to the next line, 64 bytes higher, and the line count decreases by one. The prefetch state machine presents its request with `f0_prefetch_req_valid` only when the request is qualified (<<sec-ch3-l0-pf-window>>). The 2:1 arbiter always selects the core request, so the prefetch request passes only in a cycle with no core request, with Minion identifier 0. `f1_is_prefetch` marks the prefetch request for the later stages.
+
+[[fig-ch3-l0-pf-f0]]
+.Code prefetcher in the F0 stage
+image::ch03/fig-l0-prefetch-f0-stage.drawio.png["Code prefetcher in the F0 stage",width=100%,align=center]
 
 A prefetch request passes the pipeline as follows:
 
-* *F0.* The core request always has priority. A prefetch request enters the pipeline only in a cycle with no core request, so it never delays a fetch.
-* *F1.* The instruction TLB translates the address. On a TLB miss a page-table walk starts as for a core request, and the prefetcher requests the same line again after the translation fill.
-* *F2.* The PMA unit checks the physical address. The request is forced to miss, whatever the micro-tag array holds, so that a line request goes to the L1 instruction cache. The miss handler takes the request if it is in Ready.
+* *F0.* The pipeline arbitrates between the core request and the prefetch request, and always gives priority to the core request (<<fig-ch3-l0-pf-f0>>). A prefetch request enters only in a cycle with no core request, so it never delays a fetch.
+* *F1.* The instruction TLB translates the address. A prefetch request carries Minion identifier 0, so its translation uses the translation configuration of Minion 0, with the privilege of the operation. On a TLB miss a page-table walk starts as for a core request.
+* *F2.* The PMA unit checks the physical address. The request is forced to miss, and the result of the micro-tag array is not used, because the purpose of the request is a line request to the L1 instruction cache. If the miss handler is in Ready, it takes the request and records that it is a prefetch.
 * *F3.* The miss handler sends the line request to the L1 instruction cache.
 * *F4.* No response is sent, because no thread waits for the line.
 
-The L1 instruction cache handles the line request as any other request: on a miss it fetches the line from the Shire Cache and keeps it. When the line returns to the micro-cache, the micro-cache discards it. It writes neither the micro-tag array nor the micro-data array, and the LRU selector does not change. The line is kept only in the L1 instruction cache, where both micro-caches can use it. The fill still produces fill done, as every line fill does.
+The L1 instruction cache handles the line request with its normal behavior, and returns the line. The miss handler sees that the request was a prefetch and discards the line: the micro-tag array, the micro-data array and the LRU selector are not updated. The line stays only in the L1 instruction cache, where both micro-caches can use it. The fill still generates fill done to the Minions, as every line fill does.
 
 [[sec-ch3-l0-pf-start]]
 ===== Starting an Operation
 
-Software starts an operation by writing the start line address (42 bits, VA[47:6]) and the line count to one of three Shire ESRs: `icache_uprefetch`, `icache_sprefetch` or `icache_mprefetch`. The ESR written sets the privilege of the operation. A write is accepted only in cooperative mode. Pending requests are served in privilege order: an M-mode request at once, and an S-mode or U-mode request only when no operation is in progress or the current operation has the same or lower privilege. The served request reaches the north micro-cache as `esr_prefetch_conf` and a pulse on `esr_prefetch_start`.
+Software starts an operation by writing the start virtual address and the number of lines minus one to one of three Shire ESRs: `icache_uprefetch`, `icache_sprefetch` or `icache_mprefetch`. The ESR written sets the privilege of the operation. A write is accepted only in cooperative mode. Pending requests are served in privilege order: an M-mode request at once, and an S-mode or U-mode request only when no operation is in progress or the current operation has the same or lower privilege. The served request reaches the north micro-cache as `esr_prefetch_conf` (<<tab-ch3-l0-prefetch-conf>>), with a pulse on `esr_prefetch_start` that starts the operation.
 
-The prefetcher loads one line at a time. It requests the line, waits for the line to return, and then moves to the next line address, until the line count is used up. If the request for a line takes a page fault or an access fault, that line is not loaded, and the operation continues with the next line. A new start pulse cancels an operation in progress, and the prefetcher starts the new operation at once.
+<<fig-ch3-l0-pf-conf>> shows the format of the prefetch ESR that software writes, and of the configuration that the north micro-cache receives.
 
-[[sec-ch3-l0-pf-window]]
-===== Sharing the Miss Handler
-
-The prefetcher has no miss handler of its own. It shares the miss handler of the north micro-cache with the four cores, and the miss handler holds one line request at a time. While it waits for a prefetched line, a core miss finds it busy: the thread receives a miss response, nothing is recorded, and the thread sleeps until the next fill done. If the prefetcher takes the miss handler again before that thread retries, the thread misses again, and a long operation can keep the cores from their own lines. Two waits prevent this:
-
-* *Pause after fill done.* After each fill done, the prefetcher waits eight cycles before its next request. The RTL comment gives the reason: the pause leaves the Minions time to retry before a new prefetch request.
-* *Unattended-miss window.* When a core miss is not taken by the miss handler, the prefetcher is held back. The hold lasts until the next fill done, and after it until a core request enters F0, or for 16 cycles if no core request comes. The woken threads therefore have the first chance at the miss handler.
+[[fig-ch3-l0-pf-conf]]
+.Prefetch configuration
+image::ch03/fig-l0-prefetch-conf.drawio.png["Prefetch configuration",width=100%,align=center]
 
 [[sec-ch3-l0-pf-fsm]]
-===== Prefetch State Machine
+===== Prefetch State Machines
 
-<<fig-ch3-l0-prefetch-fsm>> shows the prefetch state machine and the unattended-miss state machine, which holds it back (<<sec-ch3-l0-pf-window>>). <<tab-ch3-l0-pf-fsm>> lists the transitions of the prefetch state machine.
+The prefetcher uses two state machines, shown in <<fig-ch3-l0-prefetch-fsm>>:
+
+* *Prefetch state machine.* Requests the lines of the operation one by one, and waits for each line before it requests the next.
+* *Unattended-miss state machine.* Keeps the prefetcher from reducing the performance of the Minions. The miss handler holds one line request at a time, and a core miss that finds it busy is not recorded: the thread sleeps and retries after the next fill done. This state machine notes that such a thread waits for the miss handler, and holds the prefetcher back until the thread retries.
 
 [[fig-ch3-l0-prefetch-fsm]]
 .Code prefetcher state machines
 image::ch03/fig-l0-prefetch-fsm.drawio.png["Code prefetcher state machines",width=100%,align=center]
 
-[[tab-ch3-l0-pf-fsm]]
-.Prefetch state machine transitions
-[cols="2,4,2,4",options="header"]
-|===
-| From | Condition | To | Action
+The prefetch state machine has six states:
 
-| Any | `esr_prefetch_start` | Request | Load the start address and line count; set `esr_prefetch_done`.
-| Request | The prefetch request is qualified and enters F0, in a cycle with no core request | Check_Hit | Clear `esr_prefetch_done`.
-| Check_Hit | Prefetch request in F2, miss accepted | Fill_Wait |
-| Check_Hit | Prefetch request in F2, page or access fault | FillDone_Wait | Advance to the next line.
-| Check_Hit | Prefetch request in F2, no miss accepted and no fault: the miss handler is busy, or the TLB missed | FillDone_Wait | Retry the same line.
-| Fill_Wait | `f0_l1_miss_resp_valid`, no lines left | Idle | Set `esr_prefetch_done`.
-| Fill_Wait | `f0_l1_miss_resp_valid`, lines left | FillDone_Wait | Advance to the next line.
-| FillDone_Wait | `f5_resp_fill_done` | PreReq_Pause | Clear the pause counter.
-| PreReq_Pause | 8 cycles | Request |
-|===
+* *Idle.* No operation is in progress, and `esr_prefetch_done` is 1. A pulse on `esr_prefetch_start` loads the start address and the line count, and moves the state machine to Request. The pulse has this effect in every state, so a new operation cancels the current one and starts at once.
+* *Request.* Clears `esr_prefetch_done` and presents the prefetch request to F0 when it is qualified. The state machine moves to Check_Hit when the request enters F0, in a cycle with no core request.
+* *Check_Hit.* Waits for the request to reach F2. If the miss handler takes it, the state machine moves to Fill_Wait. If the request takes a page fault or an access fault, the line is skipped, and the state machine moves to the next line and to FillDone_Wait. If neither, because the miss handler is busy or the TLB missed, it moves to FillDone_Wait and requests the same line again later.
+* *Fill_Wait.* Waits for the line from the L1 instruction cache. After the last line it moves to Idle and sets `esr_prefetch_done`; otherwise it moves to the next line and to FillDone_Wait.
+* *FillDone_Wait.* Waits for `f5_resp_fill_done`. Fill done wakes the threads that sleep on a miss, and it also marks the end of the fill for which a busy miss handler or a TLB walk was waiting.
+* *PreReq_Pause.* Waits eight cycles and then returns to Request. The north micro-cache serves eight threads, two in each of its four Minions, and the pause gives all eight threads the time to wake up and retry after fill done, before the next prefetch request.
 
-Advancing adds one to the line address and subtracts one from the line count. An address that overflows bit 47 changes bit 48, which the TLB reports as a non-canonical address when translation is in Sv39 or Sv48 mode.
+[[sec-ch3-l0-pf-window,unattended-miss state machine]]
+The unattended-miss state machine has three states:
 
-A prefetch request is qualified only while the unattended-miss state machine is in NotPending. Its three states are:
+* *NotPending.* No core miss waits for the miss handler. A core request that misses in F2 while the miss handler is busy is not recorded, and moves the state machine to FillDone_Wait.
+* *FillDone_Wait.* The thread of that core request sleeps. The state machine waits for `f5_resp_fill_done`, which wakes the thread, and then moves to Req_Wait.
+* *Req_Wait.* The thread is awake, and its retry is expected. The state machine returns to NotPending when a core request enters F0, so that a new unattended miss can be noted. If no core request comes, it returns to NotPending after 16 cycles, so that the prefetcher is not held back for good.
 
-* *NotPending.* Prefetch requests are qualified. A core request in F2 that neither hits nor takes the miss handler, and has no fault, moves the state machine to FillDone_Wait.
-* *FillDone_Wait.* Prefetch requests are held. The state machine waits for `f5_resp_fill_done` and then moves to Req_Wait.
-* *Req_Wait.* Prefetch requests are held. The state machine moves back to NotPending when a core request enters F0, or after 16 cycles.
+A prefetch request is qualified when both state machines allow it. The prefetch state machine is in Request, so an operation is in progress and waits to request its next line, and the unattended-miss state machine is in NotPending, so no thread waits for the miss handler after a miss that was not recorded. In the first cycle in which no core request uses F0, the prefetcher then sends the request for its line into the pipeline.
 
 [[sec-ch3-l0-pf-tx]]
 ===== Prefetch Transactions
