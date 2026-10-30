@@ -78,8 +78,10 @@ The cache is implemented in two modules:
 * `icache_top` contains both L0 micro-caches and the L1 instruction cache, everything except the L1 data RAM, that is the micro-cache arrays and pipelines, the instruction TLBs, the PMA checks, the L1 tag, LRU and data-array control, and the round-robin arbiter through which the two micro-caches reach the L1.
 * `neigh_shared_icache` wraps `icache_top` and adds the Neighborhood-side logic of the core interface, the logic that receives the fetch request of each of the eight cores, holds it per thread and presents one of them to a micro-cache: one request register per thread, the 8:1 LRU arbiter that selects among them, and the per-thread miss counters and bid mask that prevent livelock. These are described in <<sec-ch3-fe-ic>>.
 
-The top-level `neigh_shared_icache` block connects to five things outside itself:
+The top-level `neigh_shared_icache` block connects to five things outside itself (<<tab-ch3-ic-interfaces>>):
 
+[[tab-ch3-ic-interfaces]]
+.Shared instruction cache external interfaces
 [cols="2,5",options="header"]
 |===
 | Interface | Purpose
@@ -248,8 +250,10 @@ image::ch03/td-l0-miss.png["Miss, sleep, fill done and retry",width=100%,align=c
 [[sec-ch3-fe-ic-errors]]
 ==== Fault and Error Reporting
 
-The response carries the fault and error status of the fetch together with the data:
+The response carries the fault and error status of the fetch together with the data (<<tab-ch3-fe-ic-resp-status>>):
 
+[[tab-ch3-fe-ic-resp-status]]
+.Fetch response fault and error fields
 [cols="2,5",options="header"]
 |===
 | Field | Meaning
@@ -324,7 +328,7 @@ A miss is accepted only in the Ready state. The handler then sends the request t
 
 Behind it, the L1 instruction cache is also single-transaction. It accepts one request, closes its request port until that request's response, and always answers with the block: on an L1 hit from its data RAM, on an L1 miss once the line has come back from the Shire Cache. A micro-cache miss that reaches the L1 therefore occupies the L1 for its whole duration, which on an L1 miss is a full round trip out of the Neighborhood.
 
-The code prefetcher shares this same handler. It never delays a fetch in the same cycle, because a prefetch request enters the L0 pipeline only in cycles with no core request, but after a prefetch takes the handler, the prefetcher holds the handler exactly as a demand miss does (<<sec-ch3-l0-prefetch>>).
+The code prefetcher shares this same handler. It never delays a fetch in the same cycle, because a prefetch request enters the L0 pipeline only in cycles with no core request, but after a prefetch takes the handler, the prefetcher holds the handler exactly as a core miss does (<<sec-ch3-l0-prefetch>>).
 
 A lookup that does not hit returns a miss response to the thread in one of the following three cases:
 
@@ -521,7 +525,7 @@ This section defines the boundary of `icache_micro_cache`. <<sec-ch3-l0-ports>> 
 4+h| Line response from the L1 instruction cache
 | `f0_l1_miss_resp_early_valid` | in | 1 | Asserted one cycle before `f0_l1_miss_resp_valid`. Early write enable of the latch-based tag and data arrays.
 | `f0_l1_miss_resp_valid` | in | 1 | The line is returned and written into the victim entry in this cycle. Steered to the instance that made the request.
-| `f0_l1_miss_resp_data` | in | 512 | Line data. Driven to both instances.
+| `f0_l1_miss_resp_data` | in | 512 | Line data. Driven to both micro-cache instances.
 | `f0_l1_miss_resp_ecc_err` | in | 1 | ECC error in the L1 data RAM, of a class enabled in the error-log control ESR. Stored with the line.
 | `f0_l1_miss_resp_l2_err` | in | 1 | Error response from the Shire Cache for this line. Stored with the line.
 4+h| Address-translation control
@@ -592,7 +596,7 @@ The fetch request and response, `frontend_icache_req` and `icache_frontend_resp`
 
 | `canceled_req` | 1 | The walk was cancelled. The TLB is not written.
 | `access_fault` | 1 | The walk ended in an access fault. Recorded in the TLB entry and reported as an access fault when the entry hits.
-| `rsvd_for_hw` | 8 | Bit 0 is the execution mode the translation was walked for, 1 for M-mode. A TLB entry hits only for a fetch in the same mode.
+| `rsvd_for_hw` | 8 | Reserved for hardware. Bit 0 returns the execution mode of the walk, 1 for M-mode (`matp_info`) and 0 for S-mode or U-mode (`satp_info`); the TLB stores it, and an entry hits only for a fetch in the same mode. Bits 7:1 are not used by the TLB.
 | `ppn` | 44 | Physical page number. The TLB keeps the low 28 bits.
 | `rsvd_for_sw` | 2 | Not used by the TLB.
 | `d`, `a`, `g`, `u`, `x`, `w`, `r`, `v` | 1 each | Page-table entry flags. The TLB keeps `d`, `a`, `u` and the `r`, `w`, `x` permissions; a fetch needs `x` and `a`.
@@ -658,7 +662,7 @@ log2(`ICACHE_BLOCK_BITS` / `FE_FETCH_READ_SIZE`) = log2(512 / 256) = 1
 | `ICACHE_MICRO_TAG_SIZE` | 34 | Tag bits. +
 `PA_SIZE` - `ICACHE_BLOCK_ADDR_SIZE` = 40 - 6 = 34
 | `ICACHE_TLB_ENTRIES` | 16 | Instruction TLB entries.
-| `ICACHE_PREFETCH_MAX_LINES` | 64 | Lines in one prefetch operation.
+| `ICACHE_PREFETCH_MAX_LINES` | 64 | Maximum lines in one prefetch operation.
 | `VA_SIZE` | 48 | Virtual-address bits.
 | `VA_SIZE_EXT` | 49 | Fetch-address bits: the 48-bit virtual address and the extension bit, bit 48. +
 `VA_SIZE` + 1 = 49. The TLB detects a non-canonical address from VA[48] XOR VA[47].
@@ -680,7 +684,7 @@ log2(`ICACHE_BLOCK_BITS` / `FE_FETCH_READ_SIZE`) = log2(512 / 256) = 1
 
 | Micro-tag array | 16 entries of a 34-bit tag, and 16 valid bits | 560
 | Micro-data array | 16 entries of 512 data bits, an ECC-error flag and a bus-error flag | 8,224
-| Instruction TLB | 16 entries of a 34-bit tag (per-Minion mode, not cooperative mode, <<sec-ch3-l0-tlb-org>>) and 36 bits of entry data, and 16 valid bits | 1,136
+| Instruction TLB | 16 entries of 70 bits: a 34-bit tag and 36 bits of entry data, which are the 28-bit physical page number, the `x`, `w`, `r`, `u`, `a` and `d` bits, the access-fault flag and the execution mode (<<sec-ch3-l0-tlb-org>>); and 16 valid bits | 1,136
 | Bypass register | 34-bit tag, 512 data bits, two error flags and a valid bit | 549
 |===
 
@@ -705,9 +709,9 @@ This section describes the five L0 micro-cache stages, F0 to F4, and the fill-do
 .L0 micro-cache detailed pipeline diagram
 image::ch03/fig-l0-detailed-pipeline.drawio.png["L0 micro-cache detailed pipeline diagram",width=80%,align=center]
 
-F0 Stage:: The F0 stage arbitrates between the core request granted by the 8:1 LRU arbiter and a request from the code prefetcher, and always gives priority to the core request. In a cycle with no core request, the code prefetcher can enter its request, if it is in its Request state and no miss unattended by the miss handler is pending (<<sec-ch3-l0-pf-window>>). A prefetch request uses the same path through the pipeline as a core request, so a prefetch flag goes with each request to the next stages to tell the two apart. The request, the identifier of its Minion, the bypass bit and the prefetch flag are registered into F1.
-F1 Stage:: The F1 stage translates the virtual address of the request to a physical address in the instruction TLB. The translation uses the supervisor and machine address-translation registers that each Minion sends to the micro-cache (`satp_info` and `matp_info`), and the privilege level of the fetch selects one of the two (<<sec-ch3-l0-tlb-lookup>>). The TLB returns the physical page number, a miss indication, and page and access faults. A TLB miss starts a page-table walk if no walk is in progress and the address is valid, and the walk request goes to the page-table walker one cycle later (<<sec-ch3-l0-tlb-walk>>). The request continues to F4 and receives a miss response, and the thread retries after fill done.
-F2 Stage:: The F2 stage forms the physical address from the page number and the page offset. The tag is compared with all 16 lines of the micro-tag array, and with the line that a fill writes in the same cycle, while the PMA unit checks the address. The LRU state is updated on a hit, on an accepted miss, and when the L1 response writes the line into the victim entry. A line miss with no TLB miss and no fault is accepted if the miss handler is Ready: the handler records the physical address, the LRU victim and the bypass and prefetch flags, and the victim's valid bit is cleared. A miss that finds the handler busy is not recorded and receives only the miss response in F4. In bypass mode the tag is compared with the bypass register instead of the micro-tag array, and a prefetch request is forced to miss.
+F0 Stage:: The F0 stage arbitrates between the core request granted by the 8:1 LRU arbiter and a request from the code prefetcher, and always gives priority to the core request. In a cycle with no core request, the code prefetcher can enter its request when the request is qualified (<<sec-ch3-l0-pf-window>>). A prefetch request uses the same path through the pipeline as a core request, so a prefetch flag goes with each request to the next stages to tell the two apart. The request, the identifier of its Minion, the bypass bit and the prefetch flag are registered into F1.
+F1 Stage:: The F1 stage translates the virtual address of the request to a physical address in the instruction TLB. The translation uses the supervisor and machine address-translation registers that each Minion sends to the micro-cache (`satp_info` and `matp_info`), and the privilege level of the fetch selects one of the two (<<sec-ch3-l0-tlb-lookup>>). The TLB returns the physical page number, a miss indication, and page and access faults. A TLB miss starts a page-table walk if no walk is in progress and the address is valid (canonical), and the walk request goes to the page-table walker one cycle later (<<sec-ch3-l0-tlb-walk>>). The request continues to F4 and receives a miss response, and the thread retries after fill done.
+F2 Stage:: The F2 stage forms the physical address from the page number and the page offset. The tag is compared with all 16 lines of the micro-tag array, and with the line that a fill writes in the same cycle, while the PMA unit checks the address. For a core request outside bypass mode, the LRU state is updated on a hit, on an accepted miss, and when the L1 response writes the line into the victim entry. A line miss with no TLB miss and no fault is accepted if the miss handler is Ready: the handler records the physical address, the LRU victim and the bypass and prefetch flags. For a core miss outside bypass mode, the victim's valid bit is also cleared. A miss that finds the handler busy is not recorded and receives only the miss response in F4. In bypass mode the tag is compared with the bypass register instead of the micro-tag array, and a prefetch request is forced to miss.
 F3 Stage:: The F3 stage reads the micro-data array with the one-hot hit vector that the micro-tag array generates in F2, and selects the 32-byte half-line named by address bit 5; in bypass mode the half comes from the bypass register. The response is a miss when the tag misses or the TLB misses. The ECC and bus-error flags stored with the line are valid only on a hit. If F2 accepted a miss, the miss handler is in its Request state in this cycle and drives the line request to the L1 instruction cache.
 F4 Stage:: The F4 stage registers the response and drives it to the four Minions, four cycles after the grant, for a hit and for a miss alike. A prefetch request produces no response.
 F5 Stage:: The F5 stage drives fill done, which tells the sleeping threads that a line or translation fill is complete. Fill done is generated in F2 and passes through F3 and F4 to F5. F5 is not part of a lookup.
@@ -750,7 +754,7 @@ image::ch03/l0-transactions/fig-l0-uTag-Hit.drawio.png["Core request hit",width=
 [[sec-ch3-l0-tlb]]
 ==== Instruction TLB
 
-The instruction TLB translates the virtual address of a request, from a core or from the code prefetcher, to a physical address in F1. It is `icache_tlb_array`, a wrapper around `tlb_top`. The data cache of each Minion has its own instance of the same `tlb_top` (`dcache_tlb_array`), so the two caches share the design of the TLB but not its translations. Each wrapper only adapts `tlb_top` to its cache. The instruction wrapper sets 16 entries for four Minions, marks every request as an instruction fetch, and registers the address-translation registers of the four Minions (`satp_info` and `matp_info`) and `esr_vmspagesize`; `tlb_top` registers `esr_shire_coop_mode`. A change to any of these settings takes effect one cycle later.
+The tags of the micro-cache are physical, so every request, from a core or from the code prefetcher, is translated from its virtual address to a physical address in F1 by the instruction TLB. The TLB is `icache_tlb_array`, a wrapper around `tlb_top`, the TLB design that the data cache of each Minion also uses (`dcache_tlb_array`); the two caches share the design but not the translations. The instruction wrapper sets 16 entries for four Minions, marks every request as an instruction fetch, and registers `satp_info`, `matp_info` and `esr_vmspagesize`; `tlb_top` registers `esr_shire_coop_mode`. A change to any of these settings takes effect one cycle later.
 
 A TLB miss needs a page-table walk, and the TLB has at most one walk outstanding (<<sec-ch3-l0-tlb-walk>>). The TLB does not block during a walk: it continues to look up every request, and a request that hits receives its translation. A request that misses during a walk starts no walk and receives a miss response with no data, and its thread retries after fill done.
 
@@ -760,7 +764,7 @@ A TLB miss needs a page-table walk, and the TLB has at most one walk outstanding
 .Instruction TLB interface signals
 [cols="3,1,2,6",options="header"]
 |===
-| Signal | Dir | Width | Description
+| Signal | Dir | Width / type | Description
 
 4+| *Request from the pipeline, F1*
 | `req_valid` | in | 1 | A request is in F1, from a core or from the code prefetcher.
@@ -809,7 +813,7 @@ The TLB is direct-mapped in both of its modes: the index selects one entry, and 
 * *Per-Minion mode:* the micro-cache serves four Minions, so the 16 entries are divided into four groups of four, one group for each Minion. The upper two index bits are the Minion identifier, and the lower two come from the virtual page number. A Minion replaces only its own entries, so a Minion that touches many pages cannot evict the translations of the other three.
 * *Cooperative mode:* all 16 entries are shared, and all four index bits come from the virtual page number. An entry carries no Minion identifier, so an entry filled for one Minion hits for the other three. Cooperative mode therefore assumes that the four Minions use the same translation, and in return the group has 16 entries instead of four for each Minion.
 
-<<fig-ch3-l0-tlb-index>> shows how the index and the tag are taken from the virtual page number for 4 KB pages, and <<tab-ch3-l0-tlb-fields>> lists them for all page sizes. Each stored tag is written most-significant field first. Cooperative mode adds two zero bits at the top, because its index takes two more address bits; a 2 MB or 1 GB page adds 9 or 18 zero bits at the bottom, one page-table level of 9 bits for each step above 4 KB.
+<<fig-ch3-l0-tlb-index>> shows how the index and the tag are taken from the virtual page number for 4 KB pages, and <<tab-ch3-l0-tlb-fields>> lists them for all page sizes. Each stored tag is written most-significant field first. The tag field is always 34 bits wide, and a shorter tag fills the rest of the field with zero bits. Cooperative mode adds two zero bits at the top, because its index takes two more address bits; a 2 MB or 1 GB page adds 9 or 18 zero bits at the bottom, one page-table level of 9 bits for each step above 4 KB.
 
 [[fig-ch3-l0-tlb-index]]
 .Instruction TLB index and tag for 4 KB pages
@@ -844,7 +848,7 @@ An entry hits when it is valid, its tag matches, and its execution mode matches 
 
 The TLB reports two faults, listed in <<tab-ch3-l0-tlb-faults>>. The page fault comes from three checks:
 
-* *Privilege check:* in U-mode the entry must have `u` set; in S-mode and M-mode it must have `u` clear, unless `mstatus.SUM` is set.
+* *Privilege check:* in U-mode the entry must have `u` set; in S-mode and M-mode it must have `u` clear. `mstatus.SUM` does not apply to instruction fetches, so an S-mode fetch from a page with `u` set always fails the check.
 * *Accessed bit:* the TLB does not set `a`. It raises a page fault instead, and software updates the page-table entry.
 * *Canonical address:* in Sv48, VA[48] must equal VA[47]; in Sv39, VA[47:38] must also all be equal. A non-canonical address raises the page fault whether or not the entry hits, and starts no walk.
 
@@ -854,7 +858,7 @@ The TLB reports two faults, listed in <<tab-ch3-l0-tlb-faults>>. The page fault 
 |===
 | Signal | Condition
 
-| `xcpt_if`, instruction page fault | The entry hits and `x` is clear, the privilege check fails, or `a` is clear; or the address is not canonical. `x` is also clear when the walk finds no valid leaf entry (<<sec-ch3-l0-tlb-org>>).
+| `xcpt_if`, instruction page fault | The entry hits and `x` is clear, the privilege check fails, or `a` is clear; or the address is not canonical. The privilege check fails for an S-mode fetch from a page with `u` set, whatever the value of `mstatus.SUM`. `x` is also clear when the walk finds no valid leaf entry (<<sec-ch3-l0-tlb-org>>).
 | `access_fault`, instruction access fault | The entry hits and its walk ended in an access fault.
 |===
 
@@ -935,7 +939,7 @@ The entries carry no address-space identifier, and a change of `satp_info` or `m
 [[sec-ch3-l0-tlb-pages]]
 ===== Page Size
 
-`esr_vmspagesize` selects 4 KB, 2 MB or 1 GB for every entry, and moves the index and the tag accordingly (<<tab-ch3-l0-tlb-fields>>). A change of `esr_vmspagesize` does not invalidate the entries either. The walker ends the walk at the page-table level of that size. A leaf found at a higher level is split into pages of the configured size, with the walker supplying the lower page-number bits from the virtual address. For a configured size of 2 MB or 1 GB the walker returns the page-number bits below that size as zero, and the micro-cache forms the physical address from the returned page number and VA[11:0] only.
+`esr_vmspagesize` selects 4 KB, 2 MB or 1 GB for every entry, and moves the index and the tag accordingly (<<tab-ch3-l0-tlb-fields>>). A change of `esr_vmspagesize` does not invalidate the entries either. The walker ends the walk at the page-table level of that size. A leaf found at a higher level is split into pages of the configured size, with the walker supplying the lower page-number bits from the virtual address.
 
 // ---------------------------------------------------------------------------
 [[sec-ch3-l0-tags-data]]
@@ -1136,7 +1140,9 @@ image::ch03/l0-transactions/fig-l0-L1-Icache-Fill.drawio.png["Core line fill",wi
 [[sec-ch3-l0-flush]]
 ==== Flush
 
-`f0_flush_data` invalidates the micro-cache. `neigh_shared_icache` forms it as the OR of the flush requests of the eight Minions, registered once, and drives it to both micro-caches and to the L1 instruction cache. In the flush cycle the valid bits of all micro-tag entries are cleared, and no lookup hits. A fill outstanding at the flush is written when it arrives but left invalid, because the flush is remembered until the miss handler returns to Ready. The flush does not affect the TLB or the bypass register; TLB entries are invalidated through `tlb_invalidate` (<<sec-ch3-l0-tlb-inval>>).
+The micro-cache does not snoop memory, so a change to code in memory is not seen by the lines that it already holds (<<tab-ch3-l0-org>>). After software changes code, it flushes the instruction caches by writing 1 to bit 0 of the `cacheInvalidate` CSR (0x7D0). Each Minion sends this request to the Neighborhood, where `neigh_shared_icache` forms `f0_flush_data` as the OR of the requests of the eight Minions, registered once. It drives the flush to both micro-caches and to the L1 instruction cache.
+
+In the flush cycle the valid bits of all micro-tag entries are cleared, and no lookup hits. A line that is outstanding at the flush was requested before it, so it can hold the old code. Its fill is still written when it arrives, but the entry stays invalid: the flush is remembered until the miss handler returns to Ready. The flush does not affect the TLB or the bypass register; TLB entries are invalidated through bit 1 of the same CSR (<<sec-ch3-l0-tlb-inval>>).
 
 // ---------------------------------------------------------------------------
 [[sec-ch3-l0-bypass]]
@@ -1358,7 +1364,7 @@ image::ch03/td-l0-prefetch.png["Code prefetch sequence",width=100%,align=center]
 [[sec-ch3-l0-pf-done]]
 ===== Completion
 
-`esr_prefetch_done` resets high, is set by a start pulse, is cleared when the prefetcher enters Request, and is set again when the fill of the last line returns. It is returned to the Shire ESR block.
+`esr_prefetch_done` resets high. It falls when an operation starts, and rises again when the fill of the last line returns. It is returned to the Shire ESR block, where software reads it to know that the operation is complete.
 
 // ---------------------------------------------------------------------------
 [[sec-ch3-l0-dbg]]
