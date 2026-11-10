@@ -68,9 +68,9 @@ The engineers who worked on each module are listed below.
 | Xavier Revés | CORE-ET Neighborhood MAS; Minion Description; Minion DCache Description; CORE-ET Minion Shire Description; Minion Shire DLL Constraints; ET-Link Specification
 |===
 
-include::chapters/ch01-et-soc-1-overview.adoc[]
+// include::chapters/ch01-et-soc-1-overview.adoc[]
 
-include::chapters/ch02-et-minion-core.adoc[]
+// include::chapters/ch02-et-minion-core.adoc[]
 
 include::chapters/ch03-neighborhood.adoc[]
 

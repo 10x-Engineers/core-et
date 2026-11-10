@@ -1398,25 +1398,385 @@ The micro-tag and micro-data arrays of both instances can be read and written ov
 [[sec-ch3-l1-overview]]
 ==== Overview
 
+The L1 instruction cache is the second level of the Neighborhood's shared instruction cache. It holds 32 KB of code in 128 sets of four 64-byte lines, and both L0 micro-caches share it. A micro-cache sends it a line request only when a lookup misses (<<sec-ch3-l0-mh>>), and the code prefetcher of the north micro-cache uses the same request to load lines (<<sec-ch3-l0-prefetch>>). Every address that reaches the L1 instruction cache is physical, because the micro-cache translates it first, so the L1 instruction cache has no TLB.
+
+The L1 instruction cache is split across the two voltage regions, for the reasons given in <<sec-ch3-icache>>. Its tags, its LRU state and its control logic are in `icache_top`, inside the Neighborhood. Its data RAM is in the high-voltage region of the Shire Channel, and every access to the data RAM passes through the voltage-domain crossing (<<sec-ch3-voltage>>). A line that is not in the cache comes from the Shire Cache, over the memory request path of the Neighborhood (<<sec-ch3-mem>>).
+
+The design rests on three decisions:
+
+. *One request at a time:* the cache accepts a new line request only after it returns the response to the previous one. A hit returns its line 13 cycles after the line request, and a miss after the Shire Cache access.
+. *Write by address only:* the line from the Shire Cache does not pass through the L1 instruction cache on its way to the data RAM. The L1 instruction cache sends only the address of the victim entry, and the Shire Channel writes the line from the Shire Cache response.
+. *ECC on the data RAM:* each 64-bit block of a line carries its own 8-bit code. A single-bit error is corrected, and a double-bit error removes the line from the cache. Both are reported to the micro-cache and logged (<<sec-ch3-l1-errors>>).
+
+// FIGURE TO DRAW: images/ch03/fig-l1-block.drawio.png, "L1 instruction cache block diagram",
+// in the style of fig-l0-top-block.
+//  - Left: the north and south micro-caches, each with its line-request holding register,
+//    and the 2:1 round-robin arbiter between the two holding registers.
+//  - Centre (icache_top, low-voltage region): request register with the micro-cache index,
+//    tag array (4 ways x 128 sets) with valid bits, LRU array (128 entries), hit and miss logic,
+//    miss state machine (Ready, Request, Fill_Wait), data array control with ECC check and correction.
+//  - Right, beyond a dashed voltage-crossing line: the data RAM in the Shire Channel
+//    (four SRAM macros of 512 x 144 bits).
+//  - Bottom: the Neighborhood memory request arbiter to the Shire Cache, and the fill FIFO that
+//    returns the Shire Cache response; show the same response also reaching the data RAM.
+//  - Top: error-log outputs to the Neighborhood ESRs, APB debug access to the tag array.
+//  - Arrows: line request in from the arbiter; line response (line, ECC error, bus error) out,
+//    with the valid steered to the requesting micro-cache only.
 _Figure: L1 instruction cache block diagram._
 
+The sections that follow describe the interface (<<sec-ch3-l1-if>>), the organization (<<sec-ch3-l1-org>>), the arbitration between the micro-caches (<<sec-ch3-l1-arb>>), the pipeline of a hit (<<sec-ch3-l1-pipe>>), the arrays (<<sec-ch3-l1-arrays>>), the data RAM (<<sec-ch3-l1-ram>>), the miss path (<<sec-ch3-l1-miss>>), errors (<<sec-ch3-l1-errors>>), flush and the two special requests (<<sec-ch3-l1-flush>>) and debug access (<<sec-ch3-l1-dbg>>).
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-l1-if]]
+==== Interface
+
+The L1 instruction cache is part of `icache_top`, the module that also contains the two micro-caches. <<tab-ch3-l1-ports>> lists the ports of `icache_top` that belong to the L1 instruction cache. The line request and the line response between a micro-cache and the L1 instruction cache are internal to `icache_top` and are given with the micro-cache ports (<<tab-ch3-l0-ports>>).
+
+[[tab-ch3-l1-ports]]
+.L1 instruction cache I/O signals
+[cols="31%,5%,25%,39%",options="header"]
+|===
+| Signal | Dir | Width / type | Description
+
+4+h| Configuration and control
+| `esr_bypass_icache` | in | 1 | Bypass mode. Every lookup misses, and no tag or LRU state is written (<<sec-ch3-l1-flush>>).
+| `esr_err_log_ctl` | in | `esr_icache_err_log_ctl_t` | Error-log control ESR, 3 bits. Bit 0 enables the report of single-bit ECC errors to the micro-cache, and bit 1 of double-bit ECC errors. Bit 2 is used only by the Neighborhood ESR block.
+| `f0_flush_data` | in | 1 | Invalidates every line of the cache (<<sec-ch3-l1-flush>>).
+4+h| Shire Cache request
+| `f0_l2_miss_req_valid` | out | 1 | Request for a line from the Shire Cache. Held until accepted.
+| `f0_l2_miss_req` | out | `et_link_nodata_req_info_t` | Read of a full line at the line-aligned physical address. The Neighborhood channel sets the source field.
+| `f0_l2_miss_req_ready` | in | 1 | The memory request arbiter of the Neighborhood accepts the request.
+| `f0_l2_miss_req_disable_next` | in | 1 | Holds the request back for one cycle. The Neighborhood channel asserts it while a 512-bit eviction takes its second grant from the memory request arbiter.
+4+h| Shire Cache response
+| `f0_l2_miss_resp_valid` | in | 1 | The Shire Cache response arrives from the fill FIFO of the Neighborhood channel.
+| `f0_l2_miss_resp` | in | `et_link_rsp_info_t` | Response. The L1 instruction cache uses only its opcode, which tells an error response from a data response. The line is written into the data RAM by the Shire Channel.
+| `f0_l2_miss_resp_ready` | out | 1 | Tied high.
+4+h| Data RAM request
+| `f2_sram_req_valid` | out | 1 | Request to the data RAM.
+| `f2_sram_req_write` | out | 1 | 1: write the line of a fill into the entry. 0: read the entry.
+| `f2_sram_req_addr` | out | 9 | Entry of the data RAM: the set and the way, {set, way}.
+| `f2_sram_req_ready` | in | 1 | The data RAM accepts the request.
+4+h| Data RAM response
+| `f0_sram_resp_valid` | in | 1 | A line returns from the data RAM.
+| `f0_sram_resp_dout` | in | 576 | Line with its check bits: four 144-bit words, each with 128 data bits and 16 check bits.
+| `f0_sram_resp_ready` | out | 1 | Tied high.
+4+h| Error logging
+| `esr_err_log_sbe` | out | 1 | One-cycle pulse: a single-bit ECC error is found in a line read on a hit.
+| `esr_err_log_dbe` | out | 1 | One-cycle pulse: a double-bit ECC error is found in a line read on a hit.
+| `esr_err_log_info` | out | `icache_err_log_info_t` | Location and error bits of the error (<<tab-ch3-l1-err-info>>). Loaded with each pulse.
+4+h| APB debug access
+| `apb_paddr` | in | 10 | Debug address. Bit 9 selects the L1 tag array (0) or a micro-cache (1) (<<sec-ch3-l1-dbg>>).
+| `apb_psel`, `apb_penable`, `apb_pwrite` | in | 1 each | APB control, shared by the tag array and both micro-caches.
+| `apb_pwdata` | in | 64 | Write data.
+| `apb_pready`, `apb_pslverr` | out | 1 each | APB response. The responses of the tag array and both micro-caches are merged; `apb_pslverr` is tied low.
+| `apb_prdata` | out | 64 | Read data.
+4+h| Status Monitor
+| `dbg_sm_signals` | out | `icache_dbg_sm_t` | Tag hit vector of the lookup, miss state, and the valid and line address of the current line request, merged with the fields of both micro-caches.
+|===
+
+[[tab-ch3-l1-err-info]]
+.`icache_err_log_info_t`: ECC error information (59 bits)
+[cols="2,1,5",options="header"]
+|===
+| Field | Width | Description
+
+| `way` | 2 | Way of the line with the error.
+| `set` | 7 | Set of the line with the error.
+| `dbe_per_block` | 8 | One bit for each 64-bit block of the line: a double-bit error in that block.
+| `sbe_per_block` | 8 | One bit for each 64-bit block of the line: a single-bit error in that block.
+| `address` | 34 | Line address of the request, physical address bits 39:6.
+|===
+
+// ---------------------------------------------------------------------------
 [[sec-ch3-l1-org]]
-==== Organization
+==== Cache Organization and Address Decode
 
-[[sec-ch3-l1-arrays]]
-==== Tag, LRU and Data Arrays
+<<tab-ch3-l1-org>> summarizes the organization of the L1 instruction cache.
 
-[[sec-ch3-l1-ram]]
-==== External Data RAM
+[[tab-ch3-l1-org]]
+.L1 instruction cache organization
+[cols="2,5",options="header"]
+|===
+| Property | Value
 
+| Capacity | 32 KB: 128 sets of four 64-byte lines
+| Associativity | Four-way set associative
+| Index | Physical address bits 12:6, 7 bits, select one of the 128 sets
+| Tag | Physical address bits 39:13, 27 bits, and one valid bit for each line
+| Line size | 64 bytes, the size of the line request and of the line response
+| Replacement | LRU among the four ways of the set (<<sec-ch3-l1-lru>>)
+| Allocation | Every miss allocates a line, except in bypass mode. A line whose Shire Cache response is an error is not allocated.
+| Write policy | Read-only. Lines are written only by fills, and nothing is written back.
+| Coherence | None. A change to code in memory is seen only after a flush (<<sec-ch3-l1-flush>>).
+| Requests | One at a time, from either micro-cache
+|===
+
+[[sec-ch3-l1-params]]
+===== Configuration Parameters
+
+<<tab-ch3-l1-params>> lists the defines that size the L1 instruction cache and its data RAM.
+
+[[tab-ch3-l1-params]]
+.L1 instruction cache configuration parameters
+[cols="3,1,4",options="header"]
+|===
+| Define | Value | Description
+
+| `ICACHE_SETS` | 128 | Sets.
+| `ICACHE_SET_ADDR_WIDTH` | 7 | Set-index bits. +
+log2(`ICACHE_SETS`) = log2(128) = 7
+| `ICACHE_WAYS` | 4 | Ways.
+| `ICACHE_WAY_ADDR_WIDTH` | 2 | Bits that number a way. +
+log2(`ICACHE_WAYS`) = log2(4) = 2
+| `ICACHE_BLOCK_BITS` | 512 | Line size, 64 bytes. Shared with the micro-cache.
+| `ICACHE_PA_TAG_SIZE` | 27 | Tag bits. +
+`PA_SIZE` - (`ICACHE_SET_ADDR_WIDTH` + `ICACHE_BLOCK_ADDR_SIZE`) = 40 - (7 + 6) = 27
+| `ICACHE_LRU_SET_SIZE` | 16 | LRU bits stored for one set. +
+`ICACHE_WAYS` x `ICACHE_WAYS` = 16
+| `ICACHE_MEM_WORDS` | 512 | Words of one data RAM macro.
+| `ICACHE_MEM_WIDTH` | 144 | Bits of one word.
+| `ICACHE_MEM_USED_BITS` | 128 | Data bits of one word. The other 16 bits are check bits.
+| `ICACHE_NR_MEMS` | 4 | Data RAM macros. +
+(`ICACHE_WAYS` x `ICACHE_SETS` x `ICACHE_BLOCK_BITS`) / (`ICACHE_MEM_WORDS` x `ICACHE_MEM_USED_BITS`) = 262,144 / 65,536 = 4
+| `ICACHE_NR_MEMS_PER_ROW` | 4 | Macros that one line spans. +
+`ICACHE_BLOCK_BITS` / `ICACHE_MEM_USED_BITS` = 512 / 128 = 4
+| `ICACHE_SRAM_ADD_WIDTH` | 9 | Data RAM address bits. +
+log2(`ICACHE_MEM_WORDS`) = log2(512) = 9, with one row of macros
+| `ICACHE_SRAM_DATA_WIDTH` | 576 | Data RAM response bits. +
+`ICACHE_NR_MEMS_PER_ROW` x `ICACHE_MEM_WIDTH` = 4 x 144 = 576
+| `ICACHE_ECC_BLOCKS` | 8 | 64-bit blocks of a line, each with its own 8-bit code. +
+512 / 64 = 8
+|===
+
+[[sec-ch3-l1-storage]]
+===== Storage
+
+<<tab-ch3-l1-storage>> lists the storage of the L1 instruction cache. The tag array and the LRU array are register files in `icache_top`, inside the Neighborhood; the data RAM is in the Shire Channel (<<sec-ch3-l1-ram>>).
+
+[[tab-ch3-l1-storage]]
+.L1 instruction cache storage
+[cols="2,4,1",options="header"]
+|===
+| Structure | Organization | Bits
+
+| Tag array | 4 register files, one for each way, of 128 entries of a 27-bit tag; and 512 valid bits in flip-flops | 14,336
+| LRU array | 128 entries of 16 bits; and 128 flip-flops that record which sets were updated since reset | 2,176
+| Data RAM | 4 SRAM macros of 512 words of 144 bits: for each of the 512 lines, 512 data bits and 64 check bits | 294,912
+|===
+
+[[sec-ch3-l1-addr]]
+===== Address Decode
+
+A line request carries the 40-bit physical address of the line. The L1 instruction cache divides it into three fields: bits 39:13 are the 27-bit tag, compared with the four ways of the set; bits 12:6 select one of the 128 sets; and bits 5:0 are not used, because the request is always for a whole line. A line is stored in the data RAM at the entry {set, way}, so the four ways of a set are in four consecutive words.
+
+// FIGURE TO DRAW: images/ch03/fig-l1-addr-decode.drawio.png, "L1 instruction cache address decode",
+// in the style of fig-l0-addr-decode. Bit-field row of the 40-bit physical address:
+// PA[39:13] tag (27 bits), PA[12:6] set (7 bits), PA[5:0] not used (6 bits).
+// Below it: the set (7 bits) and the way of the hit or of the victim (2 bits) joined into the
+// 9-bit data RAM address {set[6:0], way[1:0]}.
+_Figure: L1 instruction cache address decode._
+
+// ---------------------------------------------------------------------------
 [[sec-ch3-l1-arb]]
 ==== Request Arbitration Between L0 Micro-Caches
 
+The L1 instruction cache has one request port, and two micro-caches send line requests to it. Each micro-cache therefore has a holding register in `icache_top`. The miss handler of a micro-cache drives its line request until the holding register is free (`f0_l1_miss_req_ready`). The holding register then takes the address, and the miss handler moves to Fill_Wait (<<sec-ch3-l0-mh>>).
+
+The two holding registers bid in a round-robin arbiter (`arb_rr_data`), which grants one of them when the L1 instruction cache can accept a request. The granted holding register is free again in the next cycle. When both holding registers bid, the grants alternate, so a micro-cache never waits for more than one request of the other.
+
+The index of the granted micro-cache is registered with the request, and the line response goes back to that micro-cache only: `f0_l1_miss_resp_valid` and `f0_l1_miss_resp_early_valid` are driven to it alone, while the line and its error flags are driven to both micro-cache instances. A request that loses the arbitration waits for the complete service of the other one. If both micro-caches send a line request in the same cycle and both hit, one receives its line 13 cycles after its line request, and the other 26 cycles after.
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-l1-pipe]]
+==== Pipeline and Hit Timing
+
+The L1 instruction cache serves a request in three stages, F0 to F2. These stages are its own and are numbered independently of the micro-cache stages. <<tab-ch3-l1-stages>> lists them, together with the arbitration cycle before F0.
+
+[[tab-ch3-l1-stages]]
+.L1 instruction cache pipeline stages
+[cols="1,5",options="header"]
+|===
+| Stage | Operation
+
+| Arbitration | The round-robin arbiter grants a holding register. The tag array and the LRU array start to read the set of the granted address.
+| F0 | The request and the index of its micro-cache are registered. The four tags of the set, their valid bits and the LRU state are available, and the LRU state selects the victim way.
+| F1 | The tag is compared with the four ways. On a hit, the data array control requests the line at {set, hit way}; on a miss, the miss state machine takes the miss (<<sec-ch3-l1-miss>>). The LRU state records the way that hits or the victim.
+| F2 | The data RAM request is registered and sent to the Shire Channel.
+|===
+
+After F2 the request crosses into the Shire Channel, and the line returns from the data RAM six cycles later, after the access and both crossings. The data array control registers the line, checks and corrects it in the next cycle, and registers the corrected line with its error flags (<<sec-ch3-l1-data-ctl>>). The line response leaves for the micro-cache one cycle later.
+
+<<tab-ch3-l1-tx-hit>> lists the steps of a line request that hits. Cycle 0 is the cycle in which the miss handler of the micro-cache drives the line request. The line reaches the micro-cache 13 cycles later, and the L1 instruction cache accepts its next line request one cycle after that, so it serves at most one line request every 13 cycles. Seen from the core, a core request that misses in the micro-cache and hits in the L1 instruction cache has its line written into the micro-cache 16 cycles after the grant, and fill done follows three cycles later (<<sec-ch3-l0-fill>>).
+
+[[tab-ch3-l1-tx-hit]]
+.L1 hit, steps by cycle
+[cols="2,4,12",options="header"]
+|===
+| Cycle | Block | Action
+
+| 0 | Micro-cache, holding register | The miss handler drives the line request, and the holding register takes the address.
+| 1 | Arbiter, tag and LRU arrays | The arbiter grants the request. The tag array and the LRU array start to read the set.
+| 2 | F0 | The request is registered. The LRU state selects the victim way.
+| 3 | F1 | One way hits. The data array control requests the line at {set, hit way}, and the LRU state records the way.
+| 4 | F2 | The data RAM read request leaves for the Shire Channel.
+| 10 | Data RAM | The line and its check bits return.
+| 11 | Data array control | The eight blocks are checked and corrected.
+| 12 | Data array control | The corrected line and its error flags are registered. `f0_l1_miss_resp_early_valid` is driven to the micro-cache.
+| 13 | Line response | `f0_l1_miss_resp_valid` is driven, and the micro-cache writes the line.
+| 14 | Arbiter | The L1 instruction cache can accept the next line request.
+|===
+
+// FIGURE TO DRAW: images/ch03/td-l1-hit.png (WaveJSON source images/ch03/src/td-l1-hit.json5),
+// "L1 hit timing", cycles 0 to 14 of the table above. Lanes: f0_l1_miss_req_valid (micro-cache),
+// holding register valid, arbiter grant, F0 valid, F1 hit, f2_sram_req_valid, f0_sram_resp_valid,
+// ECC check, f0_l1_miss_resp_early_valid, f0_l1_miss_resp_valid, line request ready.
+// Mark the six-cycle data RAM access (cycles 4 to 10) with a break or a bracket.
+_Figure: L1 hit timing._
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-l1-arrays]]
+==== Tag, LRU and Data Arrays
+
+The tag array and the LRU array work on the set of the request: the tag array tells which way holds the line, and the LRU array tells which way a miss replaces. The data array control connects the L1 instruction cache to its data RAM and checks every line that returns from it.
+
+[[sec-ch3-l1-tag]]
+===== Tag Array
+
+The tag array holds the tags of the 512 lines, in one register file for each way (`icache_tag_data_array`, 128 entries of 27 bits). Each register file has two read ports, one for the lookup and one for APB debug reads, and one write port. The valid bits, four for each set, are flip-flops beside the register files. <<tab-ch3-l1-tag-ports>> lists the ports of the array.
+
+[[tab-ch3-l1-tag-ports]]
+.L1 tag array ports
+[cols="2,2,6",options="header"]
+|===
+| Port | Stage | Function
+
+| Read | Arbitration, F0 | Reads the four tags and valid bits of the set; they are registered in F0.
+| Victim | F1 | Clears the valid bit of the victim of a miss, outside bypass mode.
+| Write | Fill | Writes the tag of the new line into the victim way and sets its valid bit when the Shire Cache response arrives. Nothing is written for an error response or in bypass mode, and after a flush the valid bit stays clear (<<sec-ch3-l1-flush>>). A double-bit ECC error clears the valid bit of the way that hits through the same port. APB debug writes share the port, and the fill has priority.
+| Flush | – | `f0_flush_data` clears all valid bits (<<sec-ch3-l1-flush>>).
+| APB | – | Reads the tags and valid bits of two ways through the second read port, and writes them through the write port (<<sec-ch3-l1-dbg>>).
+|===
+
+*Lookup.* In F1 each of the four ways is compared with PA[39:13]. A way hits when it is valid, its tag matches, and no flush is in progress. A line is allocated only after a miss, so at most one way hits.
+
+[[sec-ch3-l1-lru]]
+===== LRU Array
+
+The LRU array (`icache_lru_array`) keeps the order of use of the four ways of each set. For each pair of ways it holds one bit that tells which of the two was used more recently, and the bits of a set are stored in a 16-bit entry. In F0 the entry of the set selects the victim, the way that is older than the other three. In F1 the entry is updated: the way that hits, or the victim of a miss, becomes the most recent one.
+
+The LRU state is updated once for each request, and not again when the line of a miss arrives. The L1 instruction cache serves one request at a time, so no other access changes the order of the set while the line is outstanding. In bypass mode the LRU state is not updated. The victim does not depend on the valid bits, so an invalid way is not chosen first.
+
+The LRU register file has no reset. One flip-flop for each set records whether the set has been updated since reset, and until then the entry reads as zero, which selects way 0 as the victim.
+
+[[sec-ch3-l1-data-ctl]]
+===== Data Array Control
+
+The data array control (`icache_data_array`) turns a hit into a read request and the acceptance of a Shire Cache request into a write request. Both requests address the entry {set, way}: the way that hits for a read, and the victim for a write. The request is registered in F2 and held until the data RAM accepts it.
+
+The data RAM returns a line as four 144-bit words, 576 bits. Each word holds two 64-bit blocks and their two 8-bit codes, so the line has eight blocks, each protected by its own code. The code corrects a single-bit error and detects a double-bit error in its block. The data array control registers the response, checks and corrects all eight blocks in the next cycle, and registers the corrected line together with a single-bit and a double-bit error flag for each block (<<sec-ch3-l1-errors>>).
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-l1-ram]]
+==== External Data RAM
+
+The data RAM holds the data of all 512 lines. It is in the high-voltage region of the Shire Channel, in `icache_data_ram_wrap`, and the Shire Channel holds one such wrapper for each of the four Neighborhoods of the Shire (`icache_mems`). The wrapper contains four SRAM macros (`icache_data_ram`) of 512 words of 144 bits. One line spans the four macros, one word in each, and the four macros are read and written together. The line {set, way} is at word set x 4 + way.
+
+The L1 instruction cache reaches the wrapper through the voltage-domain crossing (<<sec-ch3-voltage>>). `f2_sram_req_*` carries the address and the write flag, and `f0_sram_resp_*` returns 576 bits. A read returns the stored line with its check bits. A write carries no data.
+
+The data of a write comes from the Shire Cache response itself. That response passes the Shire Channel on its way to the Neighborhood, and the wrapper watches it: it takes the response addressed to the instruction cache of its Neighborhood, and generates the eight 8-bit codes of the line. A write request waits in the wrapper until that response arrives. The wrapper then writes the line and its codes into the four macros, and returns the same line and codes as its response, so the new line reaches the L1 instruction cache through the same path as a line read on a hit.
+
+The wrapper serves a request in five stages of its own, F0 to F4. F0 accepts the request. F1 enables the macros, and holds a write until its line arrives. The macros need two cycles for an access, F1 and F2. F3 receives the output of the macros, and F4 registers it and returns the response.
+
+The wrapper also gives the debugger and the memory BIST access to the macros (<<sec-ch3-l1-dbg>>). Two DFT bits of the RAM configuration ESR, `esr_shire_cache_ram_cfg`, gate the chip enable and the write enable of the macros.
+
+// FIGURE TO DRAW: images/ch03/fig-l1-data-ram.drawio.png, "L1 data RAM organization".
+// icache_data_ram_wrap in the Shire Channel: four SRAM macros side by side, 512 words x 144 bits each,
+// the ECC generator fed by the Shire Cache response, and the F0-F4 wrapper stages. One word = two 64-bit data blocks
+// and their two 8-bit codes (128 + 16 bits); show blocks 0-1 in macro 0, 2-3 in macro 1,
+// 4-5 in macro 2, 6-7 in macro 3. Word address = {set[6:0], way[1:0]}, so the four ways of a set
+// are consecutive words. Show the 576-bit response and the voltage crossing towards icache_top.
+_Figure: L1 data RAM organization._
+
+// ---------------------------------------------------------------------------
 [[sec-ch3-l1-miss]]
 ==== Miss Path
 
+A line request that misses in F1 is served from the Shire Cache. The miss state machine of the L1 instruction cache handles the miss in three states:
+
+* *Ready:* no miss is outstanding. A miss in F1 moves the state machine to Request. The cache serves one request at a time, so the state machine is always in Ready when a request reaches F1.
+* *Request:* drives the Shire Cache request, a read of the full line at its line-aligned physical address, until the memory request arbiter of the Neighborhood accepts it (<<sec-ch3-mem-arb>>). When the request is accepted, the data array control sends the write request for the victim entry to the data RAM, and the state machine moves to Fill_Wait.
+* *Fill_Wait:* waits for the line. The state machine returns to Ready when the line response is sent to the micro-cache.
+
+// FIGURE TO DRAW: images/ch03/fig-l1-miss-fsm.drawio.png, "L1 miss state machine",
+// in the style of fig-l0-miss-fsm (circles, curved edges, reset arrow, Times New Roman).
+// States: Ready -> Request on "miss in F1"; Request -> Fill_Wait on "Shire Cache request accepted"
+// (f0_l2_miss_req_ready); Fill_Wait -> Ready on "line response sent" (f0_l1_miss_resp_valid);
+// self-loops: Ready "hit or no request", Request "not accepted", Fill_Wait "no line".
+_Figure: L1 miss state machine._
+
+In F1 the miss also frees the victim: the LRU state chose the victim in F0, its valid bit is cleared, and the LRU state records it as the most recent way. The valid bit stays clear until the tag of the new line is written.
+
+The Shire Cache response completes the fill in two places. On its way to the Neighborhood it passes the Shire Channel, where the data RAM, which holds the write request, writes the line into the victim entry and returns it (<<sec-ch3-l1-ram>>). In the Neighborhood the response reaches the L1 instruction cache through the fill FIFO, and the tag array writes the tag of the line (<<sec-ch3-l1-tag>>). The line response is sent to the micro-cache when both are present: the line from the data RAM, and the Shire Cache response, which carries the error status of the line. It leaves nine cycles after the Shire Cache response reaches the data RAM.
+
+The time of a miss depends on the Shire Cache access, which is not fixed. <<tab-ch3-l1-tx-miss>> lists the steps of a line request that misses. Cycle _A_ is the cycle in which the memory request arbiter accepts the Shire Cache request, cycle _S_ the cycle in which the Shire Cache response reaches the data RAM, and cycle _F_ the cycle in which the same response reaches the L1 instruction cache through the fill FIFO.
+
+[[tab-ch3-l1-tx-miss]]
+.L1 miss, steps by cycle
+[cols="2,4,12",options="header"]
+|===
+| Cycle | Block | Action
+
+| 0 to 2 | Micro-cache, arbiter, F0 | The line request is taken, granted and registered, and the LRU state selects the victim way.
+| 3 | F1, miss state machine | No way hits. The miss state machine moves to Request. The valid bit of the victim is cleared, and the LRU state records the victim.
+| 4 | Miss state machine | The Shire Cache request is driven to the memory request arbiter of the Neighborhood, and held until accepted.
+| _A_ | Data array control | The write request for {set, victim way} is sent to the data RAM. The miss state machine moves to Fill_Wait.
+| _S_ | Data RAM | The Shire Cache response arrives. The data RAM writes the line and its check bits into the victim entry and returns them.
+| _F_ | Tag array | The tag of the line is written into the victim way, and its valid bit is set.
+| _S_ + 9 | Line response | `f0_l1_miss_resp_valid` is driven, the micro-cache writes the line, and the miss state machine returns to Ready.
+|===
+
+// ---------------------------------------------------------------------------
 [[sec-ch3-l1-errors]]
 ==== Errors and ECC
+
+A line can come with two kinds of error: an ECC error found in the data RAM, and an error response from the Shire Cache. The micro-cache stores both flags with the line and returns them with every hit on it (<<sec-ch3-l0-data-array>>).
+
+*ECC errors.* The data array control checks the eight blocks of every line that the data RAM returns. A single-bit error is corrected, so the micro-cache receives correct instructions; a double-bit error cannot be corrected. The error flags are used only for a line read on a hit; for the line of a fill, which the data RAM returns as it writes it, they are not used. An ECC error has three effects:
+
+* *Report to the micro-cache:* `f0_l1_miss_resp_ecc_err` is set with the line if the class of the error is enabled in the error-log control ESR: bit 0 for single-bit errors, bit 1 for double-bit errors.
+* *Log:* `esr_err_log_sbe` or `esr_err_log_dbe` pulses, and `esr_err_log_info` carries the way, the set, the error bits of each block and the line address to the Neighborhood ESR block, which logs the error (<<sec-ch3-esr>>).
+* *Invalidation:* on a double-bit error the valid bit of the way is cleared, so the next request for the line misses and fetches it again from the Shire Cache.
+
+*Shire Cache errors.* If the Shire Cache returns an error response for the Shire Cache request, the tag is not written, so the line is not allocated. `f0_l1_miss_resp_l2_err` is set with the line response of that miss only.
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-l1-flush]]
+==== Flush, Bypass Mode and Prefetch
+
+The flush and the two special requests of the micro-cache also reach the L1 instruction cache:
+
+* *Flush:* the flush of the instruction caches arrives on the same `f0_flush_data` as at the micro-caches (<<sec-ch3-l0-flush>>). In the flush cycle the valid bits of all 512 lines are cleared, and no lookup hits. A miss outstanding at the flush still writes its tag when the Shire Cache response arrives, but the line stays invalid, because the flush is remembered until the miss state machine returns to Ready. The LRU state does not change.
+* *Bypass mode:* every lookup misses, and the L1 instruction cache writes no tag and does not update its LRU state, so it keeps no copy of the line. The line still returns to the micro-cache through the data RAM, as explained for bypass mode (<<sec-ch3-l0-bypass-why>>).
+* *Prefetch:* a line request of the code prefetcher is handled like any other line request, and its line is kept in the cache (<<sec-ch3-l0-pf-path>>).
+
+// ---------------------------------------------------------------------------
+[[sec-ch3-l1-dbg]]
+==== Debug Access
+
+The tag array and the data RAM of the L1 instruction cache are reached through two different APB paths. The tag array is read and written through the same 10-bit address as the micro-caches (<<tab-ch3-l0-dbg-map>>). Bit 9 is 0 for the tag array, bits 7:1 select the set, and bit 0 selects a pair of ways: 0 for ways 0 and 1, 1 for ways 2 and 3. Bit 8 is not used.
+
+* *Read:* the 64-bit read data returns both ways of the pair, the even way in bits 31:0 and the odd way in bits 63:32. Each half holds the tag in its bits 26:0 and the valid bit in its bit 27. The read uses the second read port of the tag array and does not wait for the lookup.
+* *Write:* writes the tags and valid bits of both ways from the same bit positions. A write waits for a cycle in which no fill writes the tag array.
+
+The data RAM is read and written over the APB of the Shire Channel, through the wrapper (<<sec-ch3-l1-ram>>). Three upper address bits select the Neighborhood, and the 13-bit address within the wrapper selects the word and the part of it:
+
+* *Bits 12:4:* word of the four macros, which is the line {set, way}.
+* *Bit 3:* 0 for a 64-bit data block, 1 for the check bits of the word, the four 16-bit check fields in one 64-bit value.
+* *Bits 2:0:* data block of the line, 0 to 7.
+
+A read returns the selected 64 bits. A write is a read-modify-write of the whole word: the word is read, the selected 64 bits are replaced, and the word is written back. A debug access waits for a cycle with no request from the L1 instruction cache.
+
+`apb_pslverr` is never asserted by the tag array or by the wrapper.
 
 // ---------------------------------------------------------------------------
 [[sec-ch3-ptw]]
